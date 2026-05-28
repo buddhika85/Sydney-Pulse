@@ -109,9 +109,44 @@ Full reasoning lives in `/docs/adr/`. Critical decisions to know upfront:
 - `/docs/modes.md` — build vs demo mode behaviour
 - `/docs/runbooks/` — deploy, rollback, incident response
 
-## Useful slash commands when working with Claude Code
+## Working with Claude Code
+
+Strict step-by-step collaboration. No parallel work.
+
+### Azure changes — verification cycle
+
+The human developer runs every command that creates, modifies, or
+deletes Azure resources. Claude provides instructions only and never
+executes them.
+
+For each Azure change:
+1. Claude gives Azure Portal click-path (preferred) or a single-line
+   PowerShell command, with what / cost / why.
+2. Developer executes the steps.
+3. Claude gives a read-only verification command
+   (`az ... show`, `az ... list`).
+4. Developer runs it, pastes the output.
+5. Both confirm the resource matches expectations before the next step.
+
+Read-only `az` queries (list, show, query) are safe for Claude to run
+directly — no need to ask.
+
+### Code changes
+
+- One file at a time. Claude announces which file is being modified
+  and why *before* editing.
+- Developer reviews each change before Claude proceeds.
+- No batching unrelated edits in a single turn.
+
+### PowerShell paste gotcha
+
+Multi-line commands with backtick continuation often break when pasted
+into PowerShell. Prefer single-line commands when handing the developer
+something to run.
+
+### Useful slash commands
 
 - `/add-dir docs/adr` — pull all ADRs into the working set
 - `/add-dir infra` — pull all Bicep files when doing infrastructure work
-- Always mention the relevant ADR number when starting a task that touches
-  an established decision area.
+- Always mention the relevant ADR number when starting a task that
+  touches an established decision area.
