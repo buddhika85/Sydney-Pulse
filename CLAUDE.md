@@ -1,0 +1,117 @@
+# Sydney Pulse
+
+Real-time disruption intelligence for Sydney public transport. Event-driven
+Azure architecture built from Transport for NSW open data. Portfolio project
+targeting AZ-400 / DevOps Engineer roles.
+
+## Tech stack
+
+- Backend: .NET 8 isolated-worker Azure Functions (C#)
+- Frontend: Angular 18+ standalone components, RxJS, Tailwind CSS, Leaflet
+- Infrastructure: Bicep (NOT Terraform — see ADR-0004)
+- CI/CD: GitHub Actions (NOT Azure Pipelines)
+- Hosting: Azure Static Web Apps + Azure Functions Consumption plan
+
+## Project layout
+
+```
+/functions/   .NET solution
+  SydneyPulse.Functions/      Azure Functions host
+  SydneyPulse.Core/           Models, TfNswFeedClient, business logic
+  SydneyPulse.Tests/          xUnit tests
+/web/         Angular app
+/infra/       Bicep modules + parameter files
+/docs/        Reference docs and ADRs
+/.github/     CI/CD workflows including reusable templates
+```
+
+## Key architectural decisions
+
+Full reasoning lives in `/docs/adr/`. Critical decisions to know upfront:
+
+- **Event Grid + Service Bus topic** for messaging (ADR-0001). Event Grid
+  fans out vehicle updates; Service Bus topic carries only ServiceAlert
+  events via subscription filter. Reuses an existing Standard namespace.
+- **Cosmos DB Serverless**, not provisioned RU/s (ADR-0002). Partition key
+  is `routeShortName`. Free tier was unavailable on this subscription.
+- **Reused existing Service Bus Standard namespace** (ADR-0003). Add new
+  topics; never modify namespace-level config.
+- **Bicep over Terraform** (ADR-0004) for tight Azure alignment.
+- **Angular over React** (ADR-0005) for .NET ecosystem alignment.
+- **Deployment slots, not feature flags** for blue/green (ADR-0006).
+- **SRE is a first-class actor** (ADR-0007). Operations is a product surface.
+- **SignalR Free SKU** sufficient at portfolio scale (ADR-0008).
+- **GTFS static feeds cached 1 hour** in memory (ADR-0009).
+- **Alert ordering is per-route best-effort**, not strict global (ADR-0010).
+
+## Conventions
+
+- **Commits**: Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`,
+  `refactor:`, `test:`). Enforced by commitlint in pre-commit hook.
+- **Branches**: GitHub Flow off `main`. Feature branches, PR + squash merge.
+- **Resource naming**: `sydney-pulse-<service>-<env>`, e.g.
+  `sydney-pulse-func-prod`, `sydney-pulse-cosmos-dev`.
+- **C#**: PascalCase types and methods. `dotnet format` on save. Top-level
+  statements allowed only in `Program.cs`.
+- **TypeScript**: strict mode, no `any`, kebab-case filenames.
+- **Bicep**: kebab-case module names. Parameters in camelCase.
+
+## What lives where
+
+- TfNSW API client: `functions/SydneyPulse.Core/TfNsw/TfNswFeedClient.cs`
+- Route metadata cache: in-memory, 1h TTL, inside `TfNswFeedClient`
+- Event Grid schemas: `functions/SydneyPulse.Core/Events/` (as records)
+- Cosmos models: `functions/SydneyPulse.Core/Cosmos/`
+- Bicep modules: `infra/modules/{network,messaging,compute,data,observability}.bicep`
+- Environment parameters: `infra/parameters/{dev,prod}.bicepparam`
+- Reusable workflows: `.github/workflows/reusable/`
+
+## Environments
+
+- **dev** — `sydney-pulse-rg-dev`. Auto-deploys from `main`. Free SKUs.
+- **prod** — `sydney-pulse-rg-prod`. Manual approval before slot swap.
+- **No staging** — slot swap on prod Function App fills that role.
+
+## Non-obvious constraints (read before changing related code)
+
+- TfNSW API key lives in **Key Vault**, accessed via system-assigned
+  Managed Identity. Never put it in Function App settings directly.
+- Service Bus Standard namespace is **pre-existing** and shared with other
+  workloads in this subscription. Only add new topics/queues; never modify
+  namespace-level configuration.
+- Application Insights sampling is fixed at **5%** with a **1 GB/day cap**.
+  Disabling sampling without coordination burns through the free tier in days.
+- SignalR Free SKU caps at **20 concurrent connections** and **20k messages
+  per day**. Don't load-test the live dashboard.
+- Cosmos Serverless is billed **per RU**. Hot loops without throttling can
+  spike a $20+ bill in hours.
+- TfNSW API rate limit is **5 requests per second**, 60k per day. The
+  `TfNswFeedClient` has Polly retry policy; do not bypass it.
+- `route_id` is internal (e.g. `NTH_1a`); `route_short_name` is user-facing
+  (e.g. `T1`). Always group by `route_short_name` for UI and partitioning.
+
+## How to verify things work
+
+- Run all tests: `dotnet test functions/SydneyPulse.sln && cd web && npm test`
+- Lint everything: `dotnet format --verify-no-changes && cd web && npm run lint`
+- Run Functions locally: `cd functions/SydneyPulse.Functions && func start`
+  (requires Azurite + appropriate environment variables loaded)
+- Run Angular locally: `cd web && npm start`
+- Deploy to dev: `gh workflow run deploy.yml -f environment=dev`
+- Tail prod App Insights logs: see `/docs/runbooks/deploy.md`
+
+## When in doubt
+
+- `/docs/architecture.md` — system overview and dataflow
+- `/docs/api.md` — HTTP and SignalR contracts
+- `/docs/adr/` — the "why" behind every major decision
+- `/docs/cost-model.md` — tier choices and scaling notes
+- `/docs/modes.md` — build vs demo mode behaviour
+- `/docs/runbooks/` — deploy, rollback, incident response
+
+## Useful slash commands when working with Claude Code
+
+- `/add-dir docs/adr` — pull all ADRs into the working set
+- `/add-dir infra` — pull all Bicep files when doing infrastructure work
+- Always mention the relevant ADR number when starting a task that touches
+  an established decision area.
