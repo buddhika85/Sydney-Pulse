@@ -1,0 +1,18 @@
+{
+  "name": "sydney-pulse-monorepo",
+  "version": "0.0.0",
+  "description": "Sydney Pulse monorepo dev tooling (commitlint, husky)",
+  "scripts": {
+    "prepare": "husky"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/buddhika85/Sydney-Pulse.git"
+  },
+  "private": true,
+  "devDependencies": {
+    "@commitlint/cli": "^21.0.1",
+    "@commitlint/config-conventional": "^21.0.1",
+    "husky": "^9.1.7"
+  }
+}
