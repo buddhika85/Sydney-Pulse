@@ -26,6 +26,9 @@ public class PollerFunction(
     ILogger<PollerFunction> logger)
 {
     // CloudEvent type strings must match the filter values in messaging.bicep exactly.
+    //   The CloudEvent `type` string is the routing key. Event Grid evaluates each
+    //   incoming event against subscriber filters and delivers it to the correct
+    //   downstream components based on that type.
     private const string EventSource        = "/sydney-pulse/poller";
     private const string VehicleUpdateType  = "com.sydneypulse.VehicleUpdate.v1";
     private const string ServiceAlertType   = "com.sydneypulse.ServiceAlert.v1";
