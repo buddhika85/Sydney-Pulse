@@ -1,0 +1,152 @@
+// GtfsRealtime.proto
+// ------------------
+//
+// This file defines the subset of the GTFS‑Realtime Protobuf schema used by
+// Sydney Pulse to parse TfNSW’s live vehicle + alert feeds.
+//
+// ─────────────────────────────────────────────────────────────────────────────
+// Why this file exists
+// ─────────────────────────────────────────────────────────────────────────────
+// TfNSW publishes GTFS‑Realtime data as binary Protobuf (.pb) files. The official
+// GTFS‑RT spec provides a .proto schema, but the Google.Protobuf NuGet package
+// does NOT include it. To deserialize the .pb payloads into strongly‑typed C#
+// classes, we must include a .proto file in the project so Grpc.Tools can
+// generate the corresponding C# message types at build time.
+//
+// ─────────────────────────────────────────────────────────────────────────────
+// Why this file is “slimmed down”
+// ─────────────────────────────────────────────────────────────────────────────
+// The official GTFS‑RT schema contains many fields we do not use. Protobuf is
+// fully forward/backward compatible as long as field *numbers* match, so we
+// declare only the fields required by Sydney Pulse. Unknown fields in TfNSW’s
+// payloads are safely ignored by the Protobuf runtime.
+//
+// This keeps the generated C# classes smaller, faster, and easier to work with.
+//
+// End‑to‑end flow (build → runtime)
+// ─────────────────────────────────────────────────────────────────────────────
+// 1. At build time, Grpc.Tools runs protoc on this file and generates C# classes
+//    (FeedMessage, FeedEntity, VehiclePosition, Alert, etc.).
+//
+// 2. At runtime, the Poller Function downloads TfNSW’s .pb feed and parses it:
+//
+//       var feed = FeedMessage.Parser.ParseFrom(bytes);
+//
+//    This produces strongly‑typed C# objects that the pipeline maps into
+//    internal domain events before publishing to Event Grid.
+//
+// ─────────────────────────────────────────────────────────────────────────────
+// Only the fields required by Sydney Pulse are defined below.
+// Unknown fields in TfNSW’s payloads are ignored automatically.
+// When dotnet build runs, Grpc.Tools will compile this into a TransitRealtime 
+// C# namespace with classes like FeedMessage, VehiclePosition, Alert etc.
+// ─────────────────────────────────────────────────────────────────────────────
+
+
+syntax = "proto3";
+
+package transit_realtime;
+
+option csharp_namespace = "TransitRealtime";
+
+// Top-level container returned by every GTFS-RT endpoint.
+message FeedMessage {
+  FeedHeader header = 1;
+  repeated FeedEntity entity = 2;
+}
+
+message FeedHeader {
+  string gtfs_realtime_version = 1;
+  uint64 timestamp = 3;
+}
+
+// One entity is either a vehicle position or a service alert (never both).
+message FeedEntity {
+  string id = 1;
+  bool is_deleted = 2;
+  VehiclePosition vehicle = 4;
+  Alert alert = 5;
+}
+
+message VehiclePosition {
+  TripDescriptor trip = 1;
+  Position position = 2;
+  uint32 current_stop_sequence = 3;
+  string stop_id = 7;
+  uint64 timestamp = 5;
+  VehicleDescriptor vehicle = 8;
+  OccupancyStatus occupancy_status = 9;
+
+  enum OccupancyStatus {
+    EMPTY = 0;
+    MANY_SEATS_AVAILABLE = 1;
+    FEW_SEATS_AVAILABLE = 2;
+    STANDING_ROOM_ONLY = 3;
+    CRUSHED_STANDING_ROOM_ONLY = 4;
+    FULL = 5;
+    NOT_ACCEPTING_PASSENGERS = 6;
+  }
+}
+
+message Position {
+  float latitude = 1;
+  float longitude = 2;
+  float bearing = 3;
+  // field 4 = odometer (unused)
+  float speed = 5;
+}
+
+message TripDescriptor {
+  string trip_id = 1;
+  string route_id = 5;
+}
+
+message VehicleDescriptor {
+  string id = 1;
+  string label = 2;
+}
+
+message Alert {
+  repeated TimeRange active_period = 1;
+  repeated EntitySelector informed_entity = 5;
+  Effect effect = 7;
+  TranslatedString header_text = 10;
+  TranslatedString description_text = 11;
+
+  // NO_EFFECT = 0 is a proto3 placeholder; original spec has UNKNOWN_EFFECT = 8.
+  enum Effect {
+    NO_EFFECT = 0;
+    NO_SERVICE = 1;
+    REDUCED_SERVICE = 2;
+    SIGNIFICANT_DELAYS = 3;
+    DETOUR = 4;
+    ADDITIONAL_SERVICE = 5;
+    MODIFIED_SERVICE = 6;
+    OTHER_EFFECT = 7;
+    UNKNOWN_EFFECT = 8;
+    STOP_MOVED = 9;
+    ACCESSIBILITY_ISSUE = 10;
+  }
+}
+
+message TimeRange {
+  uint64 start = 1;
+  uint64 end = 2;
+}
+
+message EntitySelector {
+  string agency_id = 1;
+  string route_id = 2;
+  int32 route_type = 3;
+  TripDescriptor trip = 4;
+  string stop_id = 5;
+}
+
+message TranslatedString {
+  repeated Translation translation = 1;
+
+  message Translation {
+    string text = 1;
+    string language = 2;
+  }
+}

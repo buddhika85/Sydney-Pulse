@@ -18,7 +18,7 @@ dashboard, tagged `v0.1.0`.
 | SP1-01 | Repo + Azure bootstrap            | ✅     | 2026-05-29  | 2026-05-29  | `eded4fa`, `ac1cd0a` |
 | SP1-02 | SignalR de-risking spike          | ✅     | 2026-05-29  | 2026-05-29  | `d4629c9`           |
 | SP1-03 | Bicep skeleton                    | ✅     | 2026-05-29  | 2026-05-29  | see bundle commit   |
-| SP1-04 | TfNswFeedClient                   | ⬜     | —           | —           | —                   |
+| SP1-04 | TfNswFeedClient                   | ✅     | 2026-05-29  | 2026-05-29  | see SP1-04 commit   |
 | SP1-05 | Poller Function                   | ⬜     | —           | —           | —                   |
 | SP1-06 | State Writer Function             | ⬜     | —           | —           | —                   |
 | SP1-07 | Alerter chain                     | ⬜     | —           | —           | —                   |
@@ -205,7 +205,44 @@ Non-obvious decisions:
   App Insights billing resources — known Bicep type-library gap, safe to
   ignore; resources deploy correctly at runtime.
 
-## SP1-04 through SP1-13
+## SP1-04 — TfNswFeedClient ✅
+
+Closed 2026-05-29. Build clean (0 errors, 0 warnings). All 3 unit tests pass.
+
+Landed:
+
+- `SydneyPulse.Core/TfNsw/GtfsRealtime.proto` — slim proto3 definition for
+  `FeedMessage`, `VehiclePosition`, `Alert`. Field numbers match the official
+  GTFS-RT spec so TfNSW's proto2-encoded binary parses correctly.
+- `TfNswOptions.cs` — strongly-typed config (`ApiKey`, `BaseUrl`,
+  `VehicleModes[]`); bound via `IOptions<TfNswOptions>`.
+- `RouteInfo.cs` — immutable record for static route metadata.
+- `Events/VehicleUpdate.cs` + `Events/ServiceAlert.cs` — event records
+  matching the `VehicleUpdate.v1` / `ServiceAlert.v1` CloudEvent shapes
+  from `docs/api.md`.
+- `ITfNswFeedClient.cs` — interface with 3 methods: `GetVehiclePositionsAsync`,
+  `GetServiceAlertsAsync`, `GetRoutesAsync`.
+- `TfNswFeedClient.cs` — implementation: HTTP fetch → protobuf decode →
+  route enrichment → 1-hour in-memory cache per mode (ADR-0009).
+- `Tests/Unit/TfNswFeedClientTests.cs` — 3 tests: vehicle position mapping,
+  cache hit (second call makes no HTTP request), CSV colour normalisation.
+
+Non-obvious decisions:
+
+- Proto3 syntax used instead of the official proto2 — wire format is
+  compatible when field numbers match, avoids `required` field complexity
+  with `Google.Protobuf`.
+- Auth header (`apikey`) set per-request via `HttpRequestMessage` in
+  `FetchBytesAsync`. Polly resilience handler (retry on 429/503, circuit
+  breaker) is NOT in the client itself — it goes on the named `HttpClient`
+  in `Program.cs` DI registration (SP1-05).
+- Double-checked locking in `GetRoutesAsync`: fast path skips the
+  `SemaphoreSlim` for warm cache; lock only taken on miss to prevent
+  duplicate concurrent downloads.
+- CSV parser handles double-quoted fields — `route_long_name` can contain
+  commas in some GTFS feeds.
+
+## SP1-05 through SP1-13
 
 Not started. Refer to `sprint-1.md` for scope and per-item description.
 
@@ -236,7 +273,7 @@ Not started. Refer to `sprint-1.md` for scope and per-item description.
 | SignalR + Service Bus connection strings not in KV     | Set via `az keyvault secret set` before first `func start` against cloud  | User    |
 | Event Grid webhook URLs are placeholders               | Update state-writer + archiver subscriptions after Function App deployed   | Claude  |
 | SignalR Free SKU caps (20 conns, 20k msgs/day)         | Acceptable per ADR-0008; load-test forbidden                              | —       |
-| TfNSW API quota (5 rps, 60k/day)                       | Polly retry policy in TfNswFeedClient (SP1-04); never bypass              | Claude  |
+| TfNSW API quota (5 rps, 60k/day)                       | Polly resilience handler on named HttpClient in Program.cs (SP1-05)       | Claude  |
 
 ## Update protocol
 
@@ -253,13 +290,14 @@ When an item is blocked:
 
 ## Next session handoff (2026-05-29 EOD)
 
-SP1-03 closed. SP1-04 (TfNswFeedClient) is next.
+SP1-04 closed. SP1-05 (Poller Function) is next.
 
 ### Where we are
 
-SP1-03 Bicep skeleton complete. `bicep build` clean (0 errors). Not yet
-deployed to Azure — first `what-if` + deploy is the opening step of the
-next session before SP1-04 begins.
+SP1-03 Bicep skeleton committed but **not yet deployed to Azure**.
+SP1-04 TfNswFeedClient complete — build clean, 3 tests passing.
+Key Vault secrets not yet seeded (required before SP1-05 can run locally
+against the cloud SignalR / Event Grid).
 
 ### Resume sequence
 
@@ -273,13 +311,13 @@ next session before SP1-04 begins.
    az deployment group create --resource-group sydney-pulse-rg-dev --template-file infra/main.bicep --parameters infra/parameters/dev.bicepparam
    ```
 3. **Seed Key Vault secrets** (user runs — three secrets needed before
-   SP1-05 Poller can run):
+   SP1-05 Poller can run against the cloud):
    - `AzureSignalRConnectionString` — Primary Connection String from
      `sydney-pulse-signalr-dev` → Keys
    - `TfNswApiKey` — TfNSW Open Data API key
    - `ServiceBusConnectionString` — Primary Connection String from
      `devpulse-service-bus` → Shared Access Policies → RootManageSharedAccessKey
-4. **Start SP1-04 — TfNswFeedClient** per `sprint-1.md`.
+4. **Start SP1-05 — Poller Function** per `sprint-1.md`.
 
 ### Standing operating rules
 

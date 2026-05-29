@@ -6,4 +6,20 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Google.Protobuf" Version="3.27.3" />
+    <!-- Grpc.Tools is build-time only — generates C# from .proto files. -->
+    <PackageReference Include="Grpc.Tools" Version="2.65.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.0" />
+  </ItemGroup>
+
+  <!-- Compile the GTFS-RT proto into C# message classes (no gRPC stubs needed). -->
+  <ItemGroup>
+    <Protobuf Include="TfNsw/GtfsRealtime.proto" GrpcServices="None" />
+  </ItemGroup>
+
 </Project>
