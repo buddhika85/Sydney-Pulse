@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(**/local.settings.json)",
+      "Edit(**/local.settings.json)",
+      "Write(**/local.settings.json)"
+    ]
+  }
+}
