@@ -221,3 +221,5 @@ something to run.
 - `/add-dir infra` — pull all Bicep files when doing infrastructure work
 - Always mention the relevant ADR number when starting a task that
   touches an established decision area.
+- If a sprint item introduces an architectural decision not covered
+  by an existing ADR, propose a new ADR before implementing.
