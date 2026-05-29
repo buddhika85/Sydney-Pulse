@@ -198,9 +198,10 @@ Example: `feat/sp1-05-poller-function`
    Claude then:
    - Updates `docs/sprints/progress.md` (flip row to ✅, add prose section,
      update handoff) and commits directly to `main` as a housekeeping commit.
-   - Transitions the corresponding Jira issue (SP-X) to **Done** using the
-     Atlassian MCP tool (`transitionJiraIssue`, transition id `"41"`).
-     Cloud ID: `a56e505d-a4c8-4a28-90a5-44d597c7e326`, project key: `SP`.
+   - Proposes the Jira transition: "SP-X is ready to move to Done — shall I
+     update the board?" and waits for explicit approval before calling the
+     Atlassian MCP tool. Cloud ID: `a56e505d-a4c8-4a28-90a5-44d597c7e326`,
+     project key: `SP`, Done transition id: `"41"`.
 
 **Housekeeping commits** (gitignore, docs fixes, progress.md updates unrelated
 to a sprint feature) may go directly to `main` without a PR.
