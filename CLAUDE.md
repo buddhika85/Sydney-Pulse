@@ -183,14 +183,20 @@ Example: `feat/sp1-05-poller-function`
    Each logical step gets its own commit on the branch.
 3. **Push the branch:**
    `git push -u origin feat/<ticket-id>-<short-description>`
-4. **Open a PR** — Claude drafts the description (summary bullets +
-   test plan checklist + Jira ticket reference):
-   `gh pr create --title "feat(...): ... — <TICKET-ID>" --body "..."`
-5. **Squash merge** into `main` after developer review:
-   `gh pr merge --squash --delete-branch`
+4. **Open a PR** — Claude uses the GitHub MCP tool (`create_pull_request`)
+   to create the PR with summary bullets, test plan checklist, and ticket
+   reference. Do not use `gh pr create` — MCP is preferred when available.
+5. **Squash merge** — MCP `merge_pull_request` returns 403 on this repo;
+   developer runs locally:
+   `gh pr merge <number> --squash --delete-branch`
+6. **Post-merge** — developer runs:
+   `git checkout main && git pull origin main`
+   Claude then updates `docs/sprints/progress.md` (flip row to ✅, add prose
+   section, update handoff) and commits directly to `main` as a housekeeping
+   commit.
 
-**Housekeeping commits** (gitignore, docs, chore fixes unrelated to a
-sprint item) may still go directly to `main`.
+**Housekeeping commits** (gitignore, docs fixes, progress.md updates unrelated
+to a sprint feature) may go directly to `main` without a PR.
 
 ### PowerShell paste gotcha
 
