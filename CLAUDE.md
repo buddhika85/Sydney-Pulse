@@ -195,9 +195,12 @@ Example: `feat/sp1-05-poller-function`
    `gh pr merge <number> --squash --delete-branch`
 6. **Post-merge** — developer runs:
    `git checkout main && git pull origin main`
-   Claude then updates `docs/sprints/progress.md` (flip row to ✅, add prose
-   section, update handoff) and commits directly to `main` as a housekeeping
-   commit.
+   Claude then:
+   - Updates `docs/sprints/progress.md` (flip row to ✅, add prose section,
+     update handoff) and commits directly to `main` as a housekeeping commit.
+   - Transitions the corresponding Jira issue (SP-X) to **Done** using the
+     Atlassian MCP tool (`transitionJiraIssue`, transition id `"41"`).
+     Cloud ID: `a56e505d-a4c8-4a28-90a5-44d597c7e326`, project key: `SP`.
 
 **Housekeeping commits** (gitignore, docs fixes, progress.md updates unrelated
 to a sprint feature) may go directly to `main` without a PR.
