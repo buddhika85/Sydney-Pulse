@@ -167,6 +167,31 @@ directly — no need to ask.
 - Developer reviews each change before Claude proceeds.
 - No batching unrelated edits in a single turn.
 
+### Feature branches and PRs (SP1-05 onwards)
+
+Every sprint item from SP1-05 forward gets its own feature branch and PR.
+Never commit directly to `main` for sprint work.
+
+**Branch naming:** `feat/<ticket-id>-<short-description>` (kebab-case).
+Example: `feat/sp1-05-poller-function`
+
+**Cycle for each sprint item:**
+
+1. **Create the branch** before touching any files:
+   `git checkout -b feat/<ticket-id>-<short-description>`
+2. **Implement** — commit as you go using Conventional Commits.
+   Each logical step gets its own commit on the branch.
+3. **Push the branch:**
+   `git push -u origin feat/<ticket-id>-<short-description>`
+4. **Open a PR** — Claude drafts the description (summary bullets +
+   test plan checklist + Jira ticket reference):
+   `gh pr create --title "feat(...): ... — <TICKET-ID>" --body "..."`
+5. **Squash merge** into `main` after developer review:
+   `gh pr merge --squash --delete-branch`
+
+**Housekeeping commits** (gitignore, docs, chore fixes unrelated to a
+sprint item) may still go directly to `main`.
+
 ### PowerShell paste gotcha
 
 Multi-line commands with backtick continuation often break when pasted
