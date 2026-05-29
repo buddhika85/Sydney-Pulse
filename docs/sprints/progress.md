@@ -16,7 +16,7 @@ dashboard, tagged `v0.1.0`.
 | #      | Item                              | Status | Started     | Done        | Commits             |
 |--------|-----------------------------------|--------|-------------|-------------|---------------------|
 | SP1-01 | Repo + Azure bootstrap            | ✅     | 2026-05-29  | 2026-05-29  | `eded4fa`, `ac1cd0a` |
-| SP1-02 | SignalR de-risking spike          | ✅     | 2026-05-29  | 2026-05-29  | see bundle commit   |
+| SP1-02 | SignalR de-risking spike          | ✅     | 2026-05-29  | 2026-05-29  | `d4629c9`           |
 | SP1-03 | Bicep skeleton                    | ⬜     | —           | —           | —                   |
 | SP1-04 | TfNswFeedClient                   | ⬜     | —           | —           | —                   |
 | SP1-05 | Poller Function                   | ⬜     | —           | —           | —                   |
