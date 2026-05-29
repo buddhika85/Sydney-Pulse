@@ -45,30 +45,11 @@ resource eventGridTopic 'Microsoft.EventGrid/topics@2022-06-15' = {
 // These subscriptions use dead-letter storage on the Functions storage account;
 // the storage account name is threaded through main.bicep at deploy time.
 
-// state-writer subscription: delivers VehicleUpdate.v1 to the State Writer Function.
-resource stateWriterSubscription 'Microsoft.EventGrid/topics/eventSubscriptions@2022-06-15' = {
-  parent: eventGridTopic
-  name: 'state-writer'
-  properties: {
-    filter: {
-      // Only VehicleUpdate events reach the State Writer.
-      includedEventTypes: [ 'com.sydneypulse.VehicleUpdate.v1' ]
-    }
-    // Webhook destination placeholder — updated post-deploy once Function URL is known.
-    destination: {
-      endpointType: 'WebHook'
-      properties: {
-        // Functions runtime validates ownership via a handshake at subscription creation.
-        endpointUrl: 'https://placeholder.azurewebsites.net/runtime/webhooks/eventgrid'
-      }
-    }
-    retryPolicy: {
-      maxDeliveryAttempts:      30
-      eventTimeToLiveInMinutes: 1440 // 24-hour retry window.
-    }
-    eventDeliverySchema: 'CloudEventSchemaV1_0'
-  }
-}
+// state-writer and archiver webhook subscriptions are NOT declared here.
+// Event Grid validates webhook endpoints at subscription creation time —
+// the placeholder URL causes a 404 validation failure and aborts the deploy.
+// These subscriptions are created via az CLI in SP1-06 once the Function App
+// URL is known (see infra/DEPLOY.md Step 5).
 
 // alerter subscription: delivers ServiceAlert.v1 to the Service Bus topic.
 resource alerterSubscription 'Microsoft.EventGrid/topics/eventSubscriptions@2022-06-15' = {
@@ -90,29 +71,6 @@ resource alerterSubscription 'Microsoft.EventGrid/topics/eventSubscriptions@2022
           existingServiceBusNamespaceName,
           'sydney-pulse-alerts'
         )
-      }
-    }
-    retryPolicy: {
-      maxDeliveryAttempts:      30
-      eventTimeToLiveInMinutes: 1440
-    }
-    eventDeliverySchema: 'CloudEventSchemaV1_0'
-  }
-}
-
-// archiver subscription: delivers all event types to the Archiver Function.
-resource archiverSubscription 'Microsoft.EventGrid/topics/eventSubscriptions@2022-06-15' = {
-  parent: eventGridTopic
-  name: 'archiver'
-  properties: {
-    filter: {
-      // Empty list = all event types.
-      includedEventTypes: []
-    }
-    destination: {
-      endpointType: 'WebHook'
-      properties: {
-        endpointUrl: 'https://placeholder.azurewebsites.net/runtime/webhooks/eventgrid'
       }
     }
     retryPolicy: {

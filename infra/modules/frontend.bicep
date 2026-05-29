@@ -21,6 +21,9 @@ param signalRSku string
 @description('Static Web App resource name.')
 param swaName string
 
+@description('Location for the Static Web App management plane. Must be one of the regions where Microsoft.Web/staticSites is available (not australiaeast).')
+param swaLocation string
+
 @description('Resource tags.')
 param tags object
 
@@ -63,8 +66,8 @@ resource signalR 'Microsoft.SignalRService/signalR@2023-02-01' = {
 resource swa 'Microsoft.Web/staticSites@2023-01-01' = {
   name: swaName
   // SWA management plane location. Content is served globally via CDN
-  // regardless of this value.
-  location: location
+  // regardless of this value. Must be a region that supports staticSites.
+  location: swaLocation
   tags: tags
   sku: {
     // Free tier: 100 GB bandwidth/month, custom domains, SSL included.

@@ -25,12 +25,6 @@ param functionAppSku = 'Y1'
 // Free_F1: 20 concurrent connections, 20k messages/day (ADR-0008).
 param signalRSku = 'Free_F1'
 
-// ── Observability ─────────────────────────────────────────────────────────────
-
-// 1 GB/day cap keeps App Insights within the free allowance.
-// Sampling rate is set in host.json (APPLICATIONINSIGHTS_SAMPLING_PERCENTAGE = 5).
-param appInsightsDailyCapGb = 1
-
 // ── Shared Service Bus namespace (ADR-0003) ───────────────────────────────────
 // Pre-existing Standard namespace shared with other DevPulse workloads.
 // Only new topics/subscriptions are added — namespace config is never modified.

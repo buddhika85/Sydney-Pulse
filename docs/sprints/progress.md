@@ -263,14 +263,30 @@ Not started. Refer to `sprint-1.md` for scope and per-item description.
   AND permission-denied from Claude tools (`.claude/settings.json`) to
   prevent leakage via the harness's file-modification reminder mechanism.
   SP1-03 will layer in Key Vault references for both cloud and local.
+- **2026-05-30 — Bicep deploy completed.** `az deployment group create`
+  succeeded (`provisioningState: Succeeded`). All 24 resources live in
+  `sydney-pulse-rg-dev` and `DevPulseRG`. Post-deploy steps also done:
+  App Insights 1 GB/day cap set; all three Key Vault secrets seeded.
+- **2026-05-30 — Microsoft.AlertsManagement provider registered.**
+  Azure auto-creates a Failure Anomalies alert rule when App Insights is
+  provisioned. It failed with `MissingSubscriptionRegistration` because
+  `Microsoft.AlertsManagement` was not registered on this subscription.
+  Fixed via `az provider register --namespace Microsoft.AlertsManagement`.
+  Not a Bicep concern — platform-side behaviour.
+- **2026-05-30 — KV Secrets Officer role required for developer account.**
+  Key Vault is RBAC-only; Bicep only grants the Function App MI access.
+  Developer account needs `Key Vault Secrets Officer` on the vault to seed
+  secrets. Documented in `infra/DEPLOY.md` prerequisites and Step 5.
+- **2026-05-30 — host.json sampling fixed at 5%.** Adaptive sampling was
+  enabled but unbounded. Set `minSamplingPercentage` and
+  `maxSamplingPercentage` to 5.0 to pin the rate per CLAUDE.md constraint.
+  Takes effect when Function App code is deployed in SP1-12.
 
 ## Risks / open items
 
 | Risk                                                   | Mitigation                                                                | Owner   |
 |--------------------------------------------------------|---------------------------------------------------------------------------|---------|
 | `gh` CLI not on bash PATH                              | Reopen terminal or fix PATH; needed for SP1-12 (workflow dispatch)        | User    |
-| TfNSW API key not yet in Key Vault                     | Deploy Bicep (SP1-03 done), then `az keyvault secret set` before SP1-05   | User    |
-| SignalR + Service Bus connection strings not in KV     | Set via `az keyvault secret set` before first `func start` against cloud  | User    |
 | Event Grid webhook URLs are placeholders               | Update state-writer + archiver subscriptions after Function App deployed   | Claude  |
 | SignalR Free SKU caps (20 conns, 20k msgs/day)         | Acceptable per ADR-0008; load-test forbidden                              | —       |
 | TfNSW API quota (5 rps, 60k/day)                       | Polly resilience handler on named HttpClient in Program.cs (SP1-05)       | Claude  |
@@ -288,36 +304,24 @@ When an item is blocked:
 1. Flip to ⚠️ with a note in "Risks / open items" describing the blocker
    and what unblocks it.
 
-## Next session handoff (2026-05-29 EOD)
+## Next session handoff (2026-05-30)
 
-SP1-04 closed. SP1-05 (Poller Function) is next.
+All pre-SP1-05 blockers cleared. SP1-05 (Poller Function) is next.
 
 ### Where we are
 
-SP1-03 Bicep skeleton committed but **not yet deployed to Azure**.
-SP1-04 TfNswFeedClient complete — build clean, 3 tests passing.
-Key Vault secrets not yet seeded (required before SP1-05 can run locally
-against the cloud SignalR / Event Grid).
+- Bicep deployed to `sydney-pulse-rg-dev` — all resources healthy.
+- App Insights daily cap: 1 GB/day. Sampling: fixed 5% in `host.json`.
+- Key Vault secrets seeded: `TfNswApiKey`, `AzureSignalRConnectionString`,
+  `ServiceBusConnectionString`.
+- Event Grid `state-writer` and `archiver` webhook subscriptions still
+  placeholder — update after Function App URL is known (Step 6 of
+  `infra/DEPLOY.md`).
 
 ### Resume sequence
 
 1. Follow session start protocol per `CLAUDE.md`.
-2. **Deploy Bicep to dev** (user runs — Azure mutation):
-   ```
-   az deployment group what-if --resource-group sydney-pulse-rg-dev --template-file infra/main.bicep --parameters infra/parameters/dev.bicepparam
-   ```
-   Review what-if output, then deploy:
-   ```
-   az deployment group create --resource-group sydney-pulse-rg-dev --template-file infra/main.bicep --parameters infra/parameters/dev.bicepparam
-   ```
-3. **Seed Key Vault secrets** (user runs — three secrets needed before
-   SP1-05 Poller can run against the cloud):
-   - `AzureSignalRConnectionString` — Primary Connection String from
-     `sydney-pulse-signalr-dev` → Keys
-   - `TfNswApiKey` — TfNSW Open Data API key
-   - `ServiceBusConnectionString` — Primary Connection String from
-     `devpulse-service-bus` → Shared Access Policies → RootManageSharedAccessKey
-4. **Start SP1-05 — Poller Function** per `sprint-1.md`.
+2. **Start SP1-05 — Poller Function** per `sprint-1.md`.
 
 ### Standing operating rules
 

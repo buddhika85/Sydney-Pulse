@@ -4,6 +4,11 @@
         "applicationInsights": {
             "samplingSettings": {
                 "isEnabled": true,
+                // Pin adaptive sampler to exactly 5% — prevents cost blowout on low-traffic dev.
+                // Requests are excluded so every HTTP call is always logged for debugging.
+                "initialSamplingPercentage": 5.0,
+                "minSamplingPercentage": 5.0,
+                "maxSamplingPercentage": 5.0,
                 "excludedTypes": "Request"
             },
             "enableLiveMetricsFilters": true

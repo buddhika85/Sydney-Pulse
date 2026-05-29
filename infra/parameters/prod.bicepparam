@@ -27,12 +27,6 @@ param functionAppSku = 'Y1'
 // Load testing against the live dashboard is forbidden — 20-connection cap.
 param signalRSku = 'Free_F1'
 
-// ── Observability ─────────────────────────────────────────────────────────────
-
-// Same cap as dev — prod traffic volume does not justify raising the cap.
-// Sampling rate is set in host.json (APPLICATIONINSIGHTS_SAMPLING_PERCENTAGE = 5).
-param appInsightsDailyCapGb = 1
-
 // ── Shared Service Bus namespace (ADR-0003) ───────────────────────────────────
 // Same shared namespace as dev — Standard tier supports multiple topics.
 // Both environments add their own topics; they do not share topics.

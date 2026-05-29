@@ -32,8 +32,10 @@ param functionAppSku string = 'Y1'
 @description('SignalR Service SKU.')
 param signalRSku string = 'Free_F1'
 
-@description('Application Insights daily ingestion cap in GB.')
-param appInsightsDailyCapGb int = 1
+// Static Web Apps are not available in australiaeast. eastasia is the closest
+// supported region; content is still served globally via CDN.
+@description('Region for the Static Web App management plane.')
+param swaLocation string = 'eastasia'
 
 // Pre-existing Service Bus namespace — never modified, only referenced (ADR-0003).
 @description('Name of the pre-existing Service Bus Standard namespace.')
@@ -90,7 +92,6 @@ module observability 'modules/observability.bicep' = {
     location:         location
     logAnalyticsName: names.logAnalytics
     appInsightsName:  names.appInsights
-    dailyCapGb:       appInsightsDailyCapGb
     tags:             tags
   }
 }
@@ -142,6 +143,7 @@ module frontend 'modules/frontend.bicep' = {
     signalRName: names.signalR
     signalRSku:  signalRSku
     swaName:     names.swa
+    swaLocation: swaLocation
     tags:        tags
   }
 }

@@ -14,12 +14,6 @@ param logAnalyticsName string
 @description('Application Insights resource name.')
 param appInsightsName string
 
-@description('Daily ingestion cap in GB. 1 GB covers portfolio-scale traffic.')
-param dailyCapGb int
-// Sampling rate is not set here — it is controlled by the Functions host via
-// host.json (APPLICATIONINSIGHTS_SAMPLING_PERCENTAGE) so all environments
-// share the same code-level config without a Bicep redeploy.
-
 @description('Resource tags.')
 param tags object
 
@@ -59,28 +53,12 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
   }
 }
 
-// Daily cap — prevents runaway cost if sampling is misconfigured.
-resource dailyCap 'Microsoft.Insights/components/currentbillingfeatures@2015-05-01' = {
-  parent: appInsights
-  name: 'Basic'
-  properties: {
-    CurrentBillingFeatures: 'Basic'
-    DataVolumeCap: {
-      Cap:                  dailyCapGb
-      // Stop ingestion when cap is hit rather than charging for overages.
-      StopSendNotificationWhenHitCap: true
-    }
-  }
-}
-
-// Sampling rule — fixed-rate at samplingPercent to keep RU cost predictable.
-resource samplingRule 'Microsoft.Insights/components/ProactiveDiagnosticSettings@2018-05-01-preview' = {
-  parent: appInsights
-  name: 'lowAnomalyVolumeFailureAlert'
-  properties: {
-    isEnabled: false // We use fixed-rate sampling; disable proactive detection noise.
-  }
-}
+// Daily cap and proactive detection settings are NOT set here.
+// The currentbillingfeatures@2015-05-01 and ProactiveDiagnosticSettings@2018-05-01-preview
+// APIs return 404 BadRequest on this subscription at deploy time.
+// Set the daily cap manually after deploy:
+//   az monitor app-insights component billing update \
+//     --app <appInsightsName> --resource-group <rg> --cap <dailyCapGb>
 
 // ── Outputs ───────────────────────────────────────────────────────────────────
 
