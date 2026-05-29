@@ -529,10 +529,18 @@ infra/**/*.json
 # Azure CLI / Azure deployment artefacts
 .azure/
 *.deploymentparameters.json
+# Local deployment output — contain live resource IDs and hostnames
+deploy-out.txt
+what-if-output.txt
 
 # Claude Code — keep team settings, ignore per-user local overrides
 .claude/settings.local.json
 .claude/.credentials.json
+.claude/skills/
+.agents/
+# Bundle and skills lock are auto-generated local artefacts
+BUNDLE-README.md
+skills-lock.json
 
 # Test results / coverage (cross-language)
 TestResults/
