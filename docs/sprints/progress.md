@@ -16,7 +16,7 @@ dashboard, tagged `v0.1.0`.
 | #      | Item                              | Status | Started     | Done        | Commits             |
 |--------|-----------------------------------|--------|-------------|-------------|---------------------|
 | SP1-01 | Repo + Azure bootstrap            | ✅     | 2026-05-29  | 2026-05-29  | `eded4fa`, `ac1cd0a` |
-| SP1-02 | SignalR de-risking spike          | 🔄     | 2026-05-29  | —           | —                   |
+| SP1-02 | SignalR de-risking spike          | ✅     | 2026-05-29  | 2026-05-29  | see bundle commit   |
 | SP1-03 | Bicep skeleton                    | ⬜     | —           | —           | —                   |
 | SP1-04 | TfNswFeedClient                   | ⬜     | —           | —           | —                   |
 | SP1-05 | Poller Function                   | ⬜     | —           | —           | —                   |
@@ -55,11 +55,10 @@ Out of scope (deferred or substituted):
 - **gh CLI auth** → CLI installed but PATH not refreshed in bash; needed
   for SP1-12 (workflow dispatch).
 
-## SP1-02 — SignalR de-risking spike 🔄
+## SP1-02 — SignalR de-risking spike ✅
 
-Started 2026-05-29. **Day-1 risk gate** per `sprint-1.md` — must
-demonstrate end-to-end SignalR by Day 6 or fall back to a polling MVP for
-v0.1.0.
+Closed 2026-05-29. Risk gate cleared — end-to-end SignalR confirmed locally.
+SP1-03 (Bicep skeleton) is unblocked.
 
 Done:
 
@@ -68,32 +67,85 @@ Done:
   Serverless mode. Verified via `az signalr show` — hostname
   `sydney-pulse-signalr-dev.service.signalr.net`.
 - NuGet `Microsoft.Azure.Functions.Worker.Extensions.SignalRService` 2.0.1
-  added to Functions project (one-line `.csproj` diff, ~25 transitive deps
-  restored quietly into `obj/`).
-- `local.settings.json` extended with `AzureSignalRConnectionString`
-  placeholder and `Host.CORS: "*"`.
+  added to `SydneyPulse.Functions.csproj`.
+- `local.settings.json` updated with `AzureSignalRConnectionString` (live
+  key, user-managed) and `Host: { CORS: "*", CORSCredentials: false }`.
 - Security hardening: `.claude/settings.json` deny rules block Claude tools
-  from reading, editing, or writing any `**/local.settings.json` (see
-  Decisions).
-- **SignalR primary key rotated** via Azure portal 2026-05-29. The
-  previously leaked key is now invalid. User removed the new key from
-  `local.settings.json` at end of session — it will need to be re-pasted
-  (by the user, locally) when SP1-02 reaches the local test step in the
-  next session.
+  from reading, editing, or writing any `**/local.settings.json`.
+- SignalR primary key rotated via Azure portal 2026-05-29.
+- `NegotiateFunction.cs` — POST `/api/negotiate`, returns `SignalRConnectionInfo`
+  serialised as camelCase JSON (`url`, `accessToken`) so the SignalR JS
+  client recognises the Azure redirect.
+- `SpikeFunction.cs` — POST `/api/spike`, broadcasts `{"text":"hello"}` to
+  hub `spike` via `[SignalROutput]`.
+- `spike.html` — minimal browser client; connects via negotiate, prints
+  incoming `newMessage` payloads to a log panel.
+- Manual test procedure documented in this file under SP1-02.
+- New CLAUDE.md "Code comments" convention — intent-communicating comments
+  on all code Claude writes; rolled into this bundle commit.
 
-Pending (in order):
+Non-obvious decisions landed:
 
-1. Write `NegotiateFunction.cs` — POST `/api/negotiate`, returns
-   `SignalRConnectionInfo` via `[SignalRConnectionInfoInput]` for hub
-   `spike`.
-2. Write `SpikeFunction.cs` — POST `/api/spike`, `[SignalROutput]` binding
-   broadcasts a `{"text":"hello"}` message on target `"newMessage"` to
-   the `spike` hub.
-3. Write minimal `spike.html` — uses `@microsoft/signalr` from CDN,
-   connects, prints incoming messages to a `<pre>` element.
-4. Local end-to-end test: user pastes the new SignalR connection string
-   into `local.settings.json`, runs `func start`, opens `spike.html`,
-   curls `/api/spike`, confirms message appears in browser.
+- `func start` requires `dotnet clean` first — `WorkerExtensions.csproj`
+  in `obj/` causes a "found 2 .csproj" error on plain `func start`.
+- `spike.html` must be served via HTTP (not `file://`) to avoid `null`
+  origin CORS rejection.
+- `NegotiateFunction` must explicitly serialise response as
+  `HttpResponseData` with camelCase JSON — isolated worker does not
+  auto-serialise a raw return type to the HTTP response body.
+
+### Manual test procedure (SP1-02 spike)
+
+**Prerequisites**
+
+- `AzureSignalRConnectionString` pasted into
+  `functions/SydneyPulse.Functions/local.settings.json` (get the Primary
+  Connection String from Azure Portal → SignalR Service →
+  `sydney-pulse-signalr-dev` → Keys).
+- `local.settings.json` has a top-level `Host` object (not a flat key):
+  ```json
+  "Host": { "LocalHttpPort": 7071, "CORS": "*", "CORSCredentials": false }
+  ```
+- Node.js available (for the static file server).
+
+**Steps**
+
+1. Start the Functions host (from
+   `functions/SydneyPulse.Functions/`):
+   ```
+   dotnet clean SydneyPulse.Functions.csproj && func start
+   ```
+   Wait until the console lists both `negotiate` and `spike` endpoints.
+
+2. In a second terminal, serve the spike page from the project root:
+   ```
+   python -m http.server 5500
+   ```
+
+3. Open `http://localhost:5500/spike.html` in a browser.
+
+4. In a third terminal, fire the broadcast:
+   ```
+   curl.exe -X POST http://localhost:7071/api/spike
+   ```
+
+**Pass criteria**
+
+| Check | Expected |
+|-------|----------|
+| Browser status line | "Connected to hub: spike" |
+| Log panel after curl | `[HH:MM:SS.mmm] {"text":"hello"}` appears within ~1 s |
+| `func start` console | No errors on the negotiate or spike invocations |
+
+**Known gotchas**
+
+- `func start` without `dotnet clean` first fails with "found 2 .csproj
+  files" — the `WorkerExtensions.csproj` in `obj/` is the culprit.
+- Opening `spike.html` directly as a `file://` URL causes CORS failure
+  (`null` origin); always serve via `python -m http.server`.
+- `NegotiateFunction` must serialize the response with camelCase keys
+  (`url`, `accessToken`) — the SignalR JS client does a case-sensitive
+  lookup to detect the Azure redirect.
 
 ## SP1-03 through SP1-13
 
@@ -143,90 +195,28 @@ When an item is blocked:
 
 ## Next session handoff (2026-05-29 EOD)
 
-End-of-day snapshot so the next Claude Code session can pick up cleanly.
+SP1-02 closed. SP1-03 (Bicep skeleton) is next.
 
 ### Where we are
 
-Mid-SP1-02. Azure side complete and verified. SignalR primary key rotated;
-the old leaked key is dead. Code half of SP1-02 not yet started.
+SP1-02 complete and verified end-to-end. SignalR risk gate cleared.
+All code committed in the SP1-02 bundle commit (see git log).
 
-### Uncommitted changes in the working tree
+### Resume sequence for SP1-03
 
-Run `git status` to confirm. Expected:
+1. Follow session start protocol per `CLAUDE.md`.
+2. Start SP1-03 — Bicep skeleton. Refer to `sprint-1.md` for scope.
+   Key constraint: reuse existing Service Bus namespace (ADR-0003);
+   real namespace name goes only in `infra/parameters/dev.bicepparam`.
 
-- modified: `CLAUDE.md` — session start protocol section added.
-- modified: `functions/SydneyPulse.Functions/SydneyPulse.Functions.csproj`
-  — SignalR worker extension NuGet added.
-- new: `.claude/settings.json` — permission deny rules for
-  `**/local.settings.json`.
-- new: `docs/sprints/progress.md` — this file.
+### Standing operating rules
 
-Gitignored, not in `git status`:
-`functions/SydneyPulse.Functions/local.settings.json` contains only the
-placeholder; no real key.
-
-Pre-existing untracked, leave alone: `.agents/`, `BUNDLE-README.md`,
-`skills-lock.json`.
-
-### Resume sequence
-
-1. **Follow the session start protocol** per `CLAUDE.md`. Read this file
-   and `sprint-1.md`, glob `docs/**/*.md`. Briefly report sprint state
-   (active sprint, last completed item, next pending item, blocking risks).
-
-2. **Propose commit grouping** for the uncommitted meta/process changes:
-   - Commit A: `docs: add sprint progress tracker and session start protocol`
-     — `CLAUDE.md` + `docs/sprints/progress.md`.
-   - Commit B: `chore(security): deny Claude tools on local.settings.json`
-     — `.claude/settings.json`.
-   - Hold the `.csproj` change for the end-of-SP1-02 bundle commit.
-
-   Get user approval before executing.
-
-3. **Continue SP1-02 code work** — one file per turn, announce before
-   editing:
-   - Create `functions/SydneyPulse.Functions/Functions/NegotiateFunction.cs`.
-     Hub `spike`. HTTP POST `/api/negotiate`. Returns
-     `SignalRConnectionInfo` via `[SignalRConnectionInfoInput]`.
-   - Create `functions/SydneyPulse.Functions/Functions/SpikeFunction.cs`.
-     HTTP POST `/api/spike`. `[SignalROutput(HubName="spike")]` returns a
-     `SignalRMessageAction` with target `"newMessage"` and arg
-     `{"text":"hello"}`.
-   - Create `spike.html` (project root or `spike/` subfolder). Uses
-     `@microsoft/signalr` from CDN. POSTs to `/api/negotiate`, opens a
-     `HubConnection`, registers `on("newMessage", ...)`, prints to
-     `<pre id="log">`.
-   - Build verify: `dotnet build functions/SydneyPulse.sln` → 0 errors,
-     0 warnings.
-
-4. **Local end-to-end test** (user actions — Claude does not run these):
-   - User pastes the new SignalR connection string into
-     `local.settings.json` (over the placeholder). Claude is denied from
-     reading this file by `.claude/settings.json` — do not attempt Read,
-     Edit, or Write on it.
-   - User runs `cd functions/SydneyPulse.Functions; func start`.
-   - User opens `spike.html` in a browser, expects "connected" status.
-   - User in another terminal:
-     `curl -X POST http://localhost:7071/api/spike`.
-   - **Success criterion:** browser receives the hello message within
-     ~1 second. SignalR works end-to-end → SP1-02 risk gate cleared.
-
-5. **Close SP1-02:**
-   - Commit `feat(spike): SignalR end-to-end de-risk spike` covering
-     `.csproj`, `NegotiateFunction.cs`, `SpikeFunction.cs`, `spike.html`,
-     plus any README spike-section addition.
-   - Flip SP1-02 row to ✅ in the backlog table above; fill Done date and
-     commit hashes; convert the "Done" prose into a closed-item summary.
-
-### Standing operating rules for the next session
-
-- The user runs all Azure mutations and all `func start` / test commands
-  themselves. Claude provides instructions and read-only verification.
-- One file change per turn. Announce the file and why before editing.
-- The `.claude/settings.json` deny rule blocks Claude from Read / Edit /
-  Write on `**/local.settings.json`. Do not attempt those tool calls;
-  they will fail.
-- User is on Windows / PowerShell. Provide single-line commands when
-  asking the user to paste; backtick line continuation breaks under paste.
-- TfNSW API key is held by the user; goes into Key Vault during SP1-03
-  (Bicep), never into `local.settings.json`.
+- User runs all Azure mutations. Claude provides instructions and
+  read-only verification only.
+- One file change per turn. Announce file and reason before editing.
+- Claude cannot read/write `**/local.settings.json` (deny rule in
+  `.claude/settings.json`).
+- Windows / PowerShell — single-line commands only when asking user to paste.
+- TfNSW API key goes into Key Vault during SP1-03, never into app settings.
+- Code comments convention active — intent-communicating comments on all
+  source files Claude writes.

@@ -55,6 +55,14 @@ Full reasoning lives in `/docs/adr/`. Critical decisions to know upfront:
   statements allowed only in `Program.cs`.
 - **TypeScript**: strict mode, no `any`, kebab-case filenames.
 - **Bicep**: kebab-case module names. Parameters in camelCase.
+- **Code comments**: Code Claude writes (C#, TypeScript, Bicep, YAML,
+  shell, HTML — any source file) must include short, simple comments that
+  communicate intent. Keep comments short and focused on intent.
+  Each file gets a brief header explaining its purpose.
+  Each non‑obvious block gets a one‑line “why” comment.
+  No long explanations. No noise. Just enough for future readers
+  (and future Claude sessions) to understand the intent quickly.
+  Example: SydneyPulse.Functions.Functions.NegotiateFunction.cs file
 
 ## What lives where
 
