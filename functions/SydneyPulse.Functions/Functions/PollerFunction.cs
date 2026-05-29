@@ -2,8 +2,12 @@
 // -----------------
 // Timer-triggered Function — fires every 30 seconds, polls TfNSW GTFS-Realtime
 // feeds for each configured transport mode, and publishes events to Event Grid.
-// VehicleUpdate events fan out to Cosmos (state-writer) and Archiver.
-// ServiceAlert events route via the Service Bus topic to the Alerter (ADR-0001).
+//
+// Event routing (ADR-0001):
+//   VehicleUpdate.v1 → state-writer (Cosmos upsert + SignalR vehicles group)
+//                    → archiver     (Data Lake)
+//   ServiceAlert.v1  → alerter      (Service Bus topic → Alerter Fn → SignalR alerts group)
+//                    → archiver     (Data Lake)
 
 using Azure.Messaging;
 using Azure.Messaging.EventGrid;
@@ -44,6 +48,7 @@ public class PollerFunction(
         var vehicles = await feedClient.GetVehiclePositionsAsync(mode, cancellationToken);
         if (vehicles.Count == 0) return;
 
+        // VehicleUpdateType is required because Event Grid uses the CloudEvent type field to route events to the correct subscribers.
         var events = vehicles
             .Select(v => new CloudEvent(EventSource, VehicleUpdateType, v))
             .ToList();
@@ -58,6 +63,7 @@ public class PollerFunction(
         var alerts = await feedClient.GetServiceAlertsAsync(mode, cancellationToken);
         if (alerts.Count == 0) return;
 
+        // ServiceAlertType is required because Event Grid uses the CloudEvent type field to route events to the correct subscribers.
         var events = alerts
             .Select(a => new CloudEvent(EventSource, ServiceAlertType, a))
             .ToList();
