@@ -11,6 +11,7 @@ A portfolio project demonstrating an end-to-end event-driven cloud system on Azu
 ## Quick links
 
 - **Architecture overview** — [docs/architecture.md](docs/architecture.md)
+- **Architecture diagram (Mermaid)** — [docs/diagrams.md](docs/diagrams.md)
 - **API contracts (HTTP + SignalR)** — [docs/api.md](docs/api.md)
 - **Architecture decisions** — [docs/adr/](docs/adr/)
 - **Operational runbooks** — [docs/runbooks/](docs/runbooks/)

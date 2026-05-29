@@ -170,6 +170,9 @@ directly — no need to ask.
   update `docs/testing.md` — add a row to the relevant table and
   update the total count in the expected output. Do this in the same
   commit as the test file.
+- When the Azure topology changes (new function, new data store, new
+  messaging route, renamed resource, or rewired data flow), update
+  `docs/diagrams.md` in the same PR.
 
 ### Feature branches and PRs (SP1-05 onwards)
 
