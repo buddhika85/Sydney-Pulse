@@ -17,7 +17,7 @@ dashboard, tagged `v0.1.0`.
 |--------|-----------------------------------|--------|-------------|-------------|---------------------|
 | SP1-01 | Repo + Azure bootstrap            | ✅     | 2026-05-29  | 2026-05-29  | `eded4fa`, `ac1cd0a` |
 | SP1-02 | SignalR de-risking spike          | ✅     | 2026-05-29  | 2026-05-29  | `d4629c9`           |
-| SP1-03 | Bicep skeleton                    | ⬜     | —           | —           | —                   |
+| SP1-03 | Bicep skeleton                    | ✅     | 2026-05-29  | 2026-05-29  | see bundle commit   |
 | SP1-04 | TfNswFeedClient                   | ⬜     | —           | —           | —                   |
 | SP1-05 | Poller Function                   | ⬜     | —           | —           | —                   |
 | SP1-06 | State Writer Function             | ⬜     | —           | —           | —                   |
@@ -147,7 +147,65 @@ Non-obvious decisions landed:
   (`url`, `accessToken`) — the SignalR JS client does a case-sensitive
   lookup to detect the Azure redirect.
 
-## SP1-03 through SP1-13
+## SP1-03 — Bicep skeleton ✅
+
+Closed 2026-05-29. All infra resources declared and `bicep build` compiles
+with 0 errors. SP1-04 (TfNswFeedClient) is unblocked.
+
+Done:
+
+- `infra/main.bicep` — entry point; orchestrates all modules; role
+  assignments inlined as a module (not in main scope) to satisfy Bicep's
+  requirement that role assignment `name` values be pre-computable.
+- `infra/modules/security.bicep` — Key Vault (Standard, RBAC-only, soft-delete).
+- `infra/modules/observability.bicep` — Log Analytics (PerGB2018) +
+  App Insights (workspace-based, 1 GB/day cap). Sampling rate moved to
+  `host.json`; not a Bicep concern.
+- `infra/modules/data.bicep` — Cosmos DB Serverless (`sydneyPulse` DB,
+  `vehicles` container TTL 5 min, `alerts` container TTL 24 h, lat/lon
+  excluded from index). Fresh account in `australiaeast` — not reusing
+  `devpulse-events` (wrong region, operational coupling). Functions storage
+  + Data Lake Gen2 with `archive` container.
+- `infra/modules/messaging.bicep` — Event Grid custom topic
+  (`CloudEventSchemaV1_0`) with state-writer, alerter, and archiver
+  subscriptions. Alerter subscription destination references SB topic via
+  computed `resourceId()` (avoids BCP165 cross-scope parent error).
+- `infra/modules/servicebus-topic.bicep` — `sydney-pulse-alerts` topic +
+  `alerter-sub` subscription on `devpulse-service-bus`. Deployed as a
+  scoped module to `DevPulseRG`; namespace config untouched (ADR-0003).
+- `infra/modules/compute.bicep` — Function App (Consumption Y1, .NET 8
+  isolated, Windows). System-assigned MI. `AzureWebJobsStorage` uses
+  identity-based access (no connection string). Secrets via
+  `@Microsoft.KeyVault(VaultName=...;SecretName=...)` references.
+- `infra/modules/frontend.bicep` — SignalR Free_F1 (Serverless mode,
+  brings SP1-02 manual provision under Bicep). Static Web App (Free tier,
+  Custom build provider for GitHub Actions in SP1-12).
+- `infra/modules/role-assignments.bicep` — All RBAC: KV Secrets User,
+  Cosmos Built-in Data Contributor, EventGrid Data Sender, Storage Blob
+  Data Contributor (Data Lake), Storage Blob Owner + Queue + Table
+  Contributor (func storage for identity-based AzureWebJobsStorage).
+- `infra/parameters/dev.bicepparam` — real Service Bus names
+  (`devpulse-service-bus` / `DevPulseRG`) per ADR-0003.
+- `infra/parameters/prod.bicepparam` — same shape, prod values.
+
+Non-obvious decisions:
+
+- Storage account names are alphanumeric-only (`sydpulsestor{env}`,
+  `sydpulsedlsa{env}`) — Azure rejects hyphens in storage account names.
+  The `sydney-pulse-storage-{env}` convention in `infra/CLAUDE.md` was
+  corrected here.
+- Cosmos DB not reused from `devpulse-events`: wrong region
+  (`australiasoutheast` vs `australiaeast`) and operational coupling risk.
+  New account costs ~$0.50–$2 AUD/month at portfolio scale (no fixed fee
+  for Serverless).
+- Event Grid webhook endpoint URLs are placeholder strings for the
+  state-writer and archiver subscriptions — they will be updated once the
+  Function App URL is known after first deployment.
+- `bicep build` emits two BCP081 warnings on old preview API versions for
+  App Insights billing resources — known Bicep type-library gap, safe to
+  ignore; resources deploy correctly at runtime.
+
+## SP1-04 through SP1-13
 
 Not started. Refer to `sprint-1.md` for scope and per-item description.
 
@@ -174,9 +232,9 @@ Not started. Refer to `sprint-1.md` for scope and per-item description.
 | Risk                                                   | Mitigation                                                                | Owner   |
 |--------------------------------------------------------|---------------------------------------------------------------------------|---------|
 | `gh` CLI not on bash PATH                              | Reopen terminal or fix PATH; needed for SP1-12 (workflow dispatch)        | User    |
-| Azure budget alert API propagation pending             | Re-list with `az consumption budget list` after ~10 min                   | User    |
-| TfNSW API key not yet in Key Vault                     | Wait for SP1-03 (Bicep creates KV), then `az keyvault secret set`         | User    |
-| ADR-0003 still references placeholder Service Bus name | Resolves in SP1-03 when `dev.bicepparam` is authored (Option B pattern)   | Claude  |
+| TfNSW API key not yet in Key Vault                     | Deploy Bicep (SP1-03 done), then `az keyvault secret set` before SP1-05   | User    |
+| SignalR + Service Bus connection strings not in KV     | Set via `az keyvault secret set` before first `func start` against cloud  | User    |
+| Event Grid webhook URLs are placeholders               | Update state-writer + archiver subscriptions after Function App deployed   | Claude  |
 | SignalR Free SKU caps (20 conns, 20k msgs/day)         | Acceptable per ADR-0008; load-test forbidden                              | —       |
 | TfNSW API quota (5 rps, 60k/day)                       | Polly retry policy in TfNswFeedClient (SP1-04); never bypass              | Claude  |
 
@@ -195,28 +253,39 @@ When an item is blocked:
 
 ## Next session handoff (2026-05-29 EOD)
 
-SP1-02 closed. SP1-03 (Bicep skeleton) is next.
+SP1-03 closed. SP1-04 (TfNswFeedClient) is next.
 
 ### Where we are
 
-SP1-02 complete and verified end-to-end. SignalR risk gate cleared.
-All code committed in the SP1-02 bundle commit (see git log).
+SP1-03 Bicep skeleton complete. `bicep build` clean (0 errors). Not yet
+deployed to Azure — first `what-if` + deploy is the opening step of the
+next session before SP1-04 begins.
 
-### Resume sequence for SP1-03
+### Resume sequence
 
 1. Follow session start protocol per `CLAUDE.md`.
-2. Start SP1-03 — Bicep skeleton. Refer to `sprint-1.md` for scope.
-   Key constraint: reuse existing Service Bus namespace (ADR-0003);
-   real namespace name goes only in `infra/parameters/dev.bicepparam`.
+2. **Deploy Bicep to dev** (user runs — Azure mutation):
+   ```
+   az deployment group what-if --resource-group sydney-pulse-rg-dev --template-file infra/main.bicep --parameters infra/parameters/dev.bicepparam
+   ```
+   Review what-if output, then deploy:
+   ```
+   az deployment group create --resource-group sydney-pulse-rg-dev --template-file infra/main.bicep --parameters infra/parameters/dev.bicepparam
+   ```
+3. **Seed Key Vault secrets** (user runs — three secrets needed before
+   SP1-05 Poller can run):
+   - `AzureSignalRConnectionString` — Primary Connection String from
+     `sydney-pulse-signalr-dev` → Keys
+   - `TfNswApiKey` — TfNSW Open Data API key
+   - `ServiceBusConnectionString` — Primary Connection String from
+     `devpulse-service-bus` → Shared Access Policies → RootManageSharedAccessKey
+4. **Start SP1-04 — TfNswFeedClient** per `sprint-1.md`.
 
 ### Standing operating rules
 
 - User runs all Azure mutations. Claude provides instructions and
   read-only verification only.
 - One file change per turn. Announce file and reason before editing.
-- Claude cannot read/write `**/local.settings.json` (deny rule in
-  `.claude/settings.json`).
-- Windows / PowerShell — single-line commands only when asking user to paste.
-- TfNSW API key goes into Key Vault during SP1-03, never into app settings.
-- Code comments convention active — intent-communicating comments on all
-  source files Claude writes.
+- Claude cannot read/write `**/local.settings.json` (deny rule).
+- Windows / PowerShell — single-line commands only.
+- Code comments convention active on all source files Claude writes.
