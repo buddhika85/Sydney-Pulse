@@ -19,7 +19,7 @@ dashboard, tagged `v0.1.0`.
 | SP1-02 | SignalR de-risking spike          | ✅     | 2026-05-29  | 2026-05-29  | `d4629c9`           |
 | SP1-03 | Bicep skeleton                    | ✅     | 2026-05-29  | 2026-05-29  | see bundle commit   |
 | SP1-04 | TfNswFeedClient                   | ✅     | 2026-05-29  | 2026-05-29  | see SP1-04 commit   |
-| SP1-05 | Poller Function                   | ⬜     | —           | —           | —                   |
+| SP1-05 | Poller Function                   | ✅     | 2026-05-30  | 2026-05-30  | `aad975e` (PR #2)   |
 | SP1-06 | State Writer Function             | ⬜     | —           | —           | —                   |
 | SP1-07 | Alerter chain                     | ⬜     | —           | —           | —                   |
 | SP1-08 | HTTP API                          | ⬜     | —           | —           | —                   |
@@ -242,7 +242,41 @@ Non-obvious decisions:
 - CSV parser handles double-quoted fields — `route_long_name` can contain
   commas in some GTFS feeds.
 
-## SP1-05 through SP1-13
+## SP1-05 — Poller Function ✅
+
+Closed 2026-05-30. PR #2 squash-merged. All 6 unit tests pass (3 new + 3
+existing TfNswFeedClient tests).
+
+Landed:
+
+- `SydneyPulse.Functions/EventGridOptions.cs` — strongly-typed config for
+  `EventGrid__TopicEndpoint` app setting; bound via `IOptions<EventGridOptions>`.
+- `Program.cs` updated — registers `EventGridOptions` and a singleton
+  `EventGridPublisherClient` using `DefaultAzureCredential` (Managed Identity
+  in Azure, `az login` locally).
+- `Functions/PollerFunction.cs` — `TimerTrigger("*/30 * * * * *")`, iterates
+  `TfNswOptions.VehicleModes`, fetches GTFS-RT feeds via `ITfNswFeedClient`,
+  publishes `VehicleUpdate.v1` and `ServiceAlert.v1` CloudEvents in batches.
+  Empty feeds are skipped (no empty batch sent to Event Grid).
+- `Tests/Unit/PollerFunctionTests.cs` — 3 unit tests: vehicles published as
+  correct type, empty feed guard, alert type + source verified.
+- NuGet packages added: `Azure.Messaging.EventGrid` 4.25.0,
+  `Azure.Identity` 1.13.1, `Microsoft.Azure.Functions.Worker.Extensions.Timer`
+  4.3.0.
+
+Non-obvious decisions:
+
+- CloudEvent type strings (`com.sydneypulse.VehicleUpdate.v1`,
+  `com.sydneypulse.ServiceAlert.v1`) must match the `includedEventTypes` filter
+  values in `messaging.bicep` exactly — any drift silently drops events.
+- Event routing: `VehicleUpdate.v1` → state-writer (Cosmos + SignalR vehicles
+  group) + archiver. `ServiceAlert.v1` → alerter (SB topic → Alerter Fn →
+  SignalR alerts group) + archiver. SignalR for vehicles is an output of the
+  State Writer Function, not a separate Event Grid subscriber.
+- First sprint item to use the feature branch + PR cycle (documented in
+  `CLAUDE.md`).
+
+## SP1-06 through SP1-13
 
 Not started. Refer to `sprint-1.md` for scope and per-item description.
 
@@ -289,7 +323,7 @@ Not started. Refer to `sprint-1.md` for scope and per-item description.
 | `gh` CLI not on bash PATH                              | Reopen terminal or fix PATH; needed for SP1-12 (workflow dispatch)        | User    |
 | Event Grid webhook URLs are placeholders               | Update state-writer + archiver subscriptions after Function App deployed   | Claude  |
 | SignalR Free SKU caps (20 conns, 20k msgs/day)         | Acceptable per ADR-0008; load-test forbidden                              | —       |
-| TfNSW API quota (5 rps, 60k/day)                       | Polly resilience handler on named HttpClient in Program.cs (SP1-05)       | Claude  |
+| TfNSW API quota (5 rps, 60k/day)                       | Polly resilience handler on named HttpClient wired — mitigated (SP1-05)   | —       |
 
 ## Update protocol
 
@@ -306,7 +340,7 @@ When an item is blocked:
 
 ## Next session handoff (2026-05-30)
 
-All pre-SP1-05 blockers cleared. SP1-05 (Poller Function) is next.
+SP1-05 complete and merged. SP1-06 (State Writer Function) is next.
 
 ### Where we are
 
@@ -314,14 +348,18 @@ All pre-SP1-05 blockers cleared. SP1-05 (Poller Function) is next.
 - App Insights daily cap: 1 GB/day. Sampling: fixed 5% in `host.json`.
 - Key Vault secrets seeded: `TfNswApiKey`, `AzureSignalRConnectionString`,
   `ServiceBusConnectionString`.
+- Poller Function live on `main` — publishes `VehicleUpdate.v1` and
+  `ServiceAlert.v1` CloudEvents to Event Grid every 30 seconds.
 - Event Grid `state-writer` and `archiver` webhook subscriptions still
   placeholder — update after Function App URL is known (Step 6 of
-  `infra/DEPLOY.md`).
+  `infra/DEPLOY.md`, deferred to SP1-12).
+- Feature branch + PR workflow now active for all sprint items (SP1-06
+  onwards). See `CLAUDE.md` for the branch naming convention and merge steps.
 
 ### Resume sequence
 
 1. Follow session start protocol per `CLAUDE.md`.
-2. **Start SP1-05 — Poller Function** per `sprint-1.md`.
+2. **Start SP1-06 — State Writer Function** per `sprint-1.md`.
 
 ### Standing operating rules
 
@@ -331,3 +369,4 @@ All pre-SP1-05 blockers cleared. SP1-05 (Poller Function) is next.
 - Claude cannot read/write `**/local.settings.json` (deny rule).
 - Windows / PowerShell — single-line commands only.
 - Code comments convention active on all source files Claude writes.
+- Feature branches + PR for all sprint items from SP1-05 onwards.
