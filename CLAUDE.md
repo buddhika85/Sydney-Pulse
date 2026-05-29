@@ -166,6 +166,10 @@ directly — no need to ask.
   and why *before* editing.
 - Developer reviews each change before Claude proceeds.
 - No batching unrelated edits in a single turn.
+- When a new test class is added or an existing one is changed,
+  update `docs/testing.md` — add a row to the relevant table and
+  update the total count in the expected output. Do this in the same
+  commit as the test file.
 
 ### Feature branches and PRs (SP1-05 onwards)
 
