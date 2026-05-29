@@ -113,6 +113,27 @@ Full reasoning lives in `/docs/adr/`. Critical decisions to know upfront:
 
 Strict step-by-step collaboration. No parallel work.
 
+### Session start protocol
+
+On every fresh Claude Code session, before acting on the first user
+request:
+
+1. Read `docs/sprints/progress.md` — current sprint state, what's done,
+   what's in progress, what's blocked.
+2. Read the current sprint file (e.g., `docs/sprints/sprint-1.md`) —
+   scope and acceptance criteria for the active sprint.
+3. Run `Glob` on `docs/**/*.md` to know what other docs exist (ADRs,
+   runbooks, architecture, api, cost-model, modes).
+4. Read additional docs on demand when the task touches their area.
+   Always mention the relevant ADR number when starting work on an
+   established decision area.
+
+Briefly report after step 3: active sprint, last completed item, next
+pending item, any blocking risks from `progress.md`.
+
+Memory files in `~/.claude/projects/.../memory/` and this `CLAUDE.md`
+are auto-loaded — no explicit read needed for those.
+
 ### Azure changes — verification cycle
 
 The human developer runs every command that creates, modifies, or
