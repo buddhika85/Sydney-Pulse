@@ -164,6 +164,11 @@ directly — no need to ask.
 
 - One file at a time. Claude announces which file is being modified
   and why *before* editing.
+- After each file edit (or each shell command that installs a package,
+  runs a build, or runs tests), **stop and wait**. Do not proceed to
+  the next step until the developer explicitly says to continue (e.g.
+  "ok", "looks good", "go ahead"). Never chain multiple steps in one
+  turn, even when a plan lists them sequentially.
 - Developer reviews each change before Claude proceeds.
 - No batching unrelated edits in a single turn.
 - When a new test class is added or an existing one is changed,
