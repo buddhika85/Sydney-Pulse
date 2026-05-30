@@ -37,15 +37,15 @@ Response (200):
       "latitude": -33.8378,
       "longitude": 151.1973,
       "speedKmh": 0,
-      "status": "stoppedAt",
-      "stopName": "Hornsby Station",
-      "occupancy": "fewSeatsAvailable",
-      "carriages": 8,
+      "occupancyStatus": "fewSeatsAvailable",
       "timestamp": "2026-05-28T14:32:08+10:00"
     }
   ]
 }
 ```
+
+Fields `status`, `stopName`, and `carriages` are deferred — they require
+GTFS-RT trip update data not currently fetched by the Poller (ADR-0011).
 
 ### `GET /api/alerts`
 
@@ -135,7 +135,12 @@ Response (200):
 ### `POST /api/negotiate`
 
 SignalR connection token endpoint. Called by the Angular client before
-establishing the WebSocket.
+establishing the WebSocket. Angular calls this endpoint twice on startup —
+once per hub.
+
+Query parameters:
+
+- `hub` (optional) — `vehicles` (default) or `alerts`
 
 Response (200):
 
@@ -203,6 +208,8 @@ Service Bus subscription filter) Alerter chain.
     "vehicleId": "string",
     "routeId": "string",
     "routeShortName": "string",
+    "routeLongName": "string",
+    "routeColor": "#F99D1C",
     "mode": "trains|buses|ferries|metro|lightrail",
     "latitude": -33.8378,
     "longitude": 151.1973,

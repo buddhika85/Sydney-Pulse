@@ -34,6 +34,13 @@ public record VehicleDocument
     // Internal TfNSW route id (e.g. "NTH_1a") — kept for traceability.
     public required string RouteId { get; init; }
 
+    // Denormalized from the VehicleUpdate event — stored so HTTP API reads
+    // are single-document lookups with no join (ADR-0011).
+    public required string RouteLongName { get; init; }
+    public required string RouteColor { get; init; }    // hex with leading #, e.g. "#F99D1C"
+    public required string Mode { get; init; }          // e.g. "sydneytrains"
+    public string? OccupancyStatus { get; init; }       // null when not reported by the feed
+
     // Feed timestamp for this vehicle position — used for stale-write guard.
     // 2026-05-30T10:39:00+10:00 -> date + time + an explicit UTC offset.+10 for Sydney
     public DateTimeOffset Timestamp { get; init; }

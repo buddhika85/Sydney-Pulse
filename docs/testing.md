@@ -28,8 +28,8 @@ Expected output:
 
 ```
 Test Run Successful.
-Total tests: 12
-     Passed: 12
+Total tests: 19
+     Passed: 19
  Total time: ~10 Seconds
 ```
 
@@ -45,11 +45,16 @@ dotnet test functions/SydneyPulse.Tests/SydneyPulse.Tests.csproj
 
 ## Filtering to a single test class
 
+`ClassName=` does not work with xUnit — use `FullyQualifiedName~` (substring match) instead:
+
 ```powershell
-dotnet test functions/SydneyPulse.sln --filter "ClassName=TfNswFeedClientTests"
-dotnet test functions/SydneyPulse.sln --filter "ClassName=PollerFunctionTests"
-dotnet test functions/SydneyPulse.sln --filter "ClassName=StateWriterFunctionTests"
-dotnet test functions/SydneyPulse.sln --filter "ClassName=AlerterFunctionTests"
+dotnet test functions/SydneyPulse.sln --filter "FullyQualifiedName~TfNswFeedClientTests"
+dotnet test functions/SydneyPulse.sln --filter "FullyQualifiedName~PollerFunctionTests"
+dotnet test functions/SydneyPulse.sln --filter "FullyQualifiedName~StateWriterFunctionTests"
+dotnet test functions/SydneyPulse.sln --filter "FullyQualifiedName~AlerterFunctionTests"
+dotnet test functions/SydneyPulse.sln --filter "FullyQualifiedName~VehiclesFunctionTests"
+dotnet test functions/SydneyPulse.sln --filter "FullyQualifiedName~AlertsFunctionTests"
+dotnet test functions/SydneyPulse.sln --filter "FullyQualifiedName~RoutesFunctionTests"
 ```
 
 ---
@@ -117,6 +122,38 @@ Tests for `AlerterFunction` (CloudEvent unwrapping, Cosmos upsert, SignalR broad
 | `RunAsync_ValidAlert_UpsertsDocumentAndBroadcastsToAlertsGroup` | Valid CloudEvent envelope → `UpsertItemAsync` called once with correct `alertId` + partition key; `SignalRMessageAction` targets `alertReceived` on group `alerts` |
 | `RunAsync_CloudEventMissingData_ReturnsNullWithoutUpsert` | CloudEvent with no `data` field → `null` returned, `UpsertItemAsync` never called |
 | `RunAsync_AlertWithNullDates_UpsertsDocumentWithNullDates` | `StartsAt` and `EndsAt` nullable fields map correctly to `null` in the `AlertDocument` |
+
+### `SydneyPulse.Tests/Unit/VehiclesFunctionTests.cs`
+
+Tests for `VehiclesFunction` (Cosmos query routing, Cache-Control header, partition key scoping).
+`CosmosClient` and `Container` are mocked. Uses `TestHttpRequestData` / `TestHttpResponseData`
+test doubles defined in this file and shared by the other HTTP function tests.
+
+| Test | What it covers |
+|------|----------------|
+| `RunAsync_Unfiltered_Returns200WithCacheControlHeader` | No query params → cross-partition query runs, response is 200 OK with `Cache-Control: public, max-age=5` |
+| `RunAsync_ModeFilter_SendsModeQueryToContainer` | `?mode=sydneytrains` → Cosmos query includes `WHERE c.mode` clause |
+| `RunAsync_RouteShortNameFilter_UsesPartitionScopedQuery` | `?routeShortName=T1` → partition-scoped query with `PartitionKey("T1")` |
+
+### `SydneyPulse.Tests/Unit/AlertsFunctionTests.cs`
+
+Tests for `AlertsFunction` (Cosmos cross-partition query, empty-container handling).
+`CosmosClient` and `Container` are mocked — no Azure connection required.
+
+| Test | What it covers |
+|------|----------------|
+| `RunAsync_WithAlerts_Returns200AndQueriesContainer` | Container has alerts → 200 OK, iterator called once |
+| `RunAsync_EmptyContainer_Returns200WithNoAlerts` | No docs in container → 200 OK with empty `alerts` array (not a 404) |
+
+### `SydneyPulse.Tests/Unit/RoutesFunctionTests.cs`
+
+Tests for `RoutesFunction` (TfNswFeedClient cache delegation, per-mode iteration).
+`ITfNswFeedClient` is mocked — no network calls.
+
+| Test | What it covers |
+|------|----------------|
+| `RunAsync_WithRoutes_Returns200AndCallsFeedClientPerMode` | Two configured modes → `GetRoutesAsync` called twice, response 200 OK |
+| `RunAsync_EmptyFeed_Returns200WithEmptyRoutesArray` | Feed returns empty dictionary → 200 OK with empty `routes` array |
 
 ---
 
