@@ -5,6 +5,7 @@
 
 using Azure.Identity;
 using Azure.Messaging.EventGrid;
+using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -45,6 +46,25 @@ var host = new HostBuilder()
             return new EventGridPublisherClient(
                 new Uri(opts.TopicEndpoint),
                 new DefaultAzureCredential());
+        });
+
+        // Singleton CosmosClient: manages the internal connection pool.
+        // Endpoint sourced from app setting Cosmos__AccountEndpoint (compute.bicep).
+        // DefaultAzureCredential → Managed Identity in Azure, az login locally.
+        // CamelCase serialization so C# PascalCase maps to Cosmos camelCase JSON,
+        // including "Id" → "id" (Cosmos required field).
+        services.AddSingleton(sp =>
+        {
+            var endpoint = context.Configuration["Cosmos__AccountEndpoint"]
+                ?? throw new InvalidOperationException("Cosmos__AccountEndpoint is not configured.");
+            return new CosmosClient(endpoint, new DefaultAzureCredential(),
+                new CosmosClientOptions
+                {
+                    SerializerOptions = new CosmosSerializationOptions
+                    {
+                        PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase,
+                    },
+                });
         });
     })
     .Build();

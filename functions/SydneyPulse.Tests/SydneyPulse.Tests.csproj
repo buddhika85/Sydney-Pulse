@@ -24,7 +24,7 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.0" />
     <!-- Required for PollerFunction tests: CloudEvent + Response types -->
-    <PackageReference Include="Azure.Messaging.EventGrid" Version="4.25.0" />
+    <PackageReference Include="Azure.Messaging.EventGrid" Version="4.29.0" />
     <!-- Required for PollerFunction tests: TimerInfo type -->
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Timer" Version="4.3.0" />
   </ItemGroup>
