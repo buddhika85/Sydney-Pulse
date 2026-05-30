@@ -28,8 +28,8 @@ Expected output:
 
 ```
 Test Run Successful.
-Total tests: 9
-     Passed: 9
+Total tests: 12
+     Passed: 12
  Total time: ~10 Seconds
 ```
 
@@ -49,6 +49,7 @@ dotnet test functions/SydneyPulse.Tests/SydneyPulse.Tests.csproj
 dotnet test functions/SydneyPulse.sln --filter "ClassName=TfNswFeedClientTests"
 dotnet test functions/SydneyPulse.sln --filter "ClassName=PollerFunctionTests"
 dotnet test functions/SydneyPulse.sln --filter "ClassName=StateWriterFunctionTests"
+dotnet test functions/SydneyPulse.sln --filter "ClassName=AlerterFunctionTests"
 ```
 
 ---
@@ -105,6 +106,17 @@ Tests for `StateWriterFunction` (Cosmos upsert, stale-write guard, SignalR broad
 | `RunAsync_NewVehicle_UpsertsDocumentAndReturnsBroadcast` | First write for a vehicle (no existing doc) → `UpsertItemAsync` called once, returned `SignalRMessageAction` targets `vehicleUpdated` on group `vehicles` |
 | `RunAsync_StaleEvent_SkipsUpsertAndReturnsNull` | Incoming timestamp older than stored → `UpsertItemAsync` never called, `null` returned (no broadcast) |
 | `RunAsync_NewerEvent_OverwritesExistingDocumentAndBroadcasts` | Incoming timestamp newer than stored → `UpsertItemAsync` called once, SignalR broadcast returned |
+
+### `SydneyPulse.Tests/Unit/AlerterFunctionTests.cs`
+
+Tests for `AlerterFunction` (CloudEvent unwrapping, Cosmos upsert, SignalR broadcast shape).
+`CosmosClient` and `Container` are mocked — no Azure connection required.
+
+| Test | What it covers |
+|------|----------------|
+| `RunAsync_ValidAlert_UpsertsDocumentAndBroadcastsToAlertsGroup` | Valid CloudEvent envelope → `UpsertItemAsync` called once with correct `alertId` + partition key; `SignalRMessageAction` targets `alertReceived` on group `alerts` |
+| `RunAsync_CloudEventMissingData_ReturnsNullWithoutUpsert` | CloudEvent with no `data` field → `null` returned, `UpsertItemAsync` never called |
+| `RunAsync_AlertWithNullDates_UpsertsDocumentWithNullDates` | `StartsAt` and `EndsAt` nullable fields map correctly to `null` in the `AlertDocument` |
 
 ---
 

@@ -20,7 +20,7 @@ dashboard, tagged `v0.1.0`.
 | SP1-03 | Bicep skeleton                    | ✅     | 2026-05-29  | 2026-05-29  | see bundle commit   |
 | SP1-04 | TfNswFeedClient                   | ✅     | 2026-05-29  | 2026-05-29  | see SP1-04 commit   |
 | SP1-05 | Poller Function                   | ✅     | 2026-05-30  | 2026-05-30  | `aad975e` (PR #2)   |
-| SP1-06 | State Writer Function             | ⬜     | —           | —           | —                   |
+| SP1-06 | State Writer Function             | ✅     | 2026-05-30  | 2026-05-30  | PR #3 squash-merged |
 | SP1-07 | Alerter chain                     | ⬜     | —           | —           | —                   |
 | SP1-08 | HTTP API                          | ⬜     | —           | —           | —                   |
 | SP1-09 | Angular scaffolding (deeper)      | ⬜     | —           | —           | —                   |
@@ -276,7 +276,46 @@ Non-obvious decisions:
 - First sprint item to use the feature branch + PR cycle (documented in
   `CLAUDE.md`).
 
-## SP1-06 through SP1-13
+## SP1-06 — State Writer Function ✅
+
+Closed 2026-05-30. PR #3 squash-merged. All 9 unit tests pass (6 existing + 3 new).
+
+Landed:
+
+- `SydneyPulse.Core/Cosmos/VehicleDocument.cs` — Cosmos document model for latest
+  vehicle position. Partition key `routeShortName`, document id `vehicleId` (one
+  doc per vehicle, upsert overwrites). CamelCase serialization via `CosmosClientOptions`
+  — no Newtonsoft.Json dependency in Core.
+- `SydneyPulse.Functions/CosmosOptions.cs` — strongly-typed config for Cosmos endpoint,
+  following the same Options pattern as `EventGridOptions`.
+- `SydneyPulse.Functions/Program.cs` — `CosmosClient` singleton registered with
+  `DefaultAzureCredential` and CamelCase serializer. Endpoint sourced from
+  `Cosmos__AccountEndpoint` app setting via `IOptions<CosmosOptions>`.
+- `SydneyPulse.Functions/Functions/StateWriterFunction.cs` — EventGrid trigger on
+  `VehicleUpdate.v1`. Stale-write guard reads existing document first; drops event if
+  stored timestamp ≥ incoming (handles Event Grid at-least-once delivery). Upserts to
+  Cosmos `vehicles` container, then broadcasts `vehicleUpdated` to SignalR `vehicles` group.
+- `SydneyPulse.Tests/Unit/StateWriterFunctionTests.cs` — 3 unit tests: new vehicle
+  (NotFound path), stale event dropped, newer event upserts and broadcasts.
+- NuGet: `Microsoft.Azure.Cosmos 3.60.0`, `EventGrid trigger extension 3.6.0`,
+  `Azure.Messaging.EventGrid` bumped `4.25.0 → 4.29.0`.
+- `docs/testing.md` — `StateWriterFunctionTests` inventory added, total 6 → 9.
+- `docs/adr/0002-cosmos-serverless.md` — partition key rationale section added
+  (why `routeShortName`, why not `vehicleId` or `routeId`, hot-partition tradeoff).
+
+Non-obvious decisions:
+
+- `CosmosClient` uses `DefaultAzureCredential` — no connection string. Endpoint
+  (`Cosmos__AccountEndpoint`) is not a secret; auth is credential-based.
+  Locally: add `Cosmos__AccountEndpoint` to `local.settings.json` manually.
+  In Azure: plain app setting in compute.bicep (not a Key Vault reference).
+  Full CD wiring to be verified at SP1-12.
+- Stale-write guard costs 1 extra RU per invocation (the read). Acceptable to
+  prevent out-of-order writes from Event Grid's at-least-once delivery guarantee.
+- `[SignalROutput]` with `null` return skips the broadcast silently — used for
+  stale events where no frontend update should be sent.
+
+## SP1-07 through SP1-13
 
 Not started. Refer to `sprint-1.md` for scope and per-item description.
 
@@ -340,7 +379,7 @@ When an item is blocked:
 
 ## Next session handoff (2026-05-30)
 
-SP1-05 complete and merged. SP1-06 (State Writer Function) is next.
+SP1-06 complete and merged. SP1-07 (Alerter chain) is next.
 
 ### Where we are
 
@@ -348,27 +387,29 @@ SP1-05 complete and merged. SP1-06 (State Writer Function) is next.
 - App Insights daily cap: 1 GB/day. Sampling: fixed 5% in `host.json`.
 - Key Vault secrets seeded: `TfNswApiKey`, `AzureSignalRConnectionString`,
   `ServiceBusConnectionString`.
-- Poller Function live on `main` — publishes `VehicleUpdate.v1` and
-  `ServiceAlert.v1` CloudEvents to Event Grid every 30 seconds.
+- Poller Function on `main` — publishes `VehicleUpdate.v1` and `ServiceAlert.v1`
+  CloudEvents to Event Grid every 30 seconds.
+- State Writer Function on `main` — upserts vehicle positions to Cosmos and
+  broadcasts to SignalR `vehicles` group.
 - Event Grid `state-writer` and `archiver` webhook subscriptions still
-  placeholder — update after Function App URL is known (Step 6 of
-  `infra/DEPLOY.md`, deferred to SP1-12).
-- Feature branch + PR workflow now active for all sprint items (SP1-06
-  onwards). See `CLAUDE.md` for the branch naming convention and merge steps.
+  placeholder — update after Function App URL is known (deferred to SP1-12).
+- `main` branch protection enabled on GitHub: PR required before merging,
+  force push blocked. Status checks to be added at SP1-12.
+- `Cosmos__AccountEndpoint` needs to be added to `local.settings.json` manually
+  when running Functions locally.
 
 ### Resume sequence
 
 1. Follow session start protocol per `CLAUDE.md`.
-2. **Start SP1-06 — State Writer Function** per `sprint-1.md`.
-   - Include an extra step at the end: create `docs/diagrams.md` with a
-     Mermaid architecture diagram (Azure topology + key file annotations)
-     and add the update rule to `CLAUDE.md`. Commit in the same PR as SP1-06.
+2. **Start SP1-07 — Alerter chain** per `sprint-1.md`:
+   Event Grid → Service Bus topic → AlerterFunction → SignalR `alerts` group.
 
 ### Standing operating rules
 
 - User runs all Azure mutations. Claude provides instructions and
   read-only verification only.
-- One file change per turn. Announce file and reason before editing.
+- One file at a time. Stop after each step and wait for explicit approval.
+- Review pass before pushing: walk through each file, commit developer edits.
 - Claude cannot read/write `**/local.settings.json` (deny rule).
 - Windows / PowerShell — single-line commands only.
 - Code comments convention active on all source files Claude writes.

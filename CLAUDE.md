@@ -121,6 +121,14 @@ Full reasoning lives in `/docs/adr/`. Critical decisions to know upfront:
 
 Strict step-by-step collaboration. No parallel work.
 
+### Context management
+
+Run `/compact` before starting a new sprint item, or any time context
+usage reaches ~80%. Compacting at a clean boundary (item complete, PR
+merged) preserves the most useful context for the next item. Do not
+start implementing a new sprint item at >80% context — remind the
+developer to compact first.
+
 ### Session start protocol
 
 On every fresh Claude Code session, before acting on the first user
@@ -215,6 +223,12 @@ Example: `feat/sp1-05-poller-function`
      update the board?" and waits for explicit approval before calling the
      Atlassian MCP tool. Cloud ID: `a56e505d-a4c8-4a28-90a5-44d597c7e326`,
      project key: `SP`, Done transition id: `"41"`.
+   - After transitioning, adds a completion comment to the Jira issue using
+     `addCommentToJiraIssue`. Comment must include:
+     - What was implemented (files created/modified, key behaviour)
+     - What the developer did (review decisions, edits, comments added)
+     - Key decisions made during code review (pattern choices, tradeoffs)
+     - Interesting technical notes (gotchas, deferred items, ADR updates)
 
 **Housekeeping commits** (gitignore, docs fixes, progress.md updates unrelated
 to a sprint feature) may go directly to `main` without a PR.

@@ -98,6 +98,28 @@ public class PollerFunction(
   update partition key strategy if needed (currently `/routeShortName`).
   Migrations are not currently automated — document in PR.
 
+## No magic strings for Azure infrastructure names
+
+Never use bare string literals for Azure resource names inside Function
+classes or their attributes. All infrastructure strings go in
+`FunctionConstants.cs` as `internal const string`, with service-explicit
+names so the Azure service is clear at the call site.
+
+Naming convention: `<Scope><AzureService><Kind>`
+- `CosmosDatabaseName`, `VehiclesCosmosContainer`, `AlertsCosmosContainer`
+- `AlertsServiceBusTopic`, `AlertsServiceBusSubscription`, `ServiceBusConnectionKey`
+- `VehiclesSignalRHub`, `AlertsSignalRHub`
+- `VehiclesSignalRGroup`, `AlertsSignalRGroup`
+- `VehicleUpdatedSignalREvent`, `AlertReceivedSignalREvent`
+
+C# allows `const string` fields in attribute arguments, so this works:
+```csharp
+[SignalROutput(HubName = FunctionConstants.VehiclesSignalRHub)]
+[ServiceBusTrigger(FunctionConstants.AlertsServiceBusTopic,
+    FunctionConstants.AlertsServiceBusSubscription,
+    Connection = FunctionConstants.ServiceBusConnectionKey)]
+```
+
 ## Don't
 
 - Don't use the in-process Functions model. We're isolated worker for
