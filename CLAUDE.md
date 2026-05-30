@@ -193,15 +193,20 @@ Example: `feat/sp1-05-poller-function`
    `git checkout -b feat/<ticket-id>-<short-description>`
 2. **Implement** — commit as you go using Conventional Commits.
    Each logical step gets its own commit on the branch.
-3. **Push the branch:**
+3. **Review pass** — before pushing, walk through each changed file with
+   the developer one at a time. The developer may add readability comments
+   or make edits directly. Run `git status` after the review to catch any
+   uncommitted developer edits, stage them, and commit as a review fixup
+   before pushing.
+4. **Push the branch:**
    `git push -u origin feat/<ticket-id>-<short-description>`
-4. **Open a PR** — Claude uses the GitHub MCP tool (`create_pull_request`)
+5. **Open a PR** — Claude uses the GitHub MCP tool (`create_pull_request`)
    to create the PR with summary bullets, test plan checklist, and ticket
    reference. Do not use `gh pr create` — MCP is preferred when available.
-5. **Squash merge** — MCP `merge_pull_request` returns 403 on this repo;
+6. **Squash merge** — MCP `merge_pull_request` returns 403 on this repo;
    developer runs locally:
    `gh pr merge <number> --squash --delete-branch`
-6. **Post-merge** — developer runs:
+7. **Post-merge** — developer runs:
    `git checkout main && git pull origin main`
    Claude then:
    - Updates `docs/sprints/progress.md` (flip row to ✅, add prose section,
