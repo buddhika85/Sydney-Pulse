@@ -8,11 +8,17 @@ namespace SydneyPulse.Core.Cosmos;
 public record VehicleDocument
 {
     // Cosmos document id — one document per vehicle; upsert overwrites the previous position.
+    // Id is same as VehicleId property - but for DDD separation we store 2  
     public required string Id { get; init; }
 
-    // Partition key — must match the container's partition key path (/routeShortName).
+    // Partition key — must match the container's partition key path (/routeShortName)
+    // The Angular dashboard's primary query is GET /api/vehicles?mode=trains,
+    // which maps to a set of route short names (T1, T2, T3…)
+    // so, routeShortName is the partition key because it groups vehicles by route, aligns with
+    // the UI’s query pattern, avoids cross‑partition queries, and keeps RU costs low.
     public required string RouteShortName { get; init; }
 
+    // VehicleId is same as Id property - but for DDD separation we store 2  
     public required string VehicleId { get; init; }
 
     public double Latitude { get; init; }
@@ -29,6 +35,7 @@ public record VehicleDocument
     public required string RouteId { get; init; }
 
     // Feed timestamp for this vehicle position — used for stale-write guard.
+    // 2026-05-30T10:39:00+10:00 -> date + time + an explicit UTC offset.+10 for Sydney
     public DateTimeOffset Timestamp { get; init; }
 
     // Wall-clock time this document was written — used for observability.

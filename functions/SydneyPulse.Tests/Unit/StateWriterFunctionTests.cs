@@ -27,6 +27,7 @@ public class StateWriterFunctionTests
             .Returns(_containerMock.Object);
     }
 
+    // This can be either insert or update
     private static VehicleUpdate MakeUpdate(string vehicleId = "VH-001",
         DateTimeOffset? timestamp = null) => new(
             VehicleId: vehicleId,
@@ -43,6 +44,8 @@ public class StateWriterFunctionTests
             OccupancyStatus: null,
             VehicleTimestamp: timestamp ?? DateTimeOffset.UtcNow);
 
+    // Insert scenario: no existing document,
+    // so ReadItemAsync throws NotFound; function should upsert and broadcast.
     [Fact]
     public async Task RunAsync_NewVehicle_UpsertsDocumentAndReturnsBroadcast()
     {
@@ -62,7 +65,7 @@ public class StateWriterFunctionTests
         var fn = new StateWriterFunction(_cosmosClientMock.Object, NullLogger<StateWriterFunction>.Instance);
         var update = MakeUpdate();
 
-        // Act
+        // Act - Execute StateWriterFunction azure function
         var result = await fn.RunAsync(update, CancellationToken.None);
 
         // Assert — upsert was called and a SignalR broadcast was returned.
@@ -76,6 +79,8 @@ public class StateWriterFunctionTests
         Assert.Equal("vehicles", result.GroupName);
     }
 
+    // Update scenario: existing document is newer than incoming event;
+    // function should skip upsert and return null.
     [Fact]
     public async Task RunAsync_StaleEvent_SkipsUpsertAndReturnsNull()
     {
@@ -105,7 +110,7 @@ public class StateWriterFunctionTests
         var fn = new StateWriterFunction(_cosmosClientMock.Object, NullLogger<StateWriterFunction>.Instance);
         var update = MakeUpdate(timestamp: incomingTimestamp);
 
-        // Act
+        // Act - Execute StateWriterFunction azure function
         var result = await fn.RunAsync(update, CancellationToken.None);
 
         // Assert — stale event: no upsert, no broadcast.
@@ -116,6 +121,7 @@ public class StateWriterFunctionTests
         Assert.Null(result);
     }
 
+    // Update scenario: existing document is older than incoming event;
     [Fact]
     public async Task RunAsync_NewerEvent_OverwritesExistingDocumentAndBroadcasts()
     {
@@ -151,7 +157,7 @@ public class StateWriterFunctionTests
         var fn = new StateWriterFunction(_cosmosClientMock.Object, NullLogger<StateWriterFunction>.Instance);
         var update = MakeUpdate(vehicleId: "VH-002", timestamp: incomingTimestamp);
 
-        // Act
+        // Act - Execute StateWriterFunction azure function
         var result = await fn.RunAsync(update, CancellationToken.None);
 
         // Assert — newer event: upsert runs and SignalR broadcast is returned.

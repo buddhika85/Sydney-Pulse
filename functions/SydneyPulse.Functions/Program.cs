@@ -48,16 +48,19 @@ var host = new HostBuilder()
                 new DefaultAzureCredential());
         });
 
+        // Bind Cosmos config section (AccountEndpoint sourced from app setting
+        // Cosmos__AccountEndpoint, set in compute.bicep).
+        services.Configure<CosmosOptions>(
+            context.Configuration.GetSection(CosmosOptions.SectionName));
+
         // Singleton CosmosClient: manages the internal connection pool.
-        // Endpoint sourced from app setting Cosmos__AccountEndpoint (compute.bicep).
         // DefaultAzureCredential → Managed Identity in Azure, az login locally.
         // CamelCase serialization so C# PascalCase maps to Cosmos camelCase JSON,
         // including "Id" → "id" (Cosmos required field).
         services.AddSingleton(sp =>
         {
-            var endpoint = context.Configuration["Cosmos__AccountEndpoint"]
-                ?? throw new InvalidOperationException("Cosmos__AccountEndpoint is not configured.");
-            return new CosmosClient(endpoint, new DefaultAzureCredential(),
+            var opts = sp.GetRequiredService<IOptions<CosmosOptions>>().Value;
+            return new CosmosClient(opts.AccountEndpoint, new DefaultAzureCredential(),
                 new CosmosClientOptions
                 {
                     SerializerOptions = new CosmosSerializationOptions
