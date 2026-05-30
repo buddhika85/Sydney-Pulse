@@ -164,12 +164,20 @@ directly — no need to ask.
 
 - One file at a time. Claude announces which file is being modified
   and why *before* editing.
+- After each file edit (or each shell command that installs a package,
+  runs a build, or runs tests), **stop and wait**. Do not proceed to
+  the next step until the developer explicitly says to continue (e.g.
+  "ok", "looks good", "go ahead"). Never chain multiple steps in one
+  turn, even when a plan lists them sequentially.
 - Developer reviews each change before Claude proceeds.
 - No batching unrelated edits in a single turn.
 - When a new test class is added or an existing one is changed,
   update `docs/testing.md` — add a row to the relevant table and
   update the total count in the expected output. Do this in the same
   commit as the test file.
+- When the Azure topology changes (new function, new data store, new
+  messaging route, renamed resource, or rewired data flow), update
+  `docs/diagrams.md` in the same PR.
 
 ### Feature branches and PRs (SP1-05 onwards)
 
@@ -185,15 +193,20 @@ Example: `feat/sp1-05-poller-function`
    `git checkout -b feat/<ticket-id>-<short-description>`
 2. **Implement** — commit as you go using Conventional Commits.
    Each logical step gets its own commit on the branch.
-3. **Push the branch:**
+3. **Review pass** — before pushing, walk through each changed file with
+   the developer one at a time. The developer may add readability comments
+   or make edits directly. Run `git status` after the review to catch any
+   uncommitted developer edits, stage them, and commit as a review fixup
+   before pushing.
+4. **Push the branch:**
    `git push -u origin feat/<ticket-id>-<short-description>`
-4. **Open a PR** — Claude uses the GitHub MCP tool (`create_pull_request`)
+5. **Open a PR** — Claude uses the GitHub MCP tool (`create_pull_request`)
    to create the PR with summary bullets, test plan checklist, and ticket
    reference. Do not use `gh pr create` — MCP is preferred when available.
-5. **Squash merge** — MCP `merge_pull_request` returns 403 on this repo;
+6. **Squash merge** — MCP `merge_pull_request` returns 403 on this repo;
    developer runs locally:
    `gh pr merge <number> --squash --delete-branch`
-6. **Post-merge** — developer runs:
+7. **Post-merge** — developer runs:
    `git checkout main && git pull origin main`
    Claude then:
    - Updates `docs/sprints/progress.md` (flip row to ✅, add prose section,
@@ -218,3 +231,5 @@ something to run.
 - `/add-dir infra` — pull all Bicep files when doing infrastructure work
 - Always mention the relevant ADR number when starting a task that
   touches an established decision area.
+- If a sprint item introduces an architectural decision not covered
+  by an existing ADR, propose a new ADR before implementing.

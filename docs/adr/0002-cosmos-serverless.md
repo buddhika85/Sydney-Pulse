@@ -35,6 +35,30 @@ Per-container TTL set on documents: 5 minutes for `vehicles`,
 24 hours for `alerts`. Old documents are auto-purged by Cosmos with no
 additional code or scheduled cleanup needed.
 
+### Partition key rationale
+
+The Angular dashboard's primary query is `GET /api/vehicles?mode=trains`,
+which maps to a set of route short names (T1, T2, T3…). Using
+`routeShortName` as the partition key means this query hits only the
+relevant partitions — no cross-partition fan-out, lower RU cost.
+
+Alternatives rejected:
+
+- **`vehicleId`** — scatters all vehicles across many partitions; "show
+  me all T1 vehicles" becomes a cross-partition query, expensive in RUs.
+- **`routeId`** (internal, e.g. `NTH_1a`) — not user-facing, does not
+  align with the query pattern, and is less stable than `routeShortName`.
+
+Document `id` is set to `vehicleId`. Within a partition all vehicle ids
+are already unique, so this gives us "one document per vehicle, upsert
+overwrites" with no compound key needed.
+
+**Hot-partition risk:** A busy route (e.g. T1 with ~50 vehicles) receives
+one write per vehicle every 30 seconds — well within the 5,000 RU/s
+Serverless burst ceiling per partition. At production scale with real
+user load a compound key (`routeShortName + region`) would be worth
+revisiting.
+
 ## Consequences
 
 Positive:

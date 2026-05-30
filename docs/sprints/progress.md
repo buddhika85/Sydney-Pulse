@@ -360,6 +360,9 @@ SP1-05 complete and merged. SP1-06 (State Writer Function) is next.
 
 1. Follow session start protocol per `CLAUDE.md`.
 2. **Start SP1-06 — State Writer Function** per `sprint-1.md`.
+   - Include an extra step at the end: create `docs/diagrams.md` with a
+     Mermaid architecture diagram (Azure topology + key file annotations)
+     and add the update rule to `CLAUDE.md`. Commit in the same PR as SP1-06.
 
 ### Standing operating rules
 
