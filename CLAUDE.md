@@ -215,6 +215,12 @@ Example: `feat/sp1-05-poller-function`
      update the board?" and waits for explicit approval before calling the
      Atlassian MCP tool. Cloud ID: `a56e505d-a4c8-4a28-90a5-44d597c7e326`,
      project key: `SP`, Done transition id: `"41"`.
+   - After transitioning, adds a completion comment to the Jira issue using
+     `addCommentToJiraIssue`. Comment must include:
+     - What was implemented (files created/modified, key behaviour)
+     - What the developer did (review decisions, edits, comments added)
+     - Key decisions made during code review (pattern choices, tradeoffs)
+     - Interesting technical notes (gotchas, deferred items, ADR updates)
 
 **Housekeeping commits** (gitignore, docs fixes, progress.md updates unrelated
 to a sprint feature) may go directly to `main` without a PR.
