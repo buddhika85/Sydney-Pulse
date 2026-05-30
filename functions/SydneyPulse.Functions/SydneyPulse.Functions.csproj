@@ -8,7 +8,12 @@
   </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <!-- Cosmos DB SDK — direct upsert + stale-write guard (SP1-06) -->
+    <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.60.0" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker" Version="1.21.0" />
+    <!-- EventGrid trigger binding — provides [EventGridTrigger] attribute (SP1-06) -->
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.EventGrid" Version="3.6.0" />
+	  
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http" Version="3.1.0" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore" Version="1.2.0" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.SignalRService" Version="2.0.1" />
@@ -16,10 +21,13 @@
     <PackageReference Include="Microsoft.ApplicationInsights.WorkerService" Version="2.22.0" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.ApplicationInsights" Version="1.2.0" />
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="8.0.0" />
+	  
     <!-- Timer trigger binding (TimerTrigger attribute + TimerInfo) -->
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Timer" Version="4.3.0" />
-    <!-- Event Grid publisher + DefaultAzureCredential for Managed Identity auth -->
-    <PackageReference Include="Azure.Messaging.EventGrid" Version="4.25.0" />
+	  
+    <!-- Event Grid publisher + DefaultAzureCredential; bumped 4.25→4.29 for EventGrid extension (SP1-06) -->
+    <PackageReference Include="Azure.Messaging.EventGrid" Version="4.29.0" />
+	  
     <PackageReference Include="Azure.Identity" Version="1.13.1" />
   </ItemGroup>
   <ItemGroup>

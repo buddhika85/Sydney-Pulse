@@ -42,6 +42,8 @@ union requests, dependencies, exceptions, traces
 
 ## Common incident patterns
 
+Refer to [docs/diagrams.md](../diagrams.md) to trace the affected data path through the topology before diving into a specific pattern below.
+
 ### "Live dashboard shows no vehicles"
 
 Possible causes, in order of likelihood:

@@ -31,6 +31,8 @@ TfNSW Open Data (GTFS-realtime + static)
               /, /live, /analytics, /ops
 ```
 
+See [diagrams.md](diagrams.md) for the colour-coded Mermaid version of the same topology with edge paths, file annotations, and an interactive legend.
+
 ## Component responsibilities
 
 ### Poller Function
