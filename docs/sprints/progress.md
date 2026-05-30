@@ -21,7 +21,7 @@ dashboard, tagged `v0.1.0`.
 | SP1-04 | TfNswFeedClient                   | ✅     | 2026-05-29  | 2026-05-29  | see SP1-04 commit   |
 | SP1-05 | Poller Function                   | ✅     | 2026-05-30  | 2026-05-30  | `aad975e` (PR #2)   |
 | SP1-06 | State Writer Function             | ✅     | 2026-05-30  | 2026-05-30  | PR #3 squash-merged |
-| SP1-07 | Alerter chain                     | ⬜     | —           | —           | —                   |
+| SP1-07 | Alerter chain                     | ✅     | 2026-05-30  | 2026-05-30  | PR #4 squash-merged |
 | SP1-08 | HTTP API                          | ⬜     | —           | —           | —                   |
 | SP1-09 | Angular scaffolding (deeper)      | ⬜     | —           | —           | —                   |
 | SP1-10 | Live dashboard                    | ⬜     | —           | —           | —                   |
@@ -315,7 +315,50 @@ Non-obvious decisions:
 - `[SignalROutput]` with `null` return skips the broadcast silently — used for
   stale events where no frontend update should be sent.
 
-## SP1-07 through SP1-13
+## SP1-07 — Alerter chain ✅
+
+Closed 2026-05-30. PR #4 squash-merged. All 12 unit tests pass (9 existing + 3 new).
+
+Landed:
+
+- `SydneyPulse.Core/Cosmos/AlertDocument.cs` — Cosmos document model for the
+  `alerts` container. Partition key `routeShortName`, document id `alertId`
+  (one doc per alert, upsert overwrites on repeat delivery). TTL 24 h set by
+  container policy — no code required to expire alerts.
+- `SydneyPulse.Functions/FunctionConstants.cs` — shared `internal static class`
+  for all Azure infrastructure string constants (Cosmos, Service Bus, SignalR).
+  Service-explicit naming convention: `VehiclesSignalRHub`, `AlertsCosmosContainer`,
+  `AlertsServiceBusTopic`, etc. `InternalsVisibleTo("SydneyPulse.Tests")` exposes
+  to the test project. No-magic-strings rule documented in `functions/CLAUDE.md`.
+- `SydneyPulse.Functions/Functions/AlerterFunction.cs` — `ServiceBusTrigger` on
+  `sydney-pulse-alerts / alerter-sub`. Unwraps CloudEvent envelope (Event Grid
+  delivers the full JSON envelope to Service Bus, not just the payload). Upserts
+  `AlertDocument` to Cosmos `alerts` container. Broadcasts `alertReceived` to
+  SignalR `alerts` group.
+- `StateWriterFunction.cs` refactored to use `FunctionConstants` — all magic
+  strings removed from both the function and its tests.
+- `SydneyPulse.Tests/Unit/AlerterFunctionTests.cs` — 3 unit tests: valid alert
+  upserts and broadcasts, CloudEvent missing data returns null, nullable
+  `StartsAt`/`EndsAt` fields map correctly.
+- NuGet: `Microsoft.Azure.Functions.Worker.Extensions.ServiceBus 5.22.0`.
+- `docs/testing.md` — `AlerterFunctionTests` inventory added, total 9 → 12.
+
+Non-obvious decisions:
+
+- Event Grid delivers the full CloudEvent JSON envelope to Service Bus (not just
+  the `data` payload). `AlerterFunction` uses `CloudEvent.ParseMany` to unwrap
+  the envelope, then `JsonSerializer.Deserialize` with `PropertyNameCaseInsensitive
+  = true` to handle the Azure SDK's camelCase serialisation of `ServiceAlert`.
+  `BinaryData.ToObjectFromJson<T>()` did not handle the casing round-trip correctly.
+- No stale-write guard on alerts (unlike vehicles). Alert upserts are idempotent
+  by `alertId` — repeat Event Grid delivery safely overwrites with the same data.
+- `HubName = "alerts"` is a separate SignalR hub from `"vehicles"`. Clients need
+  two connections at the Free SKU (20 total). NegotiateFunction still targets
+  `"spike"` from SP1-02 — will be updated in SP1-08.
+- `FunctionConstants` is `internal` — `InternalsVisibleTo` required to use it in
+  the test project rather than making it `public`.
+
+## SP1-08 through SP1-13
 
 Not started. Refer to `sprint-1.md` for scope and per-item description.
 
@@ -379,7 +422,7 @@ When an item is blocked:
 
 ## Next session handoff (2026-05-30)
 
-SP1-06 complete and merged. SP1-07 (Alerter chain) is next.
+SP1-07 complete and merged. SP1-08 (HTTP API) is next.
 
 ### Where we are
 
@@ -389,20 +432,25 @@ SP1-06 complete and merged. SP1-07 (Alerter chain) is next.
   `ServiceBusConnectionString`.
 - Poller Function on `main` — publishes `VehicleUpdate.v1` and `ServiceAlert.v1`
   CloudEvents to Event Grid every 30 seconds.
-- State Writer Function on `main` — upserts vehicle positions to Cosmos and
-  broadcasts to SignalR `vehicles` group.
-- Event Grid `state-writer` and `archiver` webhook subscriptions still
-  placeholder — update after Function App URL is known (deferred to SP1-12).
+- State Writer Function on `main` — upserts vehicle positions to Cosmos `vehicles`
+  container and broadcasts to SignalR `vehicles` group.
+- Alerter Function on `main` — consumes `ServiceAlert.v1` from Service Bus
+  `sydney-pulse-alerts / alerter-sub`, upserts to Cosmos `alerts` container,
+  broadcasts to SignalR `alerts` group.
+- `FunctionConstants.cs` on `main` — all Azure infrastructure strings centralised;
+  no magic strings in any Function class or test.
+- Event Grid `state-writer` and `archiver` webhook subscriptions still placeholder
+  — update after Function App URL is known (deferred to SP1-12).
 - `main` branch protection enabled on GitHub: PR required before merging,
   force push blocked. Status checks to be added at SP1-12.
-- `Cosmos__AccountEndpoint` needs to be added to `local.settings.json` manually
-  when running Functions locally.
+- `Cosmos__AccountEndpoint` and `ServiceBus__fullyQualifiedNamespace` need to be
+  added to `local.settings.json` manually when running Functions locally.
 
 ### Resume sequence
 
 1. Follow session start protocol per `CLAUDE.md`.
-2. **Start SP1-07 — Alerter chain** per `sprint-1.md`:
-   Event Grid → Service Bus topic → AlerterFunction → SignalR `alerts` group.
+2. **Start SP1-08 — HTTP API**: `GET /api/vehicles`, `GET /api/alerts`,
+   `GET /api/routes`, `POST /api/negotiate` (update hub name from `spike`).
 
 ### Standing operating rules
 
@@ -414,3 +462,4 @@ SP1-06 complete and merged. SP1-07 (Alerter chain) is next.
 - Windows / PowerShell — single-line commands only.
 - Code comments convention active on all source files Claude writes.
 - Feature branches + PR for all sprint items from SP1-05 onwards.
+- No magic strings for Azure infrastructure names — use `FunctionConstants`.
