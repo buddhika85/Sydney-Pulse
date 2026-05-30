@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using SydneyPulse.Core.Cosmos;
 using SydneyPulse.Core.Events;
+using SydneyPulse.Functions;
 using SydneyPulse.Functions.Functions;
 using Xunit;
 
@@ -23,7 +24,7 @@ public class StateWriterFunctionTests
     {
         // Wire CosmosClient.GetContainer to return our mock container.
         _cosmosClientMock
-            .Setup(c => c.GetContainer("sydneyPulse", "vehicles"))
+            .Setup(c => c.GetContainer(FunctionConstants.CosmosDatabaseName, FunctionConstants.VehiclesCosmosContainer))
             .Returns(_containerMock.Object);
     }
 
@@ -75,8 +76,8 @@ public class StateWriterFunctionTests
             Times.Once);
 
         Assert.NotNull(result);
-        Assert.Equal("vehicleUpdated", result!.Target);
-        Assert.Equal("vehicles", result.GroupName);
+        Assert.Equal(FunctionConstants.VehicleUpdatedSignalREvent, result!.Target);
+        Assert.Equal(FunctionConstants.VehiclesSignalRGroup, result.GroupName);
     }
 
     // Update scenario: existing document is newer than incoming event;
@@ -166,6 +167,6 @@ public class StateWriterFunctionTests
             It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>()),
             Times.Once);
         Assert.NotNull(result);
-        Assert.Equal("vehicleUpdated", result!.Target);
+        Assert.Equal(FunctionConstants.VehicleUpdatedSignalREvent, result!.Target);
     }
 }

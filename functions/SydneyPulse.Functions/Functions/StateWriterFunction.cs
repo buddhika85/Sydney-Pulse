@@ -17,17 +17,13 @@ public class StateWriterFunction(
     CosmosClient cosmosClient,
     ILogger<StateWriterFunction> logger)
 {
-    // Database and container names match data.bicep.
-    private const string DatabaseName = "sydneyPulse";
-    private const string ContainerName = "vehicles";
-
     [Function("StateWriter")]
-    [SignalROutput(HubName = "vehicles")]
+    [SignalROutput(HubName = FunctionConstants.VehiclesSignalRHub)]
     public async Task<SignalRMessageAction?> RunAsync(
         [EventGridTrigger] VehicleUpdate update,
         CancellationToken cancellationToken)
     {
-        var container = cosmosClient.GetContainer(DatabaseName, ContainerName);
+        var container = cosmosClient.GetContainer(FunctionConstants.CosmosDatabaseName, FunctionConstants.VehiclesCosmosContainer);
 
         var doc = new VehicleDocument
         {
@@ -77,10 +73,10 @@ public class StateWriterFunction(
             update.VehicleId, update.RouteShortName);
 
         // Broadcast the updated position to all SignalR clients subscribed to the vehicles hub.
-        return new SignalRMessageAction("vehicleUpdated")
+        return new SignalRMessageAction(FunctionConstants.VehicleUpdatedSignalREvent)
         {
             Arguments = [update],
-            GroupName = "vehicles",
+            GroupName = FunctionConstants.VehiclesSignalRGroup,
         };
     }
 }
