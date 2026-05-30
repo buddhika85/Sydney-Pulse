@@ -22,7 +22,7 @@ dashboard, tagged `v0.1.0`.
 | SP1-05 | Poller Function                   | ✅     | 2026-05-30  | 2026-05-30  | `aad975e` (PR #2)   |
 | SP1-06 | State Writer Function             | ✅     | 2026-05-30  | 2026-05-30  | PR #3 squash-merged |
 | SP1-07 | Alerter chain                     | ✅     | 2026-05-30  | 2026-05-30  | PR #4 squash-merged |
-| SP1-08 | HTTP API                          | ⬜     | —           | —           | —                   |
+| SP1-08 | HTTP API                          | ✅     | 2026-05-30  | 2026-05-31  | PR #5 squash-merged |
 | SP1-09 | Angular scaffolding (deeper)      | ⬜     | —           | —           | —                   |
 | SP1-10 | Live dashboard                    | ⬜     | —           | —           | —                   |
 | SP1-11 | Landing page                      | ⬜     | —           | —           | —                   |
@@ -358,7 +358,72 @@ Non-obvious decisions:
 - `FunctionConstants` is `internal` — `InternalsVisibleTo` required to use it in
   the test project rather than making it `public`.
 
-## SP1-08 through SP1-13
+## SP1-08 — HTTP API ✅
+
+Closed 2026-05-31. PR #5 squash-merged. All 19 unit tests pass (12 existing + 7 new).
+
+Landed:
+
+- `SydneyPulse.Functions/Functions/VehiclesFunction.cs` — `GET /api/vehicles`.
+  5-second in-process `IMemoryCache` keyed by full query string. Optional
+  `?mode=` and `?routeShortName=` query parameters (partition-scoped Cosmos
+  query when `routeShortName` is present, mode-filtered full scan otherwise).
+  `Cache-Control: public, max-age=5` header for CDN/browser caching.
+- `SydneyPulse.Functions/Functions/AlertsFunction.cs` — `GET /api/alerts`.
+  Cross-partition Cosmos query `ORDER BY c.receivedAt DESC`.
+- `SydneyPulse.Functions/Functions/RoutesFunction.cs` — `GET /api/routes`.
+  Reads from `TfNswFeedClient.GetRoutesAsync()` — reuses the 1-hour in-memory
+  GTFS static cache; zero Cosmos RUs per call.
+- `SydneyPulse.Functions/Functions/NegotiateFunction.cs` — updated `POST /api/negotiate`.
+  Replaced hardcoded `"spike"` hub with two `[SignalRConnectionInfoInput]` bindings
+  (`VehiclesSignalRHub` and `AlertsSignalRHub`). Runtime selects via `?hub=` query param.
+- `SydneyPulse.Core/Cosmos/VehicleDocument.cs` — extended with 4 denormalized fields:
+  `RouteLongName`, `RouteColor`, `Mode`, `OccupancyStatus` (ADR-0011).
+- `SydneyPulse.Functions/Functions/StateWriterFunction.cs` — maps the 4 new
+  `VehicleDocument` fields from the incoming `VehicleUpdate` event.
+- `SydneyPulse.Functions/Program.cs` — `services.AddMemoryCache()` added for VehiclesFunction.
+- `docs/adr/0011-denormalized-vehicle-document.md` — documents the decision to
+  store route metadata (mode, long name, colour, occupancy) in the vehicle document
+  at write time rather than joining at query time.
+- `docs/api.md` — corrected `VehicleUpdate.v1` event schema (added `routeLongName`,
+  `routeColor`, `mode`); added `?hub=` param to negotiate endpoint; aligned vehicles
+  response to ADR-0011 shape.
+- `docs/testing.md` — filter examples fixed (`ClassName=` → `FullyQualifiedName~`
+  across all existing entries); inventory sections and filter lines added for
+  `VehiclesFunctionTests`, `AlertsFunctionTests`, `RoutesFunctionTests`; total count
+  updated 12 → 19.
+- `SydneyPulse.Tests/Unit/VehiclesFunctionTests.cs` — 3 tests: unfiltered 200 + Cache-Control
+  header, mode filter sends WHERE clause, routeShortName filter uses PartitionKey.
+  Contains `TestHttpRequestData` / `TestHttpResponseData` test doubles for isolated-worker
+  unit tests (HttpCookies is abstract; Headers needs both getter and setter).
+- `SydneyPulse.Tests/Unit/AlertsFunctionTests.cs` — 2 tests: WithAlerts returns 200 +
+  iterator called once; EmptyContainer returns 200 (not 404).
+- `SydneyPulse.Tests/Unit/RoutesFunctionTests.cs` — 2 tests: WithRoutes returns 200 +
+  `GetRoutesAsync` called once per mode; EmptyFeed returns 200.
+
+Non-obvious decisions:
+
+- `WriteAsJsonAsync` resolves `IObjectSerializer` from `FunctionContext.InstanceServices`
+  at runtime — which is `null` in `Mock.Of<FunctionContext>()`. Switched to
+  `JsonSerializer.Serialize + WriteStringAsync` consistently across all HTTP functions.
+- `[SignalRConnectionInfoInput]` attribute argument must be a compile-time constant.
+  Two bindings declared; runtime selects based on `?hub=` param. Defaults to
+  `VehiclesSignalRHub` when param is absent.
+- `GetRoutesAsync` returns `IReadOnlyDictionary<string, RouteInfo>` — must call
+  `.Values` to iterate routes for the API response.
+- `status`, `stopName`, `carriages` from original api.md spec require GTFS-RT
+  trip update data not currently fetched — deferred with ADR-0011 reference.
+
+Developer decisions during review:
+
+- Added `?hub=` query param documentation to `POST /api/negotiate` section of api.md.
+- Fixed pre-existing `ClassName=` bug in all testing.md filter examples.
+- Added explicit `JsonOptions` (CamelCase + WhenWritingNull) to RoutesFunction for
+  consistency with VehiclesFunction and AlertsFunction.
+- Switched NegotiateFunction from `WriteAsJsonAsync` to `WriteStringAsync` (same
+  root issue as AlertsFunction — no host DI in unit tests).
+
+## SP1-09 through SP1-13
 
 Not started. Refer to `sprint-1.md` for scope and per-item description.
 
@@ -420,9 +485,9 @@ When an item is blocked:
 1. Flip to ⚠️ with a note in "Risks / open items" describing the blocker
    and what unblocks it.
 
-## Next session handoff (2026-05-30)
+## Next session handoff (2026-05-31)
 
-SP1-07 complete and merged. SP1-08 (HTTP API) is next.
+SP1-08 complete and merged. SP1-09 (Angular scaffolding deeper) is next.
 
 ### Where we are
 
@@ -433,12 +498,15 @@ SP1-07 complete and merged. SP1-08 (HTTP API) is next.
 - Poller Function on `main` — publishes `VehicleUpdate.v1` and `ServiceAlert.v1`
   CloudEvents to Event Grid every 30 seconds.
 - State Writer Function on `main` — upserts vehicle positions to Cosmos `vehicles`
-  container and broadcasts to SignalR `vehicles` group.
-- Alerter Function on `main` — consumes `ServiceAlert.v1` from Service Bus
-  `sydney-pulse-alerts / alerter-sub`, upserts to Cosmos `alerts` container,
-  broadcasts to SignalR `alerts` group.
+  container (with denormalized `Mode`, `RouteLongName`, `RouteColor`, `OccupancyStatus`
+  per ADR-0011). Broadcasts to SignalR `vehicles` group.
+- Alerter Function on `main` — consumes `ServiceAlert.v1` from Service Bus,
+  upserts to Cosmos `alerts` container, broadcasts to SignalR `alerts` group.
+- HTTP API on `main` — `GET /api/vehicles`, `GET /api/alerts`, `GET /api/routes`,
+  `POST /api/negotiate` (hub-aware via `?hub=` param). All 4 endpoints live.
 - `FunctionConstants.cs` on `main` — all Azure infrastructure strings centralised;
   no magic strings in any Function class or test.
+- `docs/adr/0011-denormalized-vehicle-document.md` — captures denormalization decision.
 - Event Grid `state-writer` and `archiver` webhook subscriptions still placeholder
   — update after Function App URL is known (deferred to SP1-12).
 - `main` branch protection enabled on GitHub: PR required before merging,
@@ -449,8 +517,8 @@ SP1-07 complete and merged. SP1-08 (HTTP API) is next.
 ### Resume sequence
 
 1. Follow session start protocol per `CLAUDE.md`.
-2. **Start SP1-08 — HTTP API**: `GET /api/vehicles`, `GET /api/alerts`,
-   `GET /api/routes`, `POST /api/negotiate` (update hub name from `spike`).
+2. **Start SP1-09 — Angular scaffolding (deeper)**: read `sprint-1.md` for the
+   full scope of SP1-09 before implementing.
 
 ### Standing operating rules
 
