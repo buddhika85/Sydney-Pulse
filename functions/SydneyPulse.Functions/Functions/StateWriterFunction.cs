@@ -36,6 +36,13 @@ public class StateWriterFunction(
             Bearing = update.Bearing,
             SpeedKmh = update.SpeedKmh,
             RouteId = update.RouteId,
+            // Denormalized route metadata — event already carries these from the
+            // Poller's GTFS static enrichment; no extra lookup needed (ADR-0011).
+            RouteLongName = update.RouteLongName,
+            RouteColor = update.RouteColor,
+            Mode = update.Mode,
+            OccupancyStatus = update.OccupancyStatus,
+
             Timestamp = update.VehicleTimestamp,
             UpdatedAt = DateTimeOffset.UtcNow,
         };

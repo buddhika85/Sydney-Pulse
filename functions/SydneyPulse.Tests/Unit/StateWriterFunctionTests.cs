@@ -71,7 +71,13 @@ public class StateWriterFunctionTests
 
         // Assert — upsert was called and a SignalR broadcast was returned.
         _containerMock.Verify(c => c.UpsertItemAsync(
-            It.Is<VehicleDocument>(d => d.VehicleId == "VH-001" && d.RouteShortName == "T1"),
+            It.Is<VehicleDocument>(d =>
+                d.VehicleId == "VH-001" &&
+                d.RouteShortName == "T1" &&
+                d.RouteLongName == "T1 North Shore Line" &&
+                d.RouteColor == "#F99D1C" &&
+                d.Mode == "sydneytrains" &&
+                d.OccupancyStatus == null),
             It.IsAny<PartitionKey>(), It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>()),
             Times.Once);
 
@@ -95,6 +101,9 @@ public class StateWriterFunctionTests
             RouteShortName = "T1",
             VehicleId = "VH-001",
             RouteId = "NTH_1a",
+            RouteLongName = "T1 North Shore Line",
+            RouteColor = "#F99D1C",
+            Mode = "sydneytrains",
             Timestamp = storedTimestamp,
             UpdatedAt = DateTimeOffset.UtcNow,
         };
@@ -136,6 +145,9 @@ public class StateWriterFunctionTests
             RouteShortName = "T2",
             VehicleId = "VH-002",
             RouteId = "NTH_2a",
+            RouteLongName = "T2 Inner West Line",
+            RouteColor = "#F99D1C",
+            Mode = "sydneytrains",
             Timestamp = storedTimestamp,
             UpdatedAt = DateTimeOffset.UtcNow,
         };
