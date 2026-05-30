@@ -121,6 +121,14 @@ Full reasoning lives in `/docs/adr/`. Critical decisions to know upfront:
 
 Strict step-by-step collaboration. No parallel work.
 
+### Context management
+
+Run `/compact` before starting a new sprint item, or any time context
+usage reaches ~80%. Compacting at a clean boundary (item complete, PR
+merged) preserves the most useful context for the next item. Do not
+start implementing a new sprint item at >80% context — remind the
+developer to compact first.
+
 ### Session start protocol
 
 On every fresh Claude Code session, before acting on the first user
