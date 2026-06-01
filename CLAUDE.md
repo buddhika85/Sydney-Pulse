@@ -216,6 +216,9 @@ Example: `feat/sp1-05-poller-function`
    `gh pr merge <number> --squash --delete-branch`
 7. **Post-merge** — developer runs:
    `git checkout main && git pull origin main`
+   Developer must confirm the pull succeeded (paste output or say "ok") before
+   Claude makes any further commits. Never commit to `main` before this
+   confirmation — doing so diverges local and remote (root cause of SP1-08 gap).
    Claude then:
    - Updates `docs/sprints/progress.md` (flip row to ✅, add prose section,
      update handoff) and commits directly to `main` as a housekeeping commit.
