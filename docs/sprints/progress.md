@@ -24,6 +24,7 @@ dashboard, tagged `v0.1.0`.
 | SP1-07 | Alerter chain                     | ✅     | 2026-05-30  | 2026-05-30  | PR #4 squash-merged |
 | SP1-08 | HTTP API                          | ✅     | 2026-05-30  | 2026-05-31  | PR #5 squash-merged |
 | SP1-09 | Angular scaffolding (deeper)      | ⬜     | —           | —           | —                   |
+| SP1-14 | Developer code review + ownership | 🔄     | 2026-06-01  | —           | —                   |
 | SP1-10 | Live dashboard                    | ⬜     | —           | —           | —                   |
 | SP1-11 | Landing page                      | ⬜     | —           | —           | —                   |
 | SP1-12 | GitHub Actions CI/CD              | ⬜     | —           | —           | —                   |

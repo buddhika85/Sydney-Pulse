@@ -16,6 +16,7 @@ Deliver a public live URL showing real-time vehicle updates from TfNSW, backed b
 - Live dashboard  
 - CI/CD pipeline  
 - v0.1.0 release  
+- Developer code review + ownership handover  
 
 ## Sprint Backlog
 
@@ -34,8 +35,9 @@ Deliver a public live URL showing real-time vehicle updates from TfNSW, backed b
 | 11 | Minimal landing page | Hero, CTA, simple architecture SVG | 0.75 |
 | 12 | GitHub Actions | Lint, test, deploy infra + app | 0.75 |
 | 13 | Sprint wrap | Tag v0.1.0, README, Loom demo, LinkedIn | 0.5 |
+| 14 | Developer code review + ownership | Read all SP1-01→08 files using reading plan, rewrite priority files, pass Claude interrogation | 2 |
 
-**Total:** ~10 days
+**Total:** ~12 days
 
 ## Risks & Mitigations
 - **SignalR auth issues** → fallback to polling by Day 6  

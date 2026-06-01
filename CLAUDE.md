@@ -187,6 +187,46 @@ directly — no need to ask.
   messaging route, renamed resource, or rewired data flow), update
   `docs/diagrams.md` in the same PR.
 
+### TDD development workflow (SP1-09 onwards)
+
+From SP1-09 forward the developer writes all business logic code. Claude
+scaffolds, writes tests first, and reviews. Follow these steps for every
+sprint item.
+
+**Phase 1 — Plan** *(once per sprint item)*
+
+1. Claude and developer read the sprint item spec together and agree on
+   what files and methods are needed.
+2. Claude lists the files, method signatures, and key design decisions —
+   developer asks questions until both are aligned.
+
+**Phase 2 — Scaffold** *(once per sprint item)*
+
+3. Claude creates all files as skeletons — empty method bodies, intent
+   comments, and a time estimate in minutes per method.
+4. Any method estimated over 30 minutes is split into smaller methods
+   before the developer touches any code.
+5. Developer reviews the skeletons and confirms they match their
+   understanding before writing anything.
+
+**Phase 3 — Method loop** *(repeat for every method, one at a time)*
+
+6. Claude writes a failing unit test for the next method.
+7. Developer reads the test to understand exactly what the method must do.
+8. Developer implements the method — target under 30 minutes.
+9. Developer runs the test — iterates until green.
+10. Claude and developer review the implementation together — Claude flags
+    issues, explains trade-offs.
+11. Developer fixes any issues.
+12. Both confirm the method is done — move back to step 6 for the next
+    method.
+
+**Phase 4 — Wrap** *(once per sprint item)*
+
+13. Claude does a final cross-file consistency check across all completed
+    methods.
+14. Developer commits, opens PR — Claude reviews the PR diff.
+
 ### Feature branches and PRs (SP1-05 onwards)
 
 Every sprint item from SP1-05 forward gets its own feature branch and PR.
