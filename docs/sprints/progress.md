@@ -424,6 +424,46 @@ Developer decisions during review:
 - Switched NegotiateFunction from `WriteAsJsonAsync` to `WriteStringAsync` (same
   root issue as AlertsFunction — no host DI in unit tests).
 
+## SP1-14 — Developer code review + ownership 🔄
+
+Started 2026-06-01. Jira: SP-15. Estimated 2 days.
+
+### Process
+
+The developer reads each file group from `reading-plan.csv` independently,
+then signals readiness. Claude quizzes the developer on that group via
+open-ended questions (no looking at code). After each group:
+
+- Claude documents questions + model answers into a Word document at
+  `C:\BUDDHIKA\SydPulse-P6\SP1-14-Quiz-VehicleUpdate-ServiceAlert.docx`.
+- Jira SP-15 and this file are updated with progress.
+
+No coding work in this item — read, understand, quiz, document.
+
+### Progress
+
+| File group | Files covered | Quiz status |
+|---|---|---|
+| 1 — Data Contracts (events) | `VehicleUpdate.cs`, `ServiceAlert.cs` | ✅ quizzed |
+| 1 — Data Contracts (Cosmos) | `VehicleDocument.cs`, `AlertDocument.cs` | ✅ quizzed |
+| 1 — Data Contracts (constants) | `FunctionConstants.cs` | ✅ quizzed |
+| 2 — TfNSW Client | `TfNswOptions.cs`, `ITfNswFeedClient.cs`, `TfNswFeedClient.cs` | 🔄 reading |
+| 3 — Event Pipeline | `PollerFunction.cs`, `StateWriterFunction.cs`, `AlerterFunction.cs` | ⬜ pending |
+| 4 — HTTP API | `VehiclesFunction.cs`, `AlertsFunction.cs`, `RoutesFunction.cs`, `NegotiateFunction.cs` | ⬜ pending |
+| 5 — DI Wiring | `Program.cs`, `EventGridOptions.cs`, `CosmosOptions.cs` | ⬜ pending |
+| 6 — Tests | All test files | ⬜ pending |
+| 7 — Bicep | `main.bicep`, `messaging.bicep`, `compute.bicep`, `data.bicep` | ⬜ pending |
+
+### Word document
+
+Questions and model answers accumulate in:
+`C:\BUDDHIKA\SydPulse-P6\SP1-14-Quiz-VehicleUpdate-ServiceAlert.docx`
+
+Sections added so far:
+- SP1-14: VehicleUpdate & ServiceAlert Event Records (6 questions)
+- SP1-14: VehicleDocument & AlertDocument (6 questions)
+- SP1-14: FunctionConstants (6 questions)
+
 ## SP1-09 through SP1-13
 
 Not started. Refer to `sprint-1.md` for scope and per-item description.
