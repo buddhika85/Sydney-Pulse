@@ -1,42 +1,55 @@
-// NegotiateFunction
-// -----------------
-// Returns the SignalR connection info (URL + access token) so the
-// Angular client can open a WebSocket to the "spike" hub.
+// NegotiateFunction.cs
+// --------------------
+// POST /api/negotiate?hub=<hubName> — returns a short-lived SignalR connection
+// token so the Angular client can open a WebSocket to the requested hub.
 //
-// This is the standard SignalR Serverless handshake:
-// 1) Angular Client calls /api/negotiate
-// 2) Azure generates a short‑lived access token
-// 3) Client uses it to connect to the hub
+// HubName in [SignalRConnectionInfoInput] must be a compile-time constant, so
+// both hubs are bound as separate parameters and the correct one is chosen at
+// runtime based on the ?hub= query param (defaults to "vehicles").
 //
-// Note: Anonymous is OK for the spike. Production will require auth.
+// Angular calls this endpoint twice on startup:
+//   POST /api/negotiate?hub=vehicles  → connects to the vehicles hub
+//   POST /api/negotiate?hub=alerts    → connects to the alerts hub
 
 using System.Net;
+using System.Text.Json;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Azure.Functions.Worker.SignalRService;
+using Microsoft.Extensions.Logging;
 
 namespace SydneyPulse.Functions.Functions;
 
-public class NegotiateFunction
+public class NegotiateFunction(ILogger<NegotiateFunction> logger)
 {
     [Function("negotiate")]
-    public async Task<HttpResponseData> Run(
+    public async Task<HttpResponseData> RunAsync(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post")] HttpRequestData req,
-        [SignalRConnectionInfoInput(HubName = "spike")] SignalRConnectionInfo connectionInfo)
+        [SignalRConnectionInfoInput(HubName = FunctionConstants.VehiclesSignalRHub)] SignalRConnectionInfo vehiclesInfo,
+        [SignalRConnectionInfoInput(HubName = FunctionConstants.AlertsSignalRHub)]   SignalRConnectionInfo alertsInfo)
     {
-        // Isolated worker requires explicit JSON serialisation — returning the object
-        // directly does not write it to the HTTP response body.
+        var queryParams = QueryHelpers.ParseQuery(req.Url.Query);
+        var hub = queryParams.TryGetValue("hub", out var h) ? h.ToString() : FunctionConstants.VehiclesSignalRHub;
+
+        // Select the pre-resolved connection info for the requested hub.
+        var connectionInfo = hub == FunctionConstants.AlertsSignalRHub ? alertsInfo : vehiclesInfo;
+
         if (connectionInfo is null)
         {
-            // Surface a clear error if AzureSignalRConnectionString is missing or invalid.
+            logger.LogError("SignalR connection info is null for hub {Hub} — check AzureSignalRConnectionString", hub);
             var err = req.CreateResponse(HttpStatusCode.InternalServerError);
-            await err.WriteStringAsync("SignalR connection info is null — check AzureSignalRConnectionString in local.settings.json");
+            await err.WriteStringAsync("SignalR connection info unavailable — check AzureSignalRConnectionString");
             return err;
         }
 
-        var response = req.CreateResponse(HttpStatusCode.OK);
+        logger.LogDebug("Negotiated SignalR connection for hub {Hub}", hub);
+
         // SignalR JS client requires lowercase property names to detect the Azure redirect.
-        await response.WriteAsJsonAsync(new { url = connectionInfo.Url, accessToken = connectionInfo.AccessToken });
+        var json = JsonSerializer.Serialize(new { url = connectionInfo.Url, accessToken = connectionInfo.AccessToken });
+        var response = req.CreateResponse(HttpStatusCode.OK);
+        response.Headers.Add("Content-Type", "application/json; charset=utf-8");
+        await response.WriteStringAsync(json);
         return response;
     }
 }

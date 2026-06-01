@@ -53,6 +53,10 @@ var host = new HostBuilder()
         services.Configure<CosmosOptions>(
             context.Configuration.GetSection(CosmosOptions.SectionName));
 
+        // In-process MemoryCache used by VehiclesFunction to avoid redundant Cosmos
+        // reads within the same 30-second poll cycle (5-second TTL per cache entry).
+        services.AddMemoryCache();
+
         // Singleton CosmosClient: manages the internal connection pool.
         // DefaultAzureCredential → Managed Identity in Azure, az login locally.
         // CamelCase serialization so C# PascalCase maps to Cosmos camelCase JSON,
