@@ -90,7 +90,7 @@ HTTP is stubbed via an inline `HttpMessageHandler` — no real network calls.
 | `GetRoutesAsync_SecondCallSameMode_DoesNotFetchAgain` | 1-hour in-memory cache hit: second call for the same mode makes zero HTTP requests |
 | `GetRoutesAsync_ParsesShortNameAndNormalisesColor` | GTFS stores colour without `#`; client must normalise to `#F99D1C` format |
 
-### `SydneyPulse.Tests/Unit/PollerFunctionTests.cs`
+### `SydneyPulse.Tests/Unit/AzFunctions/EventPipeline/PollerFunctionTests.cs`
 
 Tests for `PollerFunction` (Event Grid batch publish, empty-feed guard, CloudEvent shape).
 `ITfNswFeedClient` and `EventGridPublisherClient` are mocked — no Azure calls.
@@ -101,7 +101,7 @@ Tests for `PollerFunction` (Event Grid batch publish, empty-feed guard, CloudEve
 | `RunAsync_WithEmptyFeeds_DoesNotCallSendEvents` | Empty vehicle + alert feeds → `SendEventsAsync` never called (no empty batch sent to Event Grid) |
 | `RunAsync_WithAlerts_PublishesCorrectTypeAndSource` | 1 alert → event type is `com.sydneypulse.ServiceAlert.v1`, source is `/sydney-pulse/poller` |
 
-### `SydneyPulse.Tests/Unit/StateWriterFunctionTests.cs`
+### `SydneyPulse.Tests/Unit/AzFunctions/EventPipeline/StateWriterFunctionTests.cs`
 
 Tests for `StateWriterFunction` (Cosmos upsert, stale-write guard, SignalR broadcast shape).
 `CosmosClient` and `Container` are mocked — no Azure connection required.
@@ -112,7 +112,7 @@ Tests for `StateWriterFunction` (Cosmos upsert, stale-write guard, SignalR broad
 | `RunAsync_StaleEvent_SkipsUpsertAndReturnsNull` | Incoming timestamp older than stored → `UpsertItemAsync` never called, `null` returned (no broadcast) |
 | `RunAsync_NewerEvent_OverwritesExistingDocumentAndBroadcasts` | Incoming timestamp newer than stored → `UpsertItemAsync` called once, SignalR broadcast returned |
 
-### `SydneyPulse.Tests/Unit/AlerterFunctionTests.cs`
+### `SydneyPulse.Tests/Unit/AzFunctions/EventPipeline/AlerterFunctionTests.cs`
 
 Tests for `AlerterFunction` (CloudEvent unwrapping, Cosmos upsert, SignalR broadcast shape).
 `CosmosClient` and `Container` are mocked — no Azure connection required.
@@ -123,7 +123,7 @@ Tests for `AlerterFunction` (CloudEvent unwrapping, Cosmos upsert, SignalR broad
 | `RunAsync_CloudEventMissingData_ReturnsNullWithoutUpsert` | CloudEvent with no `data` field → `null` returned, `UpsertItemAsync` never called |
 | `RunAsync_AlertWithNullDates_UpsertsDocumentWithNullDates` | `StartsAt` and `EndsAt` nullable fields map correctly to `null` in the `AlertDocument` |
 
-### `SydneyPulse.Tests/Unit/VehiclesFunctionTests.cs`
+### `SydneyPulse.Tests/Unit/AzFunctions/HttpApi/VehiclesFunctionTests.cs`
 
 Tests for `VehiclesFunction` (Cosmos query routing, Cache-Control header, partition key scoping).
 `CosmosClient` and `Container` are mocked. Uses `TestHttpRequestData` / `TestHttpResponseData`
@@ -135,7 +135,7 @@ test doubles defined in this file and shared by the other HTTP function tests.
 | `RunAsync_ModeFilter_SendsModeQueryToContainer` | `?mode=sydneytrains` → Cosmos query includes `WHERE c.mode` clause |
 | `RunAsync_RouteShortNameFilter_UsesPartitionScopedQuery` | `?routeShortName=T1` → partition-scoped query with `PartitionKey("T1")` |
 
-### `SydneyPulse.Tests/Unit/AlertsFunctionTests.cs`
+### `SydneyPulse.Tests/Unit/AzFunctions/HttpApi/AlertsFunctionTests.cs`
 
 Tests for `AlertsFunction` (Cosmos cross-partition query, empty-container handling).
 `CosmosClient` and `Container` are mocked — no Azure connection required.
@@ -145,7 +145,7 @@ Tests for `AlertsFunction` (Cosmos cross-partition query, empty-container handli
 | `RunAsync_WithAlerts_Returns200AndQueriesContainer` | Container has alerts → 200 OK, iterator called once |
 | `RunAsync_EmptyContainer_Returns200WithNoAlerts` | No docs in container → 200 OK with empty `alerts` array (not a 404) |
 
-### `SydneyPulse.Tests/Unit/RoutesFunctionTests.cs`
+### `SydneyPulse.Tests/Unit/AzFunctions/HttpApi/RoutesFunctionTests.cs`
 
 Tests for `RoutesFunction` (TfNswFeedClient cache delegation, per-mode iteration).
 `ITfNswFeedClient` is mocked — no network calls.

@@ -11,7 +11,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Azure.Functions.Worker.SignalRService;
 
-namespace SydneyPulse.Functions.Functions;
+namespace SydneyPulse.Functions.AzFunctions.Spikes;
 
 public class SpikeFunction
 {

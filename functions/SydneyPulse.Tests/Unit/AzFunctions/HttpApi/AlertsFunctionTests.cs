@@ -10,10 +10,10 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using SydneyPulse.Core.Cosmos;
 using SydneyPulse.Functions;
-using SydneyPulse.Functions.Functions;
+using SydneyPulse.Functions.AzFunctions.HttpApi;
 using Xunit;
 
-namespace SydneyPulse.Tests.Unit;
+namespace SydneyPulse.Tests.Unit.AzFunctions.HttpApi;
 
 public class AlertsFunctionTests
 {

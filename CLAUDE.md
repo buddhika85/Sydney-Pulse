@@ -62,7 +62,7 @@ Full reasoning lives in `/docs/adr/`. Critical decisions to know upfront:
   Each non‑obvious block gets a one‑line “why” comment.
   No long explanations. No noise. Just enough for future readers
   (and future Claude sessions) to understand the intent quickly.
-  Example: SydneyPulse.Functions.Functions.NegotiateFunction.cs file
+  Example: SydneyPulse.Functions.AzFunctions.HttpApi.NegotiateFunction.cs file
 
 ## What lives where
 

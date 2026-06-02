@@ -497,6 +497,51 @@ without idempotency?
 
 Not started. Refer to `sprint-1.md` for scope and per-item description.
 
+## Housekeeping — 2026-06-03 — AzFunctions folder restructure
+
+Source and test layouts reorganised to group Azure Functions by purpose.
+Pure refactor — no functional change, no Azure topology change, no Bicep
+change.
+
+### What changed
+
+- `SydneyPulse.Functions/Functions/` → `SydneyPulse.Functions/AzFunctions/`
+  with three sub-folders:
+  - `EventPipeline/` — `PollerFunction`, `StateWriterFunction`,
+    `AlerterFunction`
+  - `HttpApi/` — `VehiclesFunction`, `AlertsFunction`, `RoutesFunction`,
+    `NegotiateFunction`
+  - `Spikes/` — `SpikeFunction` (kept for SP1-02 reference, not production)
+- All 8 source-file namespaces updated to match
+  (`SydneyPulse.Functions.AzFunctions.<group>`).
+- Test layout mirrors source: `SydneyPulse.Tests/Unit/AzFunctions/
+  {EventPipeline,HttpApi}/` with namespaces updated to match.
+  `TfNswFeedClientTests.cs` stays directly under `Tests/Unit/` — it's a
+  Core test, not an Az Function test.
+- Old `Functions/` folder removed.
+- Docs updated: root `CLAUDE.md` example path, `functions/CLAUDE.md`
+  solution-layout block + "Add a new Function" guidance, `docs/diagrams.md`
+  "What lives where" table and Mermaid node labels, `docs/testing.md` test
+  file paths.
+
+### What did NOT change
+
+- Function names (`Poller`, `StateWriter`, `Alerter`, `Vehicles`, `Alerts`,
+  `Routes`, `negotiate`, `spike`) — Azure runtime discovers by attribute,
+  not class location.
+- HTTP routes, Event Grid subscriptions, Service Bus subscription wiring,
+  SignalR hub bindings — all attribute-bound and unchanged.
+- Any Bicep file. No infra impact at all.
+- `.github/` workflows.
+- Historical sprint entries (SP1-05/06/07/08) — left referencing the old
+  paths since they record what landed at the time of each PR close.
+
+### Verification
+
+- `dotnet build` — 0 warnings, 0 errors.
+- `dotnet test` — 19/19 pass.
+- `git mv` used for every file → history preserved.
+
 ## Decisions logged
 
 - **2026-05-29 — Tracking tool.** Jira boards, not GitHub Projects.

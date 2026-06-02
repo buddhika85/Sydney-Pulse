@@ -17,7 +17,7 @@ flowchart TD
 
     subgraph ingest["Ingest"]
         FeedClient["TfNswFeedClient<br/>Core/TfNsw/TfNswFeedClient.cs<br/>Polly retry · 1 h route cache (ADR-0009)"]
-        Poller["PollerFunction<br/>TimerTrigger 30 s<br/>Functions/PollerFunction.cs"]
+        Poller["PollerFunction<br/>TimerTrigger 30 s<br/>AzFunctions/EventPipeline/PollerFunction.cs"]
     end
 
     subgraph messaging["Messaging"]
@@ -26,9 +26,9 @@ flowchart TD
     end
 
     subgraph processing["Processing — sydney-pulse-func-{env}<br/>infra/modules/compute.bicep"]
-        StateWriter["StateWriterFunction<br/>EventGridTrigger · VehicleUpdate.v1<br/>Functions/StateWriterFunction.cs"]
-        AlerterFn["AlerterFunction<br/>ServiceBusTrigger<br/>Functions/AlerterFunction.cs"]
-        ArchiverFn["ArchiverFunction<br/>EventGridTrigger · all types<br/>Functions/ArchiverFunction.cs"]
+        StateWriter["StateWriterFunction<br/>EventGridTrigger · VehicleUpdate.v1<br/>AzFunctions/EventPipeline/StateWriterFunction.cs"]
+        AlerterFn["AlerterFunction<br/>ServiceBusTrigger<br/>AzFunctions/EventPipeline/AlerterFunction.cs"]
+        ArchiverFn["ArchiverFunction<br/>EventGridTrigger · all types<br/>AzFunctions/EventPipeline/ArchiverFunction.cs"]
         HttpApi["HTTP API Functions<br/>GET /vehicles · /alerts · /routes<br/>POST /negotiate · GET /analytics · /ops"]
     end
 
@@ -116,11 +116,11 @@ Solid lines = main data flows you follow to understand the application. Dashed l
 | Component | Primary file | Bicep module |
 |---|---|---|
 | TfNSW client + route cache | `functions/SydneyPulse.Core/TfNsw/TfNswFeedClient.cs` | — |
-| Poller Function | `functions/SydneyPulse.Functions/Functions/PollerFunction.cs` | `compute.bicep` |
-| State Writer Function | `functions/SydneyPulse.Functions/Functions/StateWriterFunction.cs` | `compute.bicep` |
-| Alerter Function | `functions/SydneyPulse.Functions/Functions/AlerterFunction.cs` | `compute.bicep` |
-| Archiver Function | `functions/SydneyPulse.Functions/Functions/ArchiverFunction.cs` | `compute.bicep` |
-| HTTP API Functions | `functions/SydneyPulse.Functions/Functions/` | `compute.bicep` |
+| Poller Function | `functions/SydneyPulse.Functions/AzFunctions/EventPipeline/PollerFunction.cs` | `compute.bicep` |
+| State Writer Function | `functions/SydneyPulse.Functions/AzFunctions/EventPipeline/StateWriterFunction.cs` | `compute.bicep` |
+| Alerter Function | `functions/SydneyPulse.Functions/AzFunctions/EventPipeline/AlerterFunction.cs` | `compute.bicep` |
+| Archiver Function | `functions/SydneyPulse.Functions/AzFunctions/EventPipeline/ArchiverFunction.cs` | `compute.bicep` |
+| HTTP API Functions | `functions/SydneyPulse.Functions/AzFunctions/HttpApi/` | `compute.bicep` |
 | Event Grid subscriptions | — | `messaging.bicep` |
 | Service Bus topic | — | `servicebus-topic.bicep` |
 | Cosmos DB containers | `functions/SydneyPulse.Core/Cosmos/` | `data.bicep` |

@@ -13,7 +13,7 @@ using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 using SydneyPulse.Core.Cosmos;
 
-namespace SydneyPulse.Functions.Functions;
+namespace SydneyPulse.Functions.AzFunctions.HttpApi;
 
 public class AlertsFunction(
     CosmosClient cosmosClient,

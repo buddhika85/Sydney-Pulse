@@ -7,7 +7,10 @@ covers project-wide rules; this file covers .NET-specific patterns.
 
 ```
 SydneyPulse.Functions/    Host project, isolated-worker model
-  Functions/              One file per Function (PollerFunction.cs, etc.)
+  AzFunctions/            All Azure Functions, grouped by purpose
+    EventPipeline/        Poller, StateWriter, Alerter (event-driven)
+    HttpApi/              Vehicles, Alerts, Routes, Negotiate (HTTP-triggered)
+    Spikes/               De-risking spikes only (not production)
   Program.cs              DI configuration, hosted services
   host.json               Runtime config (sampling, timeouts)
   local.settings.json     LOCAL ONLY — never commit
@@ -17,6 +20,9 @@ SydneyPulse.Core/         Models, business logic, TfNsw client
   Cosmos/                 DocumentDB entity types
 SydneyPulse.Tests/        xUnit
   Unit/                   Class-level tests with mocks
+    AzFunctions/          Mirrors source layout
+      EventPipeline/      Tests for Poller, StateWriter, Alerter
+      HttpApi/            Tests for Vehicles, Alerts, Routes
   Integration/            Tests against Azurite + emulated Service Bus
   Fixtures/               Sample GTFS payloads, recorded snapshots
 ```
@@ -90,8 +96,11 @@ public class PollerFunction(
 
 ## Common tasks
 
-- Add a new Function: create a class in `SydneyPulse.Functions/Functions/`,
-  register dependencies in `Program.cs`, add a corresponding test file.
+- Add a new Function: create a class under the matching subfolder of
+  `SydneyPulse.Functions/AzFunctions/` (`EventPipeline/` for trigger-driven
+  pipeline functions, `HttpApi/` for HTTP endpoints), register dependencies
+  in `Program.cs`, add a corresponding test file in the mirroring
+  `SydneyPulse.Tests/Unit/AzFunctions/<group>/` folder.
 - Add a new event type: create a record in `SydneyPulse.Core/Events/`
   with version suffix (`VehicleUpdate.v1`). Update `/docs/api.md`.
 - Update a Cosmos schema: change the record in `SydneyPulse.Core/Cosmos/`,

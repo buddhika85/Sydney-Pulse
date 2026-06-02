@@ -19,7 +19,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using SydneyPulse.Core.Cosmos;
 
-namespace SydneyPulse.Functions.Functions;
+namespace SydneyPulse.Functions.AzFunctions.HttpApi;
 
 public class VehiclesFunction(
     CosmosClient cosmosClient,

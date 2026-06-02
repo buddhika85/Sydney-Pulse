@@ -19,7 +19,7 @@ using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Azure.Functions.Worker.SignalRService;
 using Microsoft.Extensions.Logging;
 
-namespace SydneyPulse.Functions.Functions;
+namespace SydneyPulse.Functions.AzFunctions.HttpApi;
 
 public class NegotiateFunction(ILogger<NegotiateFunction> logger)
 {
