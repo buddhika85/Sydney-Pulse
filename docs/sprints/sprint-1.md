@@ -10,13 +10,14 @@ Deliver a public live URL showing real-time vehicle updates from TfNSW, backed b
 - Repo + Azure bootstrap  
 - Infrastructure skeleton  
 - TfNSW client library  
-- Poller + State Writer + Alerter  
+- Poller + State Writer + Alerter + Archiver  
 - HTTP API  
 - Angular scaffolding  
 - Live dashboard  
 - CI/CD pipeline  
 - v0.1.0 release  
 - Developer code review + ownership handover  
+- ADR-0012 (archive-as-ML-feature-store design lock-in for future Sprint 5)  
 
 ## Sprint Backlog
 
@@ -36,8 +37,9 @@ Deliver a public live URL showing real-time vehicle updates from TfNSW, backed b
 | 12 | GitHub Actions | Lint, test, deploy infra + app | 0.75 |
 | 13 | Sprint wrap | Tag v0.1.0, README, Loom demo, LinkedIn | 0.5 |
 | 14 | Developer code review + ownership | Read all SP1-01→08 files using reading plan, rewrite priority files, pass Claude interrogation | 2 |
+| 15 | Archiver Function | Event Grid → Parquet batched 5 min / 10K events to Data Lake Gen 2 `archive/` container. Durable Functions checkpointing to survive mid-batch crashes. Hive-partitioned layout (`yyyy=.../MM=.../dd=.../HH=...`). ML-ready schema: 3 timestamps (`vehicleTimestamp`, `publishedAt`, `archivedAt`), explicit Parquet columns (no JSON blob), `eventType` + `eventVersion` columns, `_manifest.json` per partition hour. Bicep lifecycle policy (Hot→Cool 30d, Cool→Cold 90d) to cap long-term cost. Fix the placeholder webhook URL on the EG `archiver` subscription. Unit tests + `docs/testing.md` inventory. New ADR-0012 locking in the archive-as-ML-feature-store design for future Sprint 5. | 2 |
 
-**Total:** ~12 days
+**Total:** ~14 days
 
 ## Risks & Mitigations
 - **SignalR auth issues** → fallback to polling by Day 6  
@@ -58,6 +60,9 @@ Deliver a public live URL showing real-time vehicle updates from TfNSW, backed b
 - Alerts panel functional  
 - API endpoints correct  
 - Cosmos updated continuously  
+- Archive Parquet files being written every 5 minutes to Data Lake Gen 2 (`archive/yyyy=.../MM=.../dd=.../HH=...`)  
+- Storage lifecycle policy provisioned (Hot 0–30 d, Cool 30–90 d, Cold 90+ d)  
+- ADR-0012 published and linked from architecture.md  
 - CI/CD deploys on push  
 - README includes architecture + live URL  
 

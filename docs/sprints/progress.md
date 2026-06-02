@@ -23,6 +23,7 @@ dashboard, tagged `v0.1.0`.
 | SP1-06 | State Writer Function             | ✅     | 2026-05-30  | 2026-05-30  | PR #3 squash-merged |
 | SP1-07 | Alerter chain                     | ✅     | 2026-05-30  | 2026-05-30  | PR #4 squash-merged |
 | SP1-08 | HTTP API                          | ✅     | 2026-05-30  | 2026-05-31  | PR #5 squash-merged |
+| SP1-15 | Archiver Function                 | ⬜     | —           | —           | —                   |
 | SP1-09 | Angular scaffolding (deeper)      | ⬜     | —           | —           | —                   |
 | SP1-14 | Developer code review + ownership | 🔄     | 2026-06-01  | —           | —                   |
 | SP1-10 | Live dashboard                    | ⬜     | —           | —           | —                   |
@@ -531,6 +532,17 @@ Not started. Refer to `sprint-1.md` for scope and per-item description.
   enabled but unbounded. Set `minSamplingPercentage` and
   `maxSamplingPercentage` to 5.0 to pin the rate per CLAUDE.md constraint.
   Takes effect when Function App code is deployed in SP1-12.
+- **2026-06-02 — SP1-15 (Archiver Function) added to Sprint 1 scope.**
+  Infrastructure (Data Lake container + EG `archiver` subscription) was
+  provisioned in SP1-03; the Function App code itself was an open gap not
+  scheduled in any sprint. SP1-15 slots between SP1-08 (done) and SP1-09.
+  Scope per `sprint-1.md` row 15: Parquet writer + Durable Functions
+  batching (5 min / 10K events) + Hive partition layout + ML-ready schema
+  (3 timestamps, explicit columns, `_manifest.json` per hour) + Bicep
+  storage lifecycle policy (Hot→Cool 30 d, Cool→Cold 90 d) + new ADR-0012
+  locking in archive-as-ML-feature-store design for future Sprint 5
+  (KQL anomaly detection + ONNX-in-Function predictor). 2-day estimate.
+  Sprint total bumped 12 → 14 days.
 
 ## Risks / open items
 
