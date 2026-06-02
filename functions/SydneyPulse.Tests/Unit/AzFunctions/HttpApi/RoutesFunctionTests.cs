@@ -9,10 +9,10 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
 using SydneyPulse.Core.TfNsw;
-using SydneyPulse.Functions.Functions;
+using SydneyPulse.Functions.AzFunctions.HttpApi;
 using Xunit;
 
-namespace SydneyPulse.Tests.Unit;
+namespace SydneyPulse.Tests.Unit.AzFunctions.HttpApi;
 
 public class RoutesFunctionTests
 {

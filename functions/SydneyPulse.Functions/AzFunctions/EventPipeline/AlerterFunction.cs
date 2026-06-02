@@ -13,7 +13,7 @@ using Microsoft.Extensions.Logging;
 using SydneyPulse.Core.Cosmos;
 using SydneyPulse.Core.Events;
 
-namespace SydneyPulse.Functions.Functions;
+namespace SydneyPulse.Functions.AzFunctions.EventPipeline;
 
 public class AlerterFunction(
     CosmosClient cosmosClient,

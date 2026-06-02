@@ -13,7 +13,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SydneyPulse.Core.TfNsw;
 
-namespace SydneyPulse.Functions.Functions;
+namespace SydneyPulse.Functions.AzFunctions.HttpApi;
 
 public class RoutesFunction(
     ITfNswFeedClient feedClient,

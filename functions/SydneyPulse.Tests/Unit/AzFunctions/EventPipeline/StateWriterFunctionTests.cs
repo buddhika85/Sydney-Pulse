@@ -10,10 +10,10 @@ using Moq;
 using SydneyPulse.Core.Cosmos;
 using SydneyPulse.Core.Events;
 using SydneyPulse.Functions;
-using SydneyPulse.Functions.Functions;
+using SydneyPulse.Functions.AzFunctions.EventPipeline;
 using Xunit;
 
-namespace SydneyPulse.Tests.Unit;
+namespace SydneyPulse.Tests.Unit.AzFunctions.EventPipeline;
 
 public class StateWriterFunctionTests
 {

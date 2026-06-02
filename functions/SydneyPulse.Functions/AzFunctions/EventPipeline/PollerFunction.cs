@@ -17,7 +17,7 @@ using Microsoft.Extensions.Options;
 using SydneyPulse.Core.Events;
 using SydneyPulse.Core.TfNsw;
 
-namespace SydneyPulse.Functions.Functions;
+namespace SydneyPulse.Functions.AzFunctions.EventPipeline;
 
 public class PollerFunction(
     ITfNswFeedClient feedClient,

@@ -12,9 +12,9 @@ using Microsoft.Extensions.Options;
 using Moq;
 using SydneyPulse.Core.Events;
 using SydneyPulse.Core.TfNsw;
-using SydneyPulse.Functions.Functions;
+using SydneyPulse.Functions.AzFunctions.EventPipeline;
 
-namespace SydneyPulse.Tests.Unit;
+namespace SydneyPulse.Tests.Unit.AzFunctions.EventPipeline;
 
 public class PollerFunctionTests
 {
