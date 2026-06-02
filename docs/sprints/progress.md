@@ -430,7 +430,7 @@ Started 2026-06-01. Jira: SP-15. Estimated 2 days.
 
 ### Process
 
-The developer reads each file group from `reading-plan.csv` independently,
+The developer reads each file group from `reading-plan.xlsx` independently,
 then signals readiness. Claude quizzes the developer on that group via
 open-ended questions (no looking at code). After each group:
 
@@ -447,8 +447,8 @@ No coding work in this item — read, understand, quiz, document.
 | 1 — Data Contracts (events) | `VehicleUpdate.cs`, `ServiceAlert.cs` | ✅ quizzed |
 | 1 — Data Contracts (Cosmos) | `VehicleDocument.cs`, `AlertDocument.cs` | ✅ quizzed |
 | 1 — Data Contracts (constants) | `FunctionConstants.cs` | ✅ quizzed |
-| 2 — TfNSW Client | `TfNswOptions.cs`, `ITfNswFeedClient.cs`, `TfNswFeedClient.cs` | 🔄 reading |
-| 3 — Event Pipeline | `PollerFunction.cs`, `StateWriterFunction.cs`, `AlerterFunction.cs` | ⬜ pending |
+| 2 — TfNSW Client | `TfNswOptions.cs`, `ITfNswFeedClient.cs`, `TfNswFeedClient.cs` | ✅ quizzed |
+| 3 — Event Pipeline | `PollerFunction.cs`, `StateWriterFunction.cs`, `AlerterFunction.cs` | 🔄 PollerFunction Q1–Q4 quizzed; Q5–Q6 pending; SW/Alerter pending |
 | 4 — HTTP API | `VehiclesFunction.cs`, `AlertsFunction.cs`, `RoutesFunction.cs`, `NegotiateFunction.cs` | ⬜ pending |
 | 5 — DI Wiring | `Program.cs`, `EventGridOptions.cs`, `CosmosOptions.cs` | ⬜ pending |
 | 6 — Tests | All test files | ⬜ pending |
@@ -463,6 +463,34 @@ Sections added so far:
 - SP1-14: VehicleUpdate & ServiceAlert Event Records (6 questions)
 - SP1-14: VehicleDocument & AlertDocument (6 questions)
 - SP1-14: FunctionConstants (6 questions)
+- SP1-14: TfNSW Client (TfNswOptions, ITfNswFeedClient, TfNswFeedClient) (6 questions)
+- SP1-14: PollerFunction — Q1–Q4 of 6 (Q5–Q6 pending next session)
+
+### PollerFunction — pending questions for next session
+
+Developer ran out of energy after Q4. Q5 and Q6 below to be asked live next
+session so the developer answers them in real time, then appended to the
+PollerFunction section of the Word doc.
+
+**Q5 — Event Grid authentication via `DefaultAzureCredential`**
+`EventGridOptions` has only `TopicEndpoint` — no API key, no SAS, no shared
+key. `EventGridPublisherClient` is registered with `DefaultAzureCredential`.
+How does this work locally vs in Azure (which credential is actually used in
+each environment)? What authorization does the Function App need on the
+topic and where is that grant wired up? Compare to Group 2's Key Vault story
+for the TfNSW API key — is this the same security pattern or different, and
+what's the underlying primitive?
+
+**Q6 — Empty feeds, batches, and at-least-once delivery**
+Two related observations: (a) empty feeds are skipped — if
+`GetVehiclePositionsAsync("ferries")` returns zero updates, no events are
+sent for that mode on that tick (SP1-05 notes: "no empty batch sent to
+Event Grid"); (b) Event Grid promises at-least-once delivery. Why is the
+empty-batch skip worth a guard rather than letting the SDK no-op? When
+would TfNSW legitimately return zero vehicles? At-least-once means
+StateWriter will see duplicate `VehicleUpdate` events — how does
+StateWriter handle that in code (from SP1-06), and what would break
+without idempotency?
 
 ## SP1-09 through SP1-13
 

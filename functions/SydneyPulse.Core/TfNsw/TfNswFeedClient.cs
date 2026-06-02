@@ -3,7 +3,9 @@
 // Fetches GTFS-Realtime vehicle positions and service alerts from the TfNSW Open Data API.
 // Enriches realtime data with static route metadata (short name, colour) from a 1-hour
 // in-memory cache per transport mode (ADR-0009).
-// Registered as singleton in Program.cs so the cache is shared across Function invocations.
+// Used as a DI singleton by PollerFunction (timer — vehicle positions +
+// alerts) and RoutesFunction (HTTP — static routes). Singleton keeps the
+// 1-hour route cache warm across invocations within one Function App instance.
 
 using System.IO.Compression;
 using System.Text;
@@ -20,11 +22,23 @@ public class TfNswFeedClient : ITfNswFeedClient
     private readonly TfNswOptions _options;
     private readonly ILogger<TfNswFeedClient> _logger;
 
-    // Per-mode route cache keyed by transport mode string (ADR-0009).
+    // Per-mode route cache (ADR-0009).
+    // Outer: mode (e.g. "buses") → inner dict: routeId → RouteInfo.
     private readonly Dictionary<string, IReadOnlyDictionary<string, RouteInfo>> _routeCache = new();
+    // mode -> Expiry timestamp 
     private readonly Dictionary<string, DateTimeOffset> _cacheExpiry = new();
+
     private static readonly TimeSpan CacheTtl = TimeSpan.FromHours(1);
-    // Prevents concurrent duplicate cache refreshes for the same mode.
+
+    // SemaphoreSlim is an async‑friendly concurrency limiter.
+    // It allows up to N tasks to run a section of code at the same time,
+    // and forces extra tasks to wait until a permit is released.
+    // here 1 means only one task can refresh the cache at a time, while others wait.
+    // This prevents multiple concurrent cache refreshes during expiry.
+    // Each Function App instance has its own lock and cache, so this is in-process only.
+    // Without it, concurrent calls during cache expiry would each trigger a
+    // parallel GTFS-static ZIP download. In-process only — scaled-out
+    // Function App instances each maintain their own cache and own lock.
     private readonly SemaphoreSlim _cacheLock = new(1, 1);
 
     public TfNswFeedClient(
@@ -37,6 +51,8 @@ public class TfNswFeedClient : ITfNswFeedClient
         _logger = logger;
     }
 
+    // HTTP retries (429/503) and circuit breaker are configured on the named
+    // "TfNsw" HttpClient in Program.cs (ADR-0001) — not in this method.
     public async Task<IReadOnlyList<VehicleUpdate>> GetVehiclePositionsAsync(
         string mode, CancellationToken cancellationToken = default)
     {
@@ -110,6 +126,7 @@ public class TfNswFeedClient : ITfNswFeedClient
         if (_cacheExpiry.TryGetValue(mode, out var expiry) && expiry > DateTimeOffset.UtcNow)
             return _routeCache[mode];
 
+        // wait until the lock is available, then enter the cache access to refresh the cache if needed.
         await _cacheLock.WaitAsync(cancellationToken);
         try
         {
@@ -125,6 +142,7 @@ public class TfNswFeedClient : ITfNswFeedClient
         }
         finally
         {
+            // When a task finishes and calls Release(), a seat becomes free.
             _cacheLock.Release();
         }
     }
