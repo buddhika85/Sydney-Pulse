@@ -50,6 +50,51 @@ The Service Bus Premium row is the biggest spread — Premium starts at
 ~$980/month for a single messaging unit and is only needed if message
 throughput or strict latency demands it.
 
+## Sprint 5 cost projection (conditional, post-v1.0)
+
+If Sprint 5 (Intelligence — anomaly detection + predictive modelling) is
+committed, the additional cost over the current configuration is small.
+Path A + B (KQL `series_decompose_anomalies` + ONNX-in-Function predictor)
+was selected explicitly to fit the $20/month portfolio budget. See
+`docs/sprints/sprint-5.md` for the full path analysis and ADR-0013 for
+the decision rationale (to be written during Sprint 5).
+
+Portfolio scale (additive on top of current configuration):
+
+| Component | SKU / approach | Estimated AUD/month |
+|---|---|---|
+| Synapse Serverless | Pay-per-TB scanned (~$5/TB) | $1–2 |
+| KQL anomaly detection | Within existing App Insights 1 GB/day cap | $0 |
+| ONNX model file storage | Embedded in deployment package | <$0.01 |
+| Cosmos `predictions` container | TTL ~1 h, partition key `routeShortName` | $0.50–1 |
+| PredictorFunction execution | Consumption free grant | $0 |
+| Azure ML training | Free tier 200 min/month | $0 |
+| **Sprint 5 marginal total** | | **$2–3** |
+
+Combined with the current configuration baseline of $6–15/month, the
+post-Sprint 5 portfolio total comes to **$8–18/month** — still inside
+the $20/month budget alert.
+
+Production scale (additive on top of production configuration):
+
+| Component | SKU / approach | Estimated AUD/month |
+|---|---|---|
+| Synapse Serverless | Higher scan volume | $5–15 |
+| Cosmos `predictions` container | Higher write throughput | $5–10 |
+| Azure ML training | If exceeding free tier | $5–10 |
+| **Sprint 5 marginal total (prod)** | | **$15–35** |
+
+A rounding error against the $583–1,563 production baseline.
+
+### Why not Azure ML managed endpoint at portfolio scale
+
+Path D (managed Azure ML online endpoint) was rejected for portfolio use:
+the cheapest always-on small VM is ~$60–100/month, exceeding the
+$20/month budget on its own. Path B (ONNX in Functions Consumption)
+delivers equivalent functionality for ~$2–3/month at the cost of cold
+starts on the inference path — acceptable at a 15-minute prediction
+cadence.
+
 ## Tier choice rationale
 
 Each cost decision is its own ADR. The summary:
@@ -81,6 +126,7 @@ When to upgrade each component:
 | App Insights sampling | Need every event for compliance | Disable sampling, raise daily cap |
 | Static Web Apps Free | Need custom domain auth or larger app | Standard |
 | Service Bus | > 10 alerts/sec sustained | Premium MU 1 |
+| ONNX-in-Function inference (post-Sprint 5) | Cold start > 5s per prediction, or model size > 100 MB | Azure ML Workspace + managed online endpoint |
 
 ## Monitoring cost
 
@@ -110,6 +156,11 @@ If steady-state costs drift above the $20/month budget alert:
    service runs anyway.
 4. Reduce Cosmos document TTL from 5 min to 2 min — less storage cost.
 5. Tear down dev environment between active development sessions.
+6. (Post-Sprint 5) Run PredictorFunction in dev only, not prod —
+   removes ~50% of Sprint 5 marginal cost while still demonstrating
+   the pattern in portfolio walkthroughs.
+7. (Post-SP1-15) Shorten Data Lake archive retention from indefinite
+   to 6 months via lifecycle policy — caps long-term storage growth.
 
 ## Currency note
 

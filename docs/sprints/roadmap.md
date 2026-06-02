@@ -28,9 +28,18 @@
 - Demo video  
 - v1.0.0 release  
 
+## Phase 5 — Intelligence (Sprint 5, conditional)
+Triggered post-v1.0 only if predictive analytics adds material value
+over the other long-term ideas. Archive shape was locked in at SP1-15
+(ADR-0012) specifically to feed this sprint.
+- Synapse Serverless / KQL external table over the Parquet archive  
+- KQL `series_decompose_anomalies` baseline + SignalR `anomalyDetected` event  
+- ONNX-in-Function PredictorFunction + Cosmos `predictions` container  
+- `Prediction.v1` CloudEvent + analytics screen actual-vs-predicted view  
+- ADR-0013 (ML approach choice)  
+- v0.5.0 release  
+
 ## Long-term Ideas (Post v1.0)
 - Mobile-friendly UI  
 - Historical playback mode  
 - Multi-city support  
-- AI anomaly detection  
-- Predictive delays  
