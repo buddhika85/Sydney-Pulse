@@ -15,8 +15,9 @@
 | 7 | Key Vault + MI | Move secrets to KV, enable MI | 1 |
 | 8 | Reusable workflows | build-dotnet, build-angular, deploy-bicep | 0.5 |
 | 9 | Sprint wrap | Tag v0.2.0, README updates, Loom demo | 0.5 |
+| 10 | Code review + interview-prep quiz (always-on) | Sprint-long discipline per `CLAUDE.md` "Daily rhythm". Quiz this sprint's new code (Bicep modules, KV + MI, blue/green workflow, reusable workflows) + spaced-recall on Sprint 1 content. | sprint-long |
 
-**Total:** ~7 days
+**Total:** ~7 days dev + sprint-long always-on quiz discipline (SP2-10)
 
 ## Deliverables
 - Multi-env IaC  

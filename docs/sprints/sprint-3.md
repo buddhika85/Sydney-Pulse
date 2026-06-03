@@ -14,8 +14,9 @@
 | 6 | Analytics screen | Heatmap, metrics, worst performers | 1.5 |
 | 7 | Ops screen | SLO cards, traces, deployments | 1.25 |
 | 8 | Sprint wrap | Tag v0.3.0, screenshots, Loom demo | 0.5 |
+| 9 | Code review + interview-prep quiz (always-on) | Sprint-long discipline per `CLAUDE.md` "Daily rhythm". Quiz this sprint's observability/analytics code (App Insights instrumentation, KQL workbook, SLO queries) + spaced-recall on Sprints 1–2. | sprint-long |
 
-**Total:** ~8 days
+**Total:** ~8 days dev + sprint-long always-on quiz discipline (SP3-9)
 
 ## Deliverables
 - Full observability  

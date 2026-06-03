@@ -25,7 +25,7 @@ dashboard, tagged `v0.1.0`.
 | SP1-08 | HTTP API                          | ✅     | 2026-05-30  | 2026-05-31  | PR #5 squash-merged |
 | SP1-15 | Archiver Function                 | ⬜     | —           | —           | —                   |
 | SP1-09 | Angular scaffolding (deeper)      | ⬜     | —           | —           | —                   |
-| SP1-14 | Developer code review + ownership | 🔄     | 2026-06-01  | —           | —                   |
+| SP1-14 | Code review + interview-prep quiz (always-on) | 🔄     | 2026-06-01  | —           | —                   |
 | SP1-10 | Live dashboard                    | ⬜     | —           | —           | —                   |
 | SP1-11 | Landing page                      | ⬜     | —           | —           | —                   |
 | SP1-12 | GitHub Actions CI/CD              | ⬜     | —           | —           | —                   |
@@ -425,9 +425,14 @@ Developer decisions during review:
 - Switched NegotiateFunction from `WriteAsJsonAsync` to `WriteStringAsync` (same
   root issue as AlertsFunction — no host DI in unit tests).
 
-## SP1-14 — Developer code review + ownership 🔄
+## SP1-14 — Code review + interview-prep quiz (always-on) 🔄
 
-Started 2026-06-01. Jira: SP-15. Estimated 2 days.
+Started 2026-06-01. Jira: SP-15. Reframed 2026-06-03 from a 2-day discrete
+item to a sprint-long always-on discipline. See `CLAUDE.md` "Daily rhythm"
+section for the full framework. Continues as SP2-10 / SP3-9 / SP4-10 / SP5-9
+in future sprints. Word-doc artefact at
+`C:\BUDDHIKA\SydPulse-P6\SP1-14-Quiz-VehicleUpdate-ServiceAlert.docx`
+accumulates across sprints.
 
 ### Process
 

@@ -282,3 +282,50 @@ something to run.
   touches an established decision area.
 - If a sprint item introduces an architectural decision not covered
   by an existing ADR, propose a new ADR before implementing.
+
+## Daily rhythm — dev + interview-prep mix
+
+This is a portfolio project targeting AZ-400 / DevOps Engineer
+interviews, so code review and quiz is an **always-on discipline**
+across every sprint, not a one-off SP1-14 task. Every working day
+mixes development with quiz / recall practice.
+
+### Weekly target ratio (averaged across the week, not per day)
+
+| Phase | Dev % | Quiz/prep % |
+|---|---|---|
+| Build-heavy (Sprints 1–2 — current) | 70% | 30% |
+| Polish (Sprints 3–4) | 60% | 40% |
+| Pre-interview weeks | 40% | 60% |
+| Active interviewing | 30% | 70% |
+
+Daily flex is fine — 80/20 on heads-down build days, 50/50 on lighter
+days — as long as the **week** averages the phase target.
+
+### Quiz reminder protocol (Claude triggers)
+
+Claude actively monitors the dev/quiz balance per session. Trigger a
+quiz nudge when ALL of these are true:
+
+- Substantial dev work landed (30+ min focused, PR opened or merged,
+  sprint item closed, or multiple commits pushed)
+- Session is at a natural closing point (commit pushed, PR merged,
+  blocked waiting, end-of-day language from user)
+- No quiz / recall activity happened earlier in this session
+
+Reminder is one short sentence, non-blocking. Accept "no" without
+argument. Don't repeat in the same session.
+
+### What counts as quiz / prep
+
+- Active recall on existing Word-doc questions (~5 questions per session)
+- New quiz questions on code shipped this sprint
+- Verbal mock-interview practice on existing questions
+- Architecture or design-decision explanation rehearsal
+- Reading and summarising an ADR out loud
+
+### Per-sprint backlog entries
+
+Each sprint carries a sprint-long row for this discipline:
+SP1-14 → SP2-10 → SP3-9 → SP4-10 → SP5-9. The Word-doc artefact
+accumulates across sprints; rename it appropriately as scope grows.

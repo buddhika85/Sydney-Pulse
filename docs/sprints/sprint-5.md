@@ -31,8 +31,9 @@ end to end.
 | 6 | `/analytics` actual-vs-predicted view | Comparison panel + per-route prediction error | 1 |
 | 7 | ADR-0013 ML approach choice | Document why KQL + ONNX over Cognitive Services / Azure ML | 0.25 |
 | 8 | Sprint wrap | Tag v0.5.0, blog or Loom, update `cost-model.md` | 0.5 |
+| 9 | Code review + interview-prep quiz (always-on, if Sprint 5 is committed) | Sprint-long discipline per `CLAUDE.md` "Daily rhythm". Covers ML / ONNX / Synapse content if the sprint runs; otherwise inherits the active interviewing phase ratio. | sprint-long |
 
-**Total:** ~6.75 days
+**Total:** ~6.75 days dev + sprint-long always-on quiz discipline (SP5-9, if sprint committed)
 
 ## ML approach — paths considered and chosen
 

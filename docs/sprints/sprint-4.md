@@ -15,8 +15,9 @@
 | 7 | Blog post | 1500–2000 word deep dive | 1 |
 | 8 | Final Loom walkthrough | 5-minute demo | 0.5 |
 | 9 | LinkedIn launch | Tag v1.0.0, release notes | 0.5 |
+| 10 | Code review + interview-prep quiz (always-on) | Sprint-long discipline per `CLAUDE.md` "Daily rhythm". Polish-phase ratio (~40% prep); verbal mock interviews and architecture-explanation rehearsal weighted heavier than new content. | sprint-long |
 
-**Total:** ~7 days
+**Total:** ~7 days dev + sprint-long always-on quiz discipline (SP4-10)
 
 ## Deliverables
 - Full documentation site  

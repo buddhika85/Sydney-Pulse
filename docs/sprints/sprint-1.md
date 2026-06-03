@@ -36,10 +36,10 @@ Deliver a public live URL showing real-time vehicle updates from TfNSW, backed b
 | 11 | Minimal landing page | Hero, CTA, simple architecture SVG | 0.75 |
 | 12 | GitHub Actions | Lint, test, deploy infra + app | 0.75 |
 | 13 | Sprint wrap | Tag v0.1.0, README, Loom demo, LinkedIn | 0.5 |
-| 14 | Developer code review + ownership | Read all SP1-01→08 files using reading plan, rewrite priority files, pass Claude interrogation | 2 |
+| 14 | Code review + interview-prep quiz (always-on) | Sprint-long discipline: quiz every file group (SP1-01→15) using `reading-plan.xlsx`; verbal recall on PollerFunction / StateWriter / Alerter / HTTP API / DI / Tests / Bicep groups; daily mix per `CLAUDE.md` "Daily rhythm" (~30% of working time this sprint) | sprint-long |
 | 15 | Archiver Function | Event Grid → Parquet batched 5 min / 10K events to Data Lake Gen 2 `archive/` container. Durable Functions checkpointing to survive mid-batch crashes. Hive-partitioned layout (`yyyy=.../MM=.../dd=.../HH=...`). ML-ready schema: 3 timestamps (`vehicleTimestamp`, `publishedAt`, `archivedAt`), explicit Parquet columns (no JSON blob), `eventType` + `eventVersion` columns, `_manifest.json` per partition hour. Bicep lifecycle policy (Hot→Cool 30d, Cool→Cold 90d) to cap long-term cost. Fix the placeholder webhook URL on the EG `archiver` subscription. Unit tests + `docs/testing.md` inventory. New ADR-0012 locking in the archive-as-ML-feature-store design for future Sprint 5. | 2 |
 
-**Total:** ~14 days
+**Total:** ~12.5 days dev + sprint-long always-on quiz discipline (SP1-14)
 
 ## Risks & Mitigations
 - **SignalR auth issues** → fallback to polling by Day 6  
