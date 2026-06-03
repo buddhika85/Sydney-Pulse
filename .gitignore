@@ -542,6 +542,12 @@ what-if-output.txt
 BUNDLE-README.md
 skills-lock.json
 
+# Interview-prep notes — companion to the Word-doc quiz reference;
+# kept private so interview answers are NOT indexed/cached on the
+# public internet. Daily-study artefact only. See
+# memory/project_interview_prep_doc.md for the two-doc system.
+docs/interview-prep.md
+
 # Test results / coverage (cross-language)
 TestResults/
 coverage/

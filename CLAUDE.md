@@ -318,11 +318,25 @@ argument. Don't repeat in the same session.
 
 ### What counts as quiz / prep
 
-- Active recall on existing Word-doc questions (~5 questions per session)
-- New quiz questions on code shipped this sprint
-- Verbal mock-interview practice on existing questions
+**Two-doc system** (see `memory/project_interview_prep_doc.md`):
+
+- **`docs/interview-prep.md`** — point-based story-flavoured answers,
+  ~150 words each. Daily-scan artefact. **Gitignored** for privacy
+  (interview answers should not be indexed publicly).
+- **`C:\BUDDHIKA\SydPulse-P6\SP1-14-Quiz-VehicleUpdate-ServiceAlert.docx`**
+  — full mechanical reference. Open when more depth is wanted.
+
+**Activities counted as quiz / prep:**
+
+- Active recall on `docs/interview-prep.md` questions (~5 per session)
+- New quiz questions on code shipped this sprint — write to BOTH docs
+  in the same session (mechanical → Word; story → `interview-prep.md`)
+- Verbal mock-interview practice using `interview-prep.md` as prompts
 - Architecture or design-decision explanation rehearsal
 - Reading and summarising an ADR out loud
+
+Story-level calibration target: "experienced engineer who has worked
+with this" — not mechanical recall. See `memory/project_target_roles.md`.
 
 ### Per-sprint backlog entries
 

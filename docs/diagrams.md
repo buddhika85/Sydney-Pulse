@@ -59,10 +59,10 @@ flowchart TD
     EG -->|"all types<br/>archiver sub"| ArchiverFn
 
     StateWriter -->|"upsert by vehicleId"| CosmosDB
-    StateWriter -->|"VehicleUpdated event"| SignalRSvc
+    StateWriter -->|"vehicleUpdated via Azure Function output binding"| SignalRSvc
 
     SBTopic -->|"alerter-sub"| AlerterFn
-    AlerterFn -->|"AlertPublished event"| SignalRSvc
+    AlerterFn -->|"alertReceived via Azure Function output binding"| SignalRSvc
     AlerterFn -->|"upsert by alertId"| CosmosDB
 
     ArchiverFn -->|"Parquet"| DataLake
