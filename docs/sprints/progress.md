@@ -454,7 +454,7 @@ No coding work in this item — read, understand, quiz, document.
 | 1 — Data Contracts (Cosmos) | `VehicleDocument.cs`, `AlertDocument.cs` | ✅ quizzed |
 | 1 — Data Contracts (constants) | `FunctionConstants.cs` | ✅ quizzed |
 | 2 — TfNSW Client | `TfNswOptions.cs`, `ITfNswFeedClient.cs`, `TfNswFeedClient.cs` | ✅ quizzed |
-| 3 — Event Pipeline | `PollerFunction.cs`, `StateWriterFunction.cs`, `AlerterFunction.cs` | 🔄 PollerFunction ✅ (Q1–Q6 + 1 follow-up); StateWriter/Alerter pending |
+| 3 — Event Pipeline | `PollerFunction.cs`, `StateWriterFunction.cs`, `AlerterFunction.cs` | 🔄 PollerFunction ✅ (Q1–Q6 + 1 follow-up); StateWriterFunction 🔄 (Q1–Q2 answered + reviewed 2026-06-04 AM, Q3 stale-write guard pending, Q4–Q6 pending); AlerterFunction ⬜ pending |
 | 4 — HTTP API | `VehiclesFunction.cs`, `AlertsFunction.cs`, `RoutesFunction.cs`, `NegotiateFunction.cs` | ⬜ pending |
 | 5 — DI Wiring | `Program.cs`, `EventGridOptions.cs`, `CosmosOptions.cs` | ⬜ pending |
 | 6 — Tests | All test files | ⬜ pending |
