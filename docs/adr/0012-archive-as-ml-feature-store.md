@@ -43,8 +43,13 @@ files**, with the following shape:
 2. **Unified flat schema** — one Parquet schema covering both event types,
    discriminated by `eventType` and `eventVersion` columns. Type-specific
    fields nullable per row.
-3. **Three timestamps per row** — `vehicleTimestamp` (source feed),
-   `publishedAt` (Event Grid receipt), `archivedAt` (Function write).
+3. **Three timestamps per row** — `sourceTimestamp` (the event's
+   source-observation moment), `publishedAt` (Event Grid receipt),
+   `archivedAt` (Function write). The spec draft used the name
+   `vehicleTimestamp` here, but the unified schema serves alerts too —
+   `sourceTimestamp` reads honestly across both event types. Per event
+   type it maps to: `VehicleUpdate.v1` → source `VehicleTimestamp`;
+   `ServiceAlert.v1` → `StartsAt` (or `publishedAt` if `StartsAt` is null).
 4. **Crash safety via append-blob staging + idempotent flush** — not
    Durable Functions Entities.
 5. **`_manifest.json` per partition hour** — file list, event count, byte
@@ -77,7 +82,7 @@ rows). Parquet compresses nulls efficiently; storage cost is negligible.
 **Three timestamps unlock multiple feature classes.** ML feature
 engineering uses each one differently:
 
-- `vehicleTimestamp` answers "when did this happen in the world?" — used
+- `sourceTimestamp` answers "when did this happen in the world?" — used
   for time-of-day features, delay prediction labels, weather correlation.
 - `publishedAt` answers "when did our pipeline see it?" — used for
   feed-to-ingest latency features and TfNSW health monitoring.

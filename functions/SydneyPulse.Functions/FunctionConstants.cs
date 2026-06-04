@@ -32,4 +32,16 @@ internal static class FunctionConstants
     // --- SignalR event names (received by Angular clients) ---
     internal const string VehicleUpdatedSignalREvent = "vehicleUpdated";
     internal const string AlertReceivedSignalREvent  = "alertReceived";
+
+    // --- Archive (ADR-0012) ---
+    // Container names — defaults; ArchiveOptions may override at runtime.
+    internal const string PendingDataLakeContainer = "pending";
+    internal const string ArchiveDataLakeContainer = "archive";
+    // Single JSONL filename for in-flight events per partition.
+    internal const string PendingEventsBlobName    = "events.jsonl";
+    // Manifest filename written per closed partition.
+    internal const string ArchiveManifestBlobName  = "_manifest.json";
+    // CloudEvent type strings the Archiver subscribes to.
+    internal const string VehicleUpdateEventType   = "com.sydneypulse.VehicleUpdate.v1";
+    internal const string ServiceAlertEventType    = "com.sydneypulse.ServiceAlert.v1";
 }

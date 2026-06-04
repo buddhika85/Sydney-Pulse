@@ -38,6 +38,9 @@ param cosmosEndpoint string
 @description('Event Grid custom topic endpoint URL.')
 param eventGridTopicEndpoint string
 
+@description('Data Lake Storage Gen2 account name for the Archiver (ADR-0012).')
+param dataLakeStorageAccountName string
+
 @description('Resource tags.')
 param tags object
 
@@ -154,6 +157,13 @@ resource funcApp 'Microsoft.Web/sites@2023-01-01' = {
         {
           name:  'ServiceBus__ConnectionString'
           value: kvRef(keyVaultName, 'ServiceBusConnectionString')
+        }
+        // ── Archive (ADR-0012) ────────────────────────────────────────────────
+        // Data Lake account hostname; BlobServiceClient builds the full URL.
+        // Other Archive__* settings use code-side defaults from ArchiveOptions.
+        {
+          name:  'Archive__DataLakeAccountName'
+          value: dataLakeStorageAccountName
         }
       ]
     }

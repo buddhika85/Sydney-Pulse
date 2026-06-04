@@ -153,18 +153,29 @@ module frontend 'modules/frontend.bicep' = {
 module compute 'modules/compute.bicep' = {
   name: 'compute'
   params: {
-    location:               location
-    funcAppName:            names.funcApp
-    funcStorageAccountName: names.funcStorage
-    functionAppSku:         functionAppSku
-    keyVaultName:           names.keyVault
-    appInsightsConnStr:     observability.outputs.appInsightsConnectionString
-    cosmosEndpoint:         data.outputs.cosmosEndpoint
-    eventGridTopicEndpoint: messaging.outputs.eventGridTopicEndpoint
-    tags:                   tags
+    location:                  location
+    funcAppName:               names.funcApp
+    funcStorageAccountName:    names.funcStorage
+    functionAppSku:            functionAppSku
+    keyVaultName:              names.keyVault
+    appInsightsConnStr:        observability.outputs.appInsightsConnectionString
+    cosmosEndpoint:            data.outputs.cosmosEndpoint
+    eventGridTopicEndpoint:    messaging.outputs.eventGridTopicEndpoint
+    dataLakeStorageAccountName: names.dataLake
+    tags:                      tags
   }
   dependsOn: [security]
 }
+
+// TODO (SP1-15 Phase 3): wire the Archiver Event Grid webhook subscription.
+// The archiver subscription declaration lives in messaging.bicep behind a
+// conditional (`if (!empty(funcAppDefaultHostname) && !empty(funcAppEventGridSystemKey))`).
+// On the bootstrap deploy both params are empty (defaults), so the subscription
+// is skipped. Final wiring options being considered:
+//   1. Two-pass deploy — second `az deployment group create` after compute is up.
+//   2. Split into `modules/messaging-archiver.bicep` deployed after `compute`.
+//   3. Post-deploy az CLI step (mirrors the state-writer subscription pattern).
+// Decision to land during SP1-15 implementation.
 
 // Role assignments — declared after compute so principalId is available.
 module roleAssignments 'modules/role-assignments.bicep' = {

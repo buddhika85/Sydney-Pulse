@@ -29,8 +29,11 @@
 	  
     <!-- Event Grid publisher + DefaultAzureCredential; bumped 4.25→4.29 for EventGrid extension (SP1-06) -->
     <PackageReference Include="Azure.Messaging.EventGrid" Version="4.29.0" />
-	  
+
     <PackageReference Include="Azure.Identity" Version="1.13.1" />
+
+    <!-- Data Lake Gen2 access for Archiver Functions — append blobs + block blob writes (SP1-15, ADR-0012) -->
+    <PackageReference Include="Azure.Storage.Blobs" Version="12.22.2" />
   </ItemGroup>
   <ItemGroup>
     <None Update="host.json">

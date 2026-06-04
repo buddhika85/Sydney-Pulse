@@ -168,6 +168,49 @@ resource archiveContainer 'Microsoft.Storage/storageAccounts/blobServices/contai
   dependsOn: [dataLake]
 }
 
+// Pending container — holds in-flight JSONL append blobs awaiting flush (ADR-0012).
+// Lifecycle: blobs are short-lived (≤ 1 hour + grace window). No tier policy needed.
+resource pendingContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-01-01' = {
+  name: '${dataLakeName}/default/pending'
+  properties: {
+    publicAccess: 'None'
+  }
+  dependsOn: [dataLake]
+}
+
+// Storage lifecycle policy (ADR-0012).
+// Applies only to archive/ prefix — pending/ is short-lived and stays Hot.
+// Tier transitions:
+//   Hot → Cool at 30 days  (~50% cost reduction on idle data)
+//   Cool → Cold at 90 days (~50% further reduction; rare-access tier)
+resource lifecyclePolicy 'Microsoft.Storage/storageAccounts/managementPolicies@2023-01-01' = {
+  name: '${dataLakeName}/default'
+  properties: {
+    policy: {
+      rules: [
+        {
+          name: 'archive-tier-transitions'
+          enabled: true
+          type: 'Lifecycle'
+          definition: {
+            filters: {
+              blobTypes: [ 'blockBlob' ]
+              prefixMatch: [ 'archive/' ]
+            }
+            actions: {
+              baseBlob: {
+                tierToCool: { daysAfterModificationGreaterThan: 30 }
+                tierToCold: { daysAfterModificationGreaterThan: 90 }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+  dependsOn: [dataLake]
+}
+
 // ── Outputs ───────────────────────────────────────────────────────────────────
 
 output cosmosEndpoint string = cosmos.properties.documentEndpoint

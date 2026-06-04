@@ -5,11 +5,13 @@
 
 using Azure.Identity;
 using Azure.Messaging.EventGrid;
+using Azure.Storage.Blobs;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using SydneyPulse.Core.Archive;
 using SydneyPulse.Core.TfNsw;
 using SydneyPulse.Functions;
 
@@ -73,6 +75,24 @@ var host = new HostBuilder()
                     },
                 });
         });
+
+        // Bind Archive config section (DataLakeAccountName sourced from app setting
+        // Archive__DataLakeAccountName, set in compute.bicep). See ADR-0012.
+        services.Configure<ArchiveOptions>(
+            context.Configuration.GetSection(ArchiveOptions.SectionName));
+
+        // Singleton BlobServiceClient for the Archive Data Lake account.
+        // DefaultAzureCredential → Managed Identity in Azure, az login locally;
+        // requires Storage Blob Data Contributor on the Data Lake account (already in role-assignments.bicep).
+        services.AddSingleton(sp =>
+        {
+            var opts = sp.GetRequiredService<IOptions<ArchiveOptions>>().Value;
+            var uri = new Uri($"https://{opts.DataLakeAccountName}.blob.core.windows.net");
+            return new BlobServiceClient(uri, new DefaultAzureCredential());
+        });
+
+        // Singleton Parquet writer — stateless, safe to share across invocations.
+        services.AddSingleton<IParquetArchiveWriter, ParquetArchiveWriter>();
     })
     .Build();
 
