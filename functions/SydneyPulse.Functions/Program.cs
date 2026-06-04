@@ -14,6 +14,7 @@ using Microsoft.Extensions.Options;
 using SydneyPulse.Core.Archive;
 using SydneyPulse.Core.TfNsw;
 using SydneyPulse.Functions;
+using SydneyPulse.Functions.Archive;
 
 var host = new HostBuilder()
     .ConfigureFunctionsWebApplication()
@@ -93,6 +94,11 @@ var host = new HostBuilder()
 
         // Singleton Parquet writer — stateless, safe to share across invocations.
         services.AddSingleton<IParquetArchiveWriter, ParquetArchiveWriter>();
+
+        // Singleton pending-blob store — wraps the "pending" Data Lake container so
+        // Function classes have a mockable seam (Azure SDK's GetAppendBlobClient is
+        // an extension method and can't be intercepted with Moq otherwise).
+        services.AddSingleton<IPendingBlobStore, PendingBlobStore>();
     })
     .Build();
 
