@@ -20,7 +20,11 @@ public static class HivePartitionPath
     // Estimated implementation time: 10 min.
     public static string ForHour(DateTimeOffset timestamp)
     {
-        throw new NotImplementedException();
+        // Normalise to UTC first.
+        timestamp = timestamp.ToUniversalTime();  
+
+        // Format with zero-padding. Note the fixed-width components (MM, dd, HH).
+        return $"yyyy={timestamp:yyyy}/MM={timestamp:MM}/dd={timestamp:dd}/HH={timestamp:HH}";
     }
 
     // ForFile: combines the hour-partition path with a filename.
@@ -29,6 +33,6 @@ public static class HivePartitionPath
     // Estimated implementation time: 5 min.
     public static string ForFile(DateTimeOffset timestamp, string fileName)
     {
-        throw new NotImplementedException();
+        return $"{ForHour(timestamp)}/{fileName}";
     }
 }

@@ -1,6 +1,12 @@
 // ArchiveEvent.cs
 // ---------------
 // Unified Parquet row schema for the archive Data Lake (ADR-0012).
+
+// Expose internals to the test project so ParquetArchiveWriter's internal
+// helpers (BuildSchema, BuildColumns) can be unit-tested in isolation.
+// Same pattern as SydneyPulse.Functions / FunctionConstants.cs.
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("SydneyPulse.Tests")]
+
 //
 // One record shape covers both VehicleUpdate.v1 and ServiceAlert.v1.
 // Type-specific fields are nullable. EventType + EventVersion act as the
