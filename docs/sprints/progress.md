@@ -23,7 +23,7 @@ dashboard, tagged `v0.1.0`.
 | SP1-06 | State Writer Function             | ✅     | 2026-05-30  | 2026-05-30  | PR #3 squash-merged |
 | SP1-07 | Alerter chain                     | ✅     | 2026-05-30  | 2026-05-30  | PR #4 squash-merged |
 | SP1-08 | HTTP API                          | ✅     | 2026-05-30  | 2026-05-31  | PR #5 squash-merged |
-| SP1-15 | Archiver Function                 | 🔄     | 2026-06-04  | —           | branch `feat/sp1-15-archiver-function` |
+| SP1-15 | Archiver Function                 | ✅     | 2026-06-04  | 2026-06-05  | `b04b766` (PR #7 squash-merged) |
 | SP1-09 | Angular scaffolding (deeper)      | ⬜     | —           | —           | —                   |
 | SP1-14 | Code review + interview-prep quiz (always-on) | 🔄     | 2026-06-01  | —           | —                   |
 | SP1-10 | Live dashboard                    | ⬜     | —           | —           | —                   |
@@ -425,119 +425,96 @@ Developer decisions during review:
 - Switched NegotiateFunction from `WriteAsJsonAsync` to `WriteStringAsync` (same
   root issue as AlertsFunction — no host DI in unit tests).
 
-## SP1-15 — Archiver Function 🔄
+## SP1-15 — Archiver Function ✅
 
-Started 2026-06-04. Branch: `feat/sp1-15-archiver-function`. Jira: TBD.
-ADR-0012 published.
+Started 2026-06-04. Closed 2026-06-05. **Shipped via PR #7, squash-merged
+as `b04b766`.** 27 files, +3079/-54.
 
-### Phase progress (TDD workflow per CLAUDE.md)
+Pipeline is end-to-end functional: Event Grid → `ArchiverIngestFunction`
+(JSONL append) → Data Lake `pending/` → `ArchiverFlushFunction` (every 5 min)
+→ Parquet + `_manifest.json` in `archive/` → pending blob deleted.
 
-- **Phase 1 — Plan + ADR** ✅ done 2026-06-04 AM
-- **Phase 2 — Scaffold** ✅ done 2026-06-04 AM
-- **Phase 3 — Method loop** 🔄 8 of 13 methods complete (2026-06-05 PM). Whole `ArchiverIngestFunction` is done; `ArchiverFlushFunction` (methods 9–13) is the remaining work.
-- **Phase 4 — Wrap** ⬜ pending
+### What landed (13 methods + supporting types)
 
-### Phase 3 method loop status
+- **Core abstractions** — `HivePartitionPath` (`ForHour`, `ForFile`, `Parse`),
+  `ArchiveEvent` record (24 unified fields), `ArchiveManifest` + `ArchiveManifestFile`,
+  `IParquetArchiveWriter` + `ParquetArchiveWriter` (3 row-group write + roundtrip-tested).
+- **Function infrastructure** — `IPendingBlobStore` (`GetAppendBlob`,
+  `ListPartitionPathsAsync` returning `IAsyncEnumerable<string>`) +
+  `PendingBlobStore` impl. Singleton in DI.
+- **Function classes** — `ArchiverIngestFunction` (RunAsync + MapToArchiveEvent +
+  AppendToPendingAsync), `ArchiverFlushFunction` (RunAsync + ListCloseablePartitions +
+  ReadPendingEvents + DedupeByEventId + WriteManifest + FlushPartitionAsync).
+- **Constants** — `ArchiveEventsBlobName`, `ArchiveManifestBlobName`, `PendingEventsBlobName`
+  on `FunctionConstants` (no magic strings).
+- **Tests** — 19 → **55** total tests, 36 new for SP1-15.
 
-| # | Method | Status | Actual time |
-|---|---|---|---|
-| 1 | `HivePartitionPath.ForHour` | ✅ green | 5 min |
-| 2 | `HivePartitionPath.ForFile` | ✅ green | 5 min |
-| 3 | `ParquetArchiveWriter.BuildSchema` | ✅ green | 15 min (incl. DateTimeOffset pivot to declarative) |
-| 4 | `ParquetArchiveWriter.BuildColumns` | ✅ green | 25 min |
-| 5 | `ParquetArchiveWriter.WriteAsync` | ✅ green | 10 min |
-| 6 | `ArchiverIngestFunction.MapToArchiveEvent` | ✅ green | 2 hr (first CloudEvent SDK use; 80 lines of code, 4 methods incl. helpers) |
-| 7 | `ArchiverIngestFunction.AppendToPendingAsync` | ✅ green | 35 min (incl. IPendingBlobStore refactor after SDK extension-method blocked direct Moq) |
-| 8 | `ArchiverIngestFunction.RunAsync` | ✅ green | 10 min (4-line orchestration; single UtcNow capture, log line) |
-| 9 | `ArchiverFlushFunction.ListCloseablePartitions` | ⬜ NEXT | est. 15 min |
-| 10 | `ArchiverFlushFunction.ReadPendingEvents` | ⬜ | est. 10 min |
-| 11 | `ArchiverFlushFunction.WriteManifest` | ⬜ | est. 10 min |
-| 12 | `ArchiverFlushFunction.FlushPartitionAsync` | ⬜ | est. 25 min |
-| 13 | `ArchiverFlushFunction.RunAsync` | ⬜ | est. 10 min |
-
-**Total elapsed Phase 3: ~4.5 hr (3.5 yesterday + ~1 hr today). Remaining estimate: ~1.5–2 hr for methods 9–13.**
-
-### Commits landed on feature branch
-
-- `c7f4fca` — docs(sp1-14): mark StateWriter Q1-Q2 quiz complete
-- `86f2f47` — docs(adr): add ADR-0012 archive as ML feature store
-- `1e51be0` — feat(sp1-15): scaffold archiver function (Phase 2 skeletons + infra wiring)
-- `66f0cc3` — feat(sp1-15): partition path + Parquet writer (methods 1-5) — 2026-06-05
-- `e2f20d6` — feat(sp1-15): ingest function + pending blob store (methods 6-8) — 2026-06-05
-
-### Test inventory after today's commits
-
-**Total 41 tests passing across the solution. 25 new for SP1-15:**
-
-- `Tests/Unit/Archive/HivePartitionPathTests.cs` — 7 tests
-- `Tests/Unit/Archive/ParquetArchiveWriterTests.cs` — 7 tests
-- `Tests/Unit/AzFunctions/EventPipeline/ArchiverIngestFunctionTests.cs` — 11 tests
-  (5 MapToArchiveEvent incl. SourceTimestamp deepest-fallback regression guard,
-  2 AppendToPendingAsync incl. late-event partition test, 1 RunAsync orchestration,
-  3 misc — VU/SA happy paths + unknown type guard)
-
-### Known issues — closed today
-
-- ~~`MapToArchiveEvent` SourceTimestamp deepest-fallback bug~~ — **closed 2026-06-05**.
-  Re-read of `ArchiverIngestFunction.cs:130` showed the code already used `archivedAt`
-  not `DateTimeOffset.UtcNow` (the compaction-summary claim was wrong). Added a
-  regression-guard test (`MapToArchiveEvent_AlertWithNullStartsAtAndNullTime_FallsBackToArchivedAt`)
-  to pin the contract so a future edit can't silently swap them. Lives in commit `e2f20d6`.
-
-### Known issues still open
-
-- **`docs/testing.md` not yet updated** — per CLAUDE.md standing rule, inventory
-  rows + total count must update in the same commit as test files. Three new test
-  classes pending; bundle into the Phase 4 wrap commit.
-- **`docs/diagrams.md` not yet updated** — archive data-flow diagram needs the
-  Ingest → Pending Blob → Flush → Archive Parquet edges. Phase 4 wrap.
-
-### Design decisions locked in (so we don't relitigate on resume)
+### Key design decisions locked in
 
 - **`SourceTimestamp` rename in ADR-0012** — the spec/ADR draft called the primary
   timestamp `vehicleTimestamp`, but the unified schema serves alerts too. Renamed
-  to `sourceTimestamp` everywhere (ADR amended in commit `86f2f47`).
-- **DateTime UTC for Parquet timestamp columns** — Parquet.NET 4.x dropped
+  to `sourceTimestamp` everywhere.
+- **`DateTime` UTC for Parquet timestamp columns** — Parquet.NET 4.x dropped
   `DateTimeOffset` support. `ArchiveEvent` keeps `DateTimeOffset` (domain),
-  schema declares `DataField<DateTime>` (storage). Conversion via
-  `.UtcDateTime` / `?.UtcDateTime` happens in `BuildColumns`.
-- **Append-blob + Timer pattern** (rejected Durable Functions Entities). Append
-  blob writes are atomic per AppendBlock; crash safety without orchestration
-  complexity.
+  Parquet schema declares `DataField<DateTime>` (storage). Conversion via
+  `.UtcDateTime` / `?.UtcDateTime` in `BuildColumns`.
+- **Append-blob + Timer pattern** (rejected Durable Functions Entities).
+  Append blob writes are atomic per AppendBlock; crash safety without
+  orchestration complexity.
 - **Single row group per Parquet file** — our file size is 2–20 MB (well below
   the recommended 128 MB minimum where multiple row groups pay off).
-- **Unified flat schema with camelCase column names** — 24 columns (7 required +
-  17 nullable), discriminated by `eventType` + `eventVersion`. One Parquet shape
+- **Unified flat 24-column schema with camelCase names** — 7 required + 17
+  nullable, discriminated by `eventType` + `eventVersion`. One Parquet shape
   serves both VehicleUpdate.v1 and ServiceAlert.v1.
-- **`MapToArchiveEvent` is `internal static` with `archivedAt` parameter** — pure
-  function for testability; `RunAsync` captures `DateTimeOffset.UtcNow` once
-  per invocation and passes through. Same access pattern as
-  `ParquetArchiveWriter.BuildSchema` / `BuildColumns`.
-- **`IPendingBlobStore` abstraction (2026-06-05)** — `BlobContainerClient.GetAppendBlobClient`
+- **`IPendingBlobStore` abstraction** — `BlobContainerClient.GetAppendBlobClient`
   is an SDK extension method (not virtual), so Moq cannot intercept it directly.
-  Wrapping it in a one-method interface gave us a clean test seam AND moved the
-  container-resolution hop out of every Function ctor. Singleton in DI; reused
-  by `ArchiverFlushFunction` when it lands. Pattern reference for any future
-  Azure SDK abstraction need where extension methods block direct mocking.
-- **`ArchiverIngestFunction` constructor pared to `(IPendingBlobStore, ILogger)`**
-  (2026-06-05). Earlier it also took `IOptions<ArchiveOptions>`, but the
-  `_opts` field was dead code — Ingest's only Archive-config need (the pending
-  container name) is encapsulated inside `PendingBlobStore`. `ArchiveOptions`
-  is consumed by `Program.cs` (DataLakeAccountName) and by `ArchiverFlushFunction`
-  (PartitionGraceMinutes, BatchSizeThreshold, ArchiveContainer).
+  Wrapping it in a one-method interface gave us a clean unit-test seam AND moved
+  the container-resolution hop out of every Function ctor. Pattern reference for
+  any future Azure SDK abstraction need where extension methods block direct mocking.
+- **`IAsyncEnumerable<string>` for partition listing** — streams Hive partition
+  prefixes from Azure Storage's paginated `GetBlobsAsync` without buffering the
+  whole container in memory. `[EnumeratorCancellation]` on the producer's CT
+  parameter so consumer-side `.WithCancellation()` merges with the producer's
+  token (otherwise silently ignored — classic gotcha).
+- **Read-time dedup, not write-time** — `ReadPendingEvents` returns raw events;
+  `DedupeByEventId` is a separate pure helper called from `FlushPartitionAsync`.
+  A test pins this boundary so a future "helpful" refactor can't silently fold
+  dedup into the I/O path.
+- **`_manifest.json` is the commit point** — partition becomes queryable only
+  after manifest write succeeds. Pending blob deletion is gated on that.
+  Pattern equivalent to Hive's `_SUCCESS`, Iceberg's `metadata.json`, Delta
+  Lake's `_delta_log`.
+- **`overwrite: true` everywhere on the archive side** — makes re-flush after a
+  crash idempotent. Same flag on Parquet upload AND manifest upload. The whole
+  crash-safety story pivots on this single boolean.
+- **`ArchiveOptions.ArchiveContainer` not `FunctionConstants`** — config plumbing
+  is consistent across pending and archive containers.
 
 ### Concept primers + interview-prep landed for SP1-15
 
-- `docs/parquet-datalake-primer.md` (gitignored). Sections 1–6 yesterday; **Section 7 — Event-driven durability** added 2026-06-05 with the at-least-once + atomic AppendBlock + read-time dedupe-by-EventId triangle, a t₀–t₇ duplicate-scenario timeline, failure-matrix table, and the EventId-provenance gotcha (verified by reflection probe that `new CloudEvent(...)` auto-generates a fresh GUID per call).
-- `docs/interview-prep.md` (gitignored) — new section **SP1-15 — Archiver: crash-safety & at-least-once delivery** with Q1 in point-based story format (~150 words + common follow-up). Section index updated.
-- `SP1-14-Quiz-VehicleUpdate-ServiceAlert.docx` — full mechanical 15-bullet Model Answer for the same Q1 inserted before the footer via Python script. Three angles on the same concept (pedagogical primer + story-cadence prep + mechanical reference) so the durability triangle sticks.
+- `docs/parquet-datalake-primer.md` (gitignored). Sections 1–6 cover Parquet,
+  Data Lake Gen2, blob types, Hive partitioning, pipeline, alternatives.
+  **Section 7 — Event-driven durability** covers the at-least-once + atomic
+  AppendBlock + read-time dedupe-by-EventId triangle with a t₀–t₇ duplicate
+  timeline and the EventId-provenance gotcha (verified by reflection probe).
+  **Section 8 — Manifest files as data-lake commit marker** covers the four
+  problems manifest files solve (atomicity, slow-LIST avoidance, race
+  protection, partition pruning) with real-world parallels to Iceberg / Delta /
+  Hudi / Hive.
+- `docs/interview-prep.md` (gitignored) — new section **SP1-15 — Archiver**
+  with Q1 (crash-safety), Q2 (manifest files), Q3 (`IAsyncEnumerable<T>`)
+  in point-based story format.
+- `SP1-14-Quiz-VehicleUpdate-ServiceAlert.docx` — mechanical 15-bullet model
+  answers for the same Q1/Q2/Q3.
 
-### How to resume tomorrow
+### Out of scope (deferred deliberately)
 
-1. Read this section for current state. Branch is `feat/sp1-15-archiver-function`.
-2. `git status` should be clean; `git log -5 --oneline` shows commits up to today's `e2f20d6`.
-3. Resume Phase 3 method loop at **method 9 — `ArchiverFlushFunction.ListCloseablePartitions`**. Different file (`ArchiverFlushFunction.cs`), different trigger (Timer, not EventGrid). Claude writes the failing test, developer implements.
-4. After all 13 methods green: Phase 4 wrap — update `docs/testing.md` (3 new inventory rows + total count 19→41), update `docs/diagrams.md` (archive flow), commit + push + open PR via MCP `create_pull_request`.
+- **Azurite integration test** — would catch the kind of bug we caught manually
+  during this PR (`ArchiveManifestBlobName` mis-reference inside `ArchiveManifestFile`).
+  Scoped as **SP2-01** (data inspection + observability tooling).
+- **Event Grid `archiver-ingest` subscription wiring** — `messaging.bicep`
+  declares it conditionally; first-pass deploy passes empty strings, second-pass
+  deploy or post-deploy CLI step wires it. Decision deferred to **SP1-12** (CI/CD).
 
 ## SP1-14 — Code review + interview-prep quiz (always-on) 🔄
 
@@ -704,24 +681,36 @@ When an item is blocked:
 1. Flip to ⚠️ with a note in "Risks / open items" describing the blocker
    and what unblocks it.
 
-## Next session handoff (2026-06-05 evening)
+## Next session handoff (2026-06-05 evening — SP1-15 shipped)
 
-**SP1-15 (Archiver) in flight. Phase 3 method loop, 6 of 13 methods green.**
-Branch `feat/sp1-15-archiver-function` is at `e2f20d6`. `ArchiverIngestFunction`
-is functionally complete (methods 1–8 across the day's two checkpoint commits).
-Remaining work is `ArchiverFlushFunction` (methods 9–13). See the
-**SP1-15 — Archiver Function 🔄** section above for full state — read that
-first on resume.
+**SP1-15 is done.** PR #7 squash-merged to `main` as `b04b766` on 2026-06-05
+afternoon. Branch `feat/sp1-15-archiver-function` deleted local + remote.
+Local main is in sync with origin. See the **SP1-15 — Archiver Function ✅**
+section above for full state.
 
 ### Quick state snapshot
 
-- Branch: `feat/sp1-15-archiver-function`. Working tree clean after today's
-  three commits.
-- Tests: **41 passing across the solution** (25 new for SP1-15). Build clean,
+- On `main` at `b04b766`. Working tree clean.
+- Tests: **55 passing across the solution** (36 new for SP1-15). Build clean,
   bicep build clean.
-- Next method: **method 9 — `ArchiverFlushFunction.ListCloseablePartitions`**
-  (~15 min est., new file, new trigger). After that: `ReadPendingEvents`,
-  `WriteManifest`, `FlushPartitionAsync`, `RunAsync`.
+- **Next sprint item: SP1-09 — Angular scaffolding (deeper).** Frontend kickoff.
+  After SP1-09: SP1-10 (live dashboard), SP1-11 (landing), SP1-12 (CI/CD),
+  SP1-13 (v0.1.0 wrap).
+- Quiz capture from SP1-15: 3 Q&As across the primer + interview-prep + Word
+  doc — crash-safety triangle, manifest commit marker, `IAsyncEnumerable<T>`
+  deep dive. Reusable for the Tech Mahindra Tuesday interview.
+
+### Interview context (separate from sprint)
+
+- **Tech Mahindra AUS interview confirmed for Tuesday 2026-06-09.** See memory
+  `project_tech_mahindra_interview_lead.md`. Weekend (Jun 6–7) is the serious
+  prep block — mock interview Saturday, refinement Sunday, light polish Monday.
+- New sprint item to scope for Sprint 2 / post-interview: **SP2-01 — Data
+  inspection + observability tooling** (Azurite integration, DuckDB queries
+  over Parquet, Service Bus Explorer, App Insights KQL, end-to-end tour).
+
+### (Stale below this point — kept for history)
+
 - Concept primer extended today with **Section 7 — Event-driven durability**
   (the at-least-once + atomic append + read-time dedupe triangle, plus the
   EventId-provenance gotcha).
