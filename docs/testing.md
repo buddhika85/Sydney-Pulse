@@ -28,8 +28,8 @@ Expected output:
 
 ```
 Test Run Successful.
-Total tests: 19
-     Passed: 19
+Total tests: 55
+     Passed: 55
  Total time: ~10 Seconds
 ```
 
@@ -55,6 +55,10 @@ dotnet test functions/SydneyPulse.sln --filter "FullyQualifiedName~AlerterFuncti
 dotnet test functions/SydneyPulse.sln --filter "FullyQualifiedName~VehiclesFunctionTests"
 dotnet test functions/SydneyPulse.sln --filter "FullyQualifiedName~AlertsFunctionTests"
 dotnet test functions/SydneyPulse.sln --filter "FullyQualifiedName~RoutesFunctionTests"
+dotnet test functions/SydneyPulse.sln --filter "FullyQualifiedName~HivePartitionPathTests"
+dotnet test functions/SydneyPulse.sln --filter "FullyQualifiedName~ParquetArchiveWriterTests"
+dotnet test functions/SydneyPulse.sln --filter "FullyQualifiedName~ArchiverIngestFunctionTests"
+dotnet test functions/SydneyPulse.sln --filter "FullyQualifiedName~ArchiverFlushFunctionTests"
 ```
 
 ---
@@ -154,6 +158,74 @@ Tests for `RoutesFunction` (TfNswFeedClient cache delegation, per-mode iteration
 |------|----------------|
 | `RunAsync_WithRoutes_Returns200AndCallsFeedClientPerMode` | Two configured modes → `GetRoutesAsync` called twice, response 200 OK |
 | `RunAsync_EmptyFeed_Returns200WithEmptyRoutesArray` | Feed returns empty dictionary → 200 OK with empty `routes` array |
+
+### `SydneyPulse.Tests/Unit/Archive/HivePartitionPathTests.cs`
+
+Tests for `HivePartitionPath` (Hive-style path composition + parsing, ADR-0012).
+Pure-function tests — no DI, no mocks.
+
+| Test | What it covers |
+|------|----------------|
+| `ForHour_UtcInput_ReturnsHivePartitionPath` | Basic format contract: `yyyy=YYYY/MM=MM/dd=DD/HH=HH` from a UTC `DateTimeOffset` |
+| `ForHour_NonUtcOffset_NormalisesToUtcBeforeFormatting` | Sydney time `+10:00` is normalised to UTC before formatting (HH=04, not HH=14) |
+| `ForHour_SingleDigitValues_ArePaddedWithLeadingZeros` | `MM=01`, `dd=05`, `HH=03` zero-padding — required for partition pruning |
+| `ForHour_EndOfHourInput_ReturnsContainingHour` | `14:59:59` belongs to `HH=14`, not `HH=15` |
+| `ForFile_UtcInputWithParquetFilename_ComposesFullPath` | Hour path + `/` + filename composition |
+| `ForFile_NonUtcOffset_NormalisesToUtcInPath` | UTC normalisation flows through `ForFile` (delegates to `ForHour`) |
+| `ForFile_ManifestFilename_AppendsVerbatim` | Special-char filenames (`_manifest.json`) pass through unchanged |
+| `Parse_WellFormedHivePath_ReturnsStartOfHourInUtc` | Inverse of `ForHour`: path → start-of-hour `DateTimeOffset` in UTC |
+| `Parse_ZeroPaddedSingleDigits_ParsesCorrectly` | Single-digit-encoded values (e.g. `MM=01`) parse correctly |
+| `Parse_RoundTripFromForHour_RecoversStartOfHour` | `ForHour → Parse` round-trip recovers UTC start of hour |
+| `Parse_MalformedInput_Throws` | Wrong segment count throws — fail fast rather than silently mis-process |
+
+### `SydneyPulse.Tests/Unit/Archive/ParquetArchiveWriterTests.cs`
+
+Tests for `ParquetArchiveWriter` (Parquet schema + column pivot + writer roundtrip, ADR-0012).
+Pure-function tests for `BuildSchema` / `BuildColumns` via `InternalsVisibleTo`.
+
+| Test | What it covers |
+|------|----------------|
+| `BuildSchema_Returns24Columns` | Unified schema declares all 24 fields of `ArchiveEvent` |
+| `BuildSchema_TimestampColumnsAreDateTimeNotDateTimeOffset` | Parquet.NET 4.x dropped `DateTimeOffset` support; schema must use `DateTime` UTC |
+| `BuildColumns_EmptyEvents_ReturnsEmptyColumnsInSchemaOrder` | Order matches schema; each column array has length 0 |
+| `BuildColumns_SingleVehicleUpdate_PopulatesVehicleFieldsLeavesAlertFieldsNull` | VU-shaped event populates vehicle columns; alert columns null |
+| `BuildColumns_DateTimeOffsetConvertedToUtcDateTime` | Sydney-time `DateTimeOffset` lands as UTC `DateTime` in the column array |
+| `WriteAsync_OneEvent_ProducesParquetReadableBack` | Roundtrip: write 1 event → `ParquetReader` reads it back → 1 row group, 24 columns |
+| `WriteAsync_MultipleEvents_AllRowsRecoveredInOrder` | 3 events in → 3 rows out in the same order |
+
+### `SydneyPulse.Tests/Unit/AzFunctions/EventPipeline/ArchiverIngestFunctionTests.cs`
+
+Tests for `ArchiverIngestFunction` (CloudEvent → `ArchiveEvent` projection, pending-blob append, EG-trigger orchestration).
+`IPendingBlobStore` and `AppendBlobClient` are mocked — no Azure connection required.
+
+| Test | What it covers |
+|------|----------------|
+| `MapToArchiveEvent_VehicleUpdate_PopulatesVehicleFieldsAndLeavesAlertFieldsNull` | VU CloudEvent → all vehicle fields populated, all alert fields null, 3 timestamps derived correctly |
+| `MapToArchiveEvent_ServiceAlert_PopulatesAlertFieldsAndLeavesVehicleFieldsNull` | SA CloudEvent → all alert fields populated, all vehicle fields null, `SourceTimestamp = StartsAt` |
+| `MapToArchiveEvent_AlertWithNullStartsAt_FallsBackToCloudEventTime` | Middle fallback in `StartsAt ?? cloudEvent.Time ?? archivedAt` chain |
+| `MapToArchiveEvent_AlertWithNullStartsAtAndNullTime_FallsBackToArchivedAt` | Deepest fallback (regression guard — pins that `archivedAt` is used, not `UtcNow`) |
+| `MapToArchiveEvent_UnknownEventType_Throws` | Unsupported `cloudEvent.Type` throws so EG retries / dead-letters loudly |
+| `AppendToPendingAsync_VehicleUpdate_AppendsJsonlToHivePartitionPath` | Blob path = Hive partition (from `SourceTimestamp`) + `events.jsonl`; JSONL ends with `\n` |
+| `AppendToPendingAsync_LateEvent_PartitionPathFollowsSourceTimestampNotArchivedAt` | Late event lands in its source hour partition, not the wall-clock partition |
+| `RunAsync_VehicleUpdate_AppendsAtPartitionDerivedFromVehicleTimestamp` | End-to-end orchestration: trigger → map → append; correct partition path resolved |
+
+### `SydneyPulse.Tests/Unit/AzFunctions/EventPipeline/ArchiverFlushFunctionTests.cs`
+
+Tests for `ArchiverFlushFunction` (closeable-partition filter, pending JSONL read, dedup, Parquet write, manifest commit, pending delete, timer orchestration).
+`IPendingBlobStore`, `BlobServiceClient`, `BlobContainerClient`, `BlobClient`, `AppendBlobClient`, and `IParquetArchiveWriter` are all mocked — no Azure connection required.
+
+| Test | What it covers |
+|------|----------------|
+| `ListCloseablePartitions_ThreeHourPartitions_ReturnsOnlyThoseWhoseHourEndedPastGrace` | Filter contract: hours past `(now - grace)` are closeable; current hour is not |
+| `ListCloseablePartitions_PartitionExactlyAtGraceBoundary_IsCloseable` | Boundary semantics: `<=` is inclusive — partition exactly at grace edge is closeable |
+| `ListCloseablePartitions_PartitionStillInProgress_IsNotCloseable` | Live partition (now inside the hour) is never finalised — Ingest may still be writing |
+| `ReadPendingEvents_ThreeEvents_DeserialisesAndReturnsAllAtCorrectPath` | JSONL round-trips through deserialisation; resolver asked for the right blob path |
+| `ReadPendingEvents_TrailingNewline_DoesNotProduceEmptyEntry` | `\n`-terminated content (Ingest's shape) doesn't produce a phantom empty event |
+| `ReadPendingEvents_DuplicateEventIds_PassedThroughUnchanged` | No dedup at read; same `EventId` twice comes back as two events (dedup is FlushPartitionAsync's job) |
+| `DedupeByEventId_DuplicatesAndUniques_KeepsOneCopyPerEventId` | Pure-function dedup contract: `GroupBy(EventId).First()` semantics, first-occurrence order preserved |
+| `WriteManifest_HappyPath_WritesJsonToArchivePathWithOverwrite` | Manifest serialised to JSON, uploaded to `archive/{partitionPath}/_manifest.json` with `overwrite: true` |
+| `FlushPartitionAsync_HappyPath_DedupesWritesParquetWritesManifestDeletesPending` | End-to-end orchestration: read → dedupe → Parquet upload → manifest commit → pending delete |
+| `RunAsync_TwoPartitions_FlushesOnlyTheClosableOne` | Timer orchestration: list all partitions, flush only the closeable subset, leave in-progress untouched |
 
 ---
 

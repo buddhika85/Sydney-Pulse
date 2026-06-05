@@ -22,6 +22,13 @@ param existingServiceBusNamespaceName string
 @description('Resource group containing the pre-existing Service Bus namespace.')
 param existingServiceBusResourceGroup string
 
+@description('Function App default hostname (e.g. sydney-pulse-func-dev.azurewebsites.net). Used for the archiver webhook endpoint.')
+param funcAppDefaultHostname string = ''
+
+@description('Function App system key for Event Grid webhook authentication. Pass listKeys() output from main.bicep. Empty string skips archiver subscription declaration (legacy path).')
+@secure()
+param funcAppEventGridSystemKey string = ''
+
 @description('Resource tags.')
 param tags object
 
@@ -45,11 +52,43 @@ resource eventGridTopic 'Microsoft.EventGrid/topics@2022-06-15' = {
 // These subscriptions use dead-letter storage on the Functions storage account;
 // the storage account name is threaded through main.bicep at deploy time.
 
-// state-writer and archiver webhook subscriptions are NOT declared here.
+// state-writer webhook subscription is NOT declared here.
 // Event Grid validates webhook endpoints at subscription creation time —
 // the placeholder URL causes a 404 validation failure and aborts the deploy.
-// These subscriptions are created via az CLI in SP1-06 once the Function App
+// state-writer subscription is created via az CLI in SP1-06 once the Function App
 // URL is known (see infra/DEPLOY.md Step 5).
+//
+// archiver subscription IS declared below (ADR-0012, SP1-15). The webhook URL
+// is built from funcAppDefaultHostname + funcAppEventGridSystemKey passed in
+// from main.bicep, so EG can validate at deploy time. The conditional `if` lets
+// initial deploys (before the Function App is provisioned) skip this subscription
+// — pass empty strings for both params during the bootstrap deploy.
+
+// archiver subscription: delivers BOTH VehicleUpdate.v1 and ServiceAlert.v1
+// to ArchiverIngestFunction via WebHook for batch Parquet writes.
+resource archiverSubscription 'Microsoft.EventGrid/topics/eventSubscriptions@2022-06-15' = if (!empty(funcAppDefaultHostname) && !empty(funcAppEventGridSystemKey)) {
+  parent: eventGridTopic
+  name: 'archiver'
+  properties: {
+    filter: {
+      includedEventTypes: [
+        'com.sydneypulse.VehicleUpdate.v1'
+        'com.sydneypulse.ServiceAlert.v1'
+      ]
+    }
+    destination: {
+      endpointType: 'WebHook'
+      properties: {
+        endpointUrl: 'https://${funcAppDefaultHostname}/runtime/webhooks/EventGrid?functionName=ArchiverIngest&code=${funcAppEventGridSystemKey}'
+      }
+    }
+    retryPolicy: {
+      maxDeliveryAttempts:      30
+      eventTimeToLiveInMinutes: 1440
+    }
+    eventDeliverySchema: 'CloudEventSchemaV1_0'
+  }
+}
 
 // alerter subscription: delivers ServiceAlert.v1 to the Service Bus topic.
 resource alerterSubscription 'Microsoft.EventGrid/topics/eventSubscriptions@2022-06-15' = {

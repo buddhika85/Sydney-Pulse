@@ -548,6 +548,10 @@ skills-lock.json
 # memory/project_interview_prep_doc.md for the two-doc system.
 docs/interview-prep.md
 
+# Concept primers — companion to interview-prep.md. Tech-specific deep
+# dives (Parquet, Data Lake, etc.) double as private interview prep.
+docs/*-primer.md
+
 # Test results / coverage (cross-language)
 TestResults/
 coverage/
