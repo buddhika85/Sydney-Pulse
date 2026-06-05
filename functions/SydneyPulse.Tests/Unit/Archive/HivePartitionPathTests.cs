@@ -128,4 +128,69 @@ public class HivePartitionPathTests
         // Assert — special chars preserved exactly
         Assert.Equal("yyyy=2026/MM=06/dd=04/HH=14/_manifest.json", result);
     }
+
+    // ─── Parse ──────────────────────────────────────────────────────────────
+    // Method under test: HivePartitionPath.Parse(string)
+    // Contract: returns the DateTimeOffset marking the START of the hour
+    //           encoded in the partition path. UTC offset always.
+
+    // Happy path: a well-formed Hive partition path parses back to the exact
+    // start of that hour in UTC. Establishes the basic format contract.
+    [Fact]
+    public void Parse_WellFormedHivePath_ReturnsStartOfHourInUtc()
+    {
+        // Arrange
+        var partitionPath = "yyyy=2026/MM=06/dd=05/HH=09";
+
+        // Act
+        var result = HivePartitionPath.Parse(partitionPath);
+
+        // Assert — exact start of hour, UTC offset
+        Assert.Equal(new DateTimeOffset(2026, 6, 5, 9, 0, 0, TimeSpan.Zero), result);
+    }
+
+    // Zero-padded single-digit components must parse correctly.
+    // If int.Parse stumbles on "01" or "00" the implementation is wrong.
+    [Fact]
+    public void Parse_ZeroPaddedSingleDigits_ParsesCorrectly()
+    {
+        // Arrange — January 1st, midnight
+        var partitionPath = "yyyy=2026/MM=01/dd=01/HH=00";
+
+        // Act
+        var result = HivePartitionPath.Parse(partitionPath);
+
+        // Assert
+        Assert.Equal(new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero), result);
+    }
+
+    // Round-trip contract: ForHour(ts).Parse() == start of ts's hour, in UTC.
+    // Pins the inverse relationship explicitly so future edits to either method
+    // can't drift apart silently.
+    [Fact]
+    public void Parse_RoundTripFromForHour_RecoversStartOfHour()
+    {
+        // Arrange — non-UTC source so we also verify the UTC normalisation chain
+        var original = new DateTimeOffset(2026, 6, 4, 14, 23, 17, TimeSpan.FromHours(10));
+        var partitionPath = HivePartitionPath.ForHour(original);
+
+        // Act
+        var result = HivePartitionPath.Parse(partitionPath);
+
+        // Assert — UTC start of hour (04:00, not 14:00 — original was Sydney time)
+        Assert.Equal(new DateTimeOffset(2026, 6, 4, 4, 0, 0, TimeSpan.Zero), result);
+    }
+
+    // Defensive: malformed input means upstream listing got something it shouldn't.
+    // Throw loudly so the flush tick fails fast rather than silently skipping
+    // a partition (which would mean events linger in pending forever).
+    [Fact]
+    public void Parse_MalformedInput_Throws()
+    {
+        // Arrange — wrong segment count
+        var partitionPath = "yyyy=2026/MM=06/dd=05";  // missing HH
+
+        // Act + Assert — exact exception type left to implementer; just require throw
+        Assert.ThrowsAny<Exception>(() => HivePartitionPath.Parse(partitionPath));
+    }
 }

@@ -39,6 +39,9 @@ internal static class FunctionConstants
     internal const string ArchiveDataLakeContainer = "archive";
     // Single JSONL filename for in-flight events per partition.
     internal const string PendingEventsBlobName    = "events.jsonl";
+    // Single Parquet filename per finalised partition. Re-flush after a crash
+    // safely overwrites this blob (block-blob with overwrite=true).
+    internal const string ArchiveEventsBlobName    = "events.parquet";
     // Manifest filename written per closed partition.
     internal const string ArchiveManifestBlobName  = "_manifest.json";
     // CloudEvent type strings the Archiver subscribes to.

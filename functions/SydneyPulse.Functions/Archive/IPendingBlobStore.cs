@@ -22,4 +22,13 @@ public interface IPendingBlobStore
     // Caller composes the partition-relative path
     // (e.g. "yyyy=2026/MM=06/dd=04/HH=14/events.jsonl").
     AppendBlobClient GetAppendBlob(string partitionRelativePath);
+
+    // Enumerates the distinct Hive partition prefixes that have at least one
+    // pending blob today (e.g. "yyyy=2026/MM=06/dd=05/HH=07"). Used by
+    // ArchiverFlushFunction.RunAsync to drive its per-tick flush loop.
+    //
+    // IAsyncEnumerable so the caller can short-circuit (e.g. on cancellation
+    // or per-batch processing) without forcing a full container scan into
+    // memory first.
+    IAsyncEnumerable<string> ListPartitionPathsAsync(CancellationToken cancellationToken);
 }
