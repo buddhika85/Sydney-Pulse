@@ -28,13 +28,14 @@ flowchart TD
     subgraph processing["Processing — sydney-pulse-func-{env}<br/>infra/modules/compute.bicep"]
         StateWriter["StateWriterFunction<br/>EventGridTrigger · VehicleUpdate.v1<br/>AzFunctions/EventPipeline/StateWriterFunction.cs"]
         AlerterFn["AlerterFunction<br/>ServiceBusTrigger<br/>AzFunctions/EventPipeline/AlerterFunction.cs"]
-        ArchiverFn["ArchiverFunction<br/>EventGridTrigger · all types<br/>AzFunctions/EventPipeline/ArchiverFunction.cs"]
+        ArchiverIngestFn["ArchiverIngestFunction<br/>EventGridTrigger · all types<br/>AzFunctions/EventPipeline/ArchiverIngestFunction.cs"]
+        ArchiverFlushFn["ArchiverFlushFunction<br/>TimerTrigger · every 5 min<br/>AzFunctions/EventPipeline/ArchiverFlushFunction.cs"]
         HttpApi["HTTP API Functions<br/>GET /vehicles · /alerts · /routes<br/>POST /negotiate · GET /analytics · /ops"]
     end
 
     subgraph storage["Data — infra/modules/data.bicep"]
         CosmosDB[("Cosmos DB Serverless<br/>sydneyPulse DB · ADR-0002<br/>vehicles TTL 5 m · alerts TTL 24 h<br/>partition key: routeShortName")]
-        DataLake[("Data Lake Gen2<br/>sydpulsedlsa{env} / archive/<br/>Parquet · 5 min batch")]
+        DataLake[("Data Lake Gen2 · ADR-0012<br/>sydpulsedlsa{env}<br/>pending/ (JSONL by hour)<br/>archive/ (Parquet + _manifest.json)")]
     end
 
     subgraph security["Security — infra/modules/security.bicep"]
@@ -56,7 +57,7 @@ flowchart TD
 
     EG -->|"VehicleUpdate.v1<br/>state-writer sub"| StateWriter
     EG -->|"ServiceAlert.v1<br/>alerter sub → SB filter"| SBTopic
-    EG -->|"all types<br/>archiver sub"| ArchiverFn
+    EG -->|"all types<br/>archiver-ingest sub"| ArchiverIngestFn
 
     StateWriter -->|"upsert by vehicleId"| CosmosDB
     StateWriter -->|"vehicleUpdated via Azure Function output binding"| SignalRSvc
@@ -65,7 +66,8 @@ flowchart TD
     AlerterFn -->|"alertReceived via Azure Function output binding"| SignalRSvc
     AlerterFn -->|"upsert by alertId"| CosmosDB
 
-    ArchiverFn -->|"Parquet"| DataLake
+    ArchiverIngestFn -->|"JSONL append<br/>per hour partition"| DataLake
+    ArchiverFlushFn -->|"Parquet + _manifest.json<br/>per closed partition"| DataLake
 
     CosmosDB -->|"read"| HttpApi
     HttpApi --> StaticWebApp
@@ -74,27 +76,31 @@ flowchart TD
     KeyVault -. "Managed Identity" .-> Poller
     KeyVault -. "Managed Identity" .-> StateWriter
     KeyVault -. "Managed Identity" .-> AlerterFn
+    KeyVault -. "Managed Identity" .-> ArchiverIngestFn
+    KeyVault -. "Managed Identity" .-> ArchiverFlushFn
 
     Poller -. "telemetry" .-> AppInsights
     StateWriter -. "telemetry" .-> AppInsights
     AlerterFn -. "telemetry" .-> AppInsights
     HttpApi -. "telemetry" .-> AppInsights
+    ArchiverIngestFn -. "telemetry" .-> AppInsights
+    ArchiverFlushFn -. "telemetry" .-> AppInsights
 
     %% Edge colours — indices match declaration order above; update comment when edges are added/removed
-    %% [0-2]   Ingest: TfNSW → FeedClient → Poller → Event Grid
+    %% [0-2]    Ingest: TfNSW → FeedClient → Poller → Event Grid
     linkStyle 0,1,2 stroke:#0078D4,stroke-width:2px
-    %% [3-5,8] Fan-out: Event Grid → StateWriter / SBTopic / Archiver; SBTopic → Alerter
+    %% [3-5,8]  Fan-out: Event Grid → StateWriter / SBTopic / ArchiverIngest; SBTopic → Alerter
     linkStyle 3,4,5,8 stroke:#00B294,stroke-width:2px
-    %% [6,10,11] Write: functions → Cosmos / Data Lake
-    linkStyle 6,10,11 stroke:#FF8C00,stroke-width:2px
-    %% [7,9,14]  Real-time push: → SignalR → Angular
-    linkStyle 7,9,14 stroke:#E74C3C,stroke-width:2px
-    %% [12-13]  Read: Cosmos → HTTP API → Angular
-    linkStyle 12,13 stroke:#107C10,stroke-width:2px
-    %% [15-17]  Managed Identity: Key Vault → functions (security dependency, not main data flow)
-    linkStyle 15,16,17 stroke:#D13438,stroke-width:1px,stroke-dasharray:5
-    %% [18-21]  Telemetry: functions → App Insights (observability side-channel, not main data flow)
-    linkStyle 18,19,20,21 stroke:#8764B8,stroke-width:1px,stroke-dasharray:5
+    %% [6,10,11,12]  Write: functions → Cosmos / Data Lake (pending + archive)
+    linkStyle 6,10,11,12 stroke:#FF8C00,stroke-width:2px
+    %% [7,9,15]  Real-time push: → SignalR → Angular
+    linkStyle 7,9,15 stroke:#E74C3C,stroke-width:2px
+    %% [13-14]  Read: Cosmos → HTTP API → Angular
+    linkStyle 13,14 stroke:#107C10,stroke-width:2px
+    %% [16-20]  Managed Identity: Key Vault → functions (security dependency, not main data flow)
+    linkStyle 16,17,18,19,20 stroke:#D13438,stroke-width:1px,stroke-dasharray:5
+    %% [21-26]  Telemetry: functions → App Insights (observability side-channel, not main data flow)
+    linkStyle 21,22,23,24,25,26 stroke:#8764B8,stroke-width:1px,stroke-dasharray:5
 ```
 
 ### Edge colour legend
@@ -119,7 +125,12 @@ Solid lines = main data flows you follow to understand the application. Dashed l
 | Poller Function | `functions/SydneyPulse.Functions/AzFunctions/EventPipeline/PollerFunction.cs` | `compute.bicep` |
 | State Writer Function | `functions/SydneyPulse.Functions/AzFunctions/EventPipeline/StateWriterFunction.cs` | `compute.bicep` |
 | Alerter Function | `functions/SydneyPulse.Functions/AzFunctions/EventPipeline/AlerterFunction.cs` | `compute.bicep` |
-| Archiver Function | `functions/SydneyPulse.Functions/AzFunctions/EventPipeline/ArchiverFunction.cs` | `compute.bicep` |
+| Archiver Ingest Function | `functions/SydneyPulse.Functions/AzFunctions/EventPipeline/ArchiverIngestFunction.cs` | `compute.bicep` |
+| Archiver Flush Function | `functions/SydneyPulse.Functions/AzFunctions/EventPipeline/ArchiverFlushFunction.cs` | `compute.bicep` |
+| Pending blob store (abstraction) | `functions/SydneyPulse.Functions/Archive/PendingBlobStore.cs` | — |
+| Parquet writer | `functions/SydneyPulse.Core/Archive/ParquetArchiveWriter.cs` | — |
+| Hive partition path helper | `functions/SydneyPulse.Core/Archive/HivePartitionPath.cs` | — |
+| Archive manifest model | `functions/SydneyPulse.Core/Archive/ArchiveManifest.cs` | — |
 | HTTP API Functions | `functions/SydneyPulse.Functions/AzFunctions/HttpApi/` | `compute.bicep` |
 | Event Grid subscriptions | — | `messaging.bicep` |
 | Service Bus topic | — | `servicebus-topic.bicep` |
