@@ -25,10 +25,11 @@ dashboard, tagged `v0.1.0`.
 | SP1-08 | HTTP API                          | ✅     | 2026-05-30  | 2026-05-31  | PR #5 squash-merged |
 | SP1-15 | Archiver Function                 | ✅     | 2026-06-04  | 2026-06-05  | `b04b766` (PR #7 squash-merged) |
 | SP1-09 | Angular scaffolding (deeper)      | ⬜     | —           | —           | —                   |
+| SP1-16 | Backend visibility (manual deploy + smoke) | ⬜     | —           | —           | —                   |
 | SP1-14 | Code review + interview-prep quiz (always-on) | 🔄     | 2026-06-01  | —           | —                   |
+| SP1-12 | GitHub Actions CI/CD              | ⬜     | —           | —           | —                   |
 | SP1-10 | Live dashboard                    | ⬜     | —           | —           | —                   |
 | SP1-11 | Landing page                      | ⬜     | —           | —           | —                   |
-| SP1-12 | GitHub Actions CI/CD              | ⬜     | —           | —           | —                   |
 | SP1-13 | Sprint wrap → v0.1.0              | ⬜     | —           | —           | —                   |
 
 ## SP1-01 — Repo + Azure bootstrap ✅
@@ -694,8 +695,11 @@ section above for full state.
 - Tests: **55 passing across the solution** (36 new for SP1-15). Build clean,
   bicep build clean.
 - **Next sprint item: SP1-09 — Angular scaffolding (deeper).** Frontend kickoff.
-  After SP1-09: SP1-10 (live dashboard), SP1-11 (landing), SP1-12 (CI/CD),
-  SP1-13 (v0.1.0 wrap).
+  Revised ordering (front-loads deploy risk): SP1-09 → **SP1-16 (backend
+  visibility / manual deploy + smoke)** → SP1-12 (CI/CD) → SP1-10 (live
+  dashboard) → SP1-11 (landing) → SP1-13 (v0.1.0 wrap). SP1-16 added
+  2026-06-09 to verify each Function works in real Azure before sinking
+  time into UI, and to produce the deploy recipe SP1-12 will automate.
 - Quiz capture from SP1-15: 3 Q&As across the primer + interview-prep + Word
   doc — crash-safety triangle, manifest commit marker, `IAsyncEnumerable<T>`
   deep dive. Reusable for the Tech Mahindra Tuesday interview.
