@@ -24,8 +24,8 @@ dashboard, tagged `v0.1.0`.
 | SP1-07 | Alerter chain                     | ✅     | 2026-05-30  | 2026-05-30  | PR #4 squash-merged |
 | SP1-08 | HTTP API                          | ✅     | 2026-05-30  | 2026-05-31  | PR #5 squash-merged |
 | SP1-15 | Archiver Function                 | ✅     | 2026-06-04  | 2026-06-05  | `b04b766` (PR #7 squash-merged) |
+| SP1-16 | Backend visibility (manual deploy + smoke) — [plan](backend-manual-deploy-plan.md) | ⬜     | —           | —           | —                   |
 | SP1-09 | Angular scaffolding (deeper)      | ⬜     | —           | —           | —                   |
-| SP1-16 | Backend visibility (manual deploy + smoke) | ⬜     | —           | —           | —                   |
 | SP1-14 | Code review + interview-prep quiz (always-on) | 🔄     | 2026-06-01  | —           | —                   |
 | SP1-12 | GitHub Actions CI/CD              | ⬜     | —           | —           | —                   |
 | SP1-10 | Live dashboard                    | ⬜     | —           | —           | —                   |
@@ -694,12 +694,15 @@ section above for full state.
 - On `main` at `b04b766`. Working tree clean.
 - Tests: **55 passing across the solution** (36 new for SP1-15). Build clean,
   bicep build clean.
-- **Next sprint item: SP1-09 — Angular scaffolding (deeper).** Frontend kickoff.
-  Revised ordering (front-loads deploy risk): SP1-09 → **SP1-16 (backend
-  visibility / manual deploy + smoke)** → SP1-12 (CI/CD) → SP1-10 (live
-  dashboard) → SP1-11 (landing) → SP1-13 (v0.1.0 wrap). SP1-16 added
-  2026-06-09 to verify each Function works in real Azure before sinking
-  time into UI, and to produce the deploy recipe SP1-12 will automate.
+- **Next sprint item: SP1-16 — Backend visibility (manual deploy + smoke).**
+  Order flipped 2026-06-09: do SP1-16 *before* SP1-09 so the backend is
+  verified in real Azure before any UI work begins, and so SP1-09 / SP1-10
+  can target a working dev URL instead of mocks. No frontend dependency —
+  SignalR smoke uses `spike.html` from SP1-02.
+  Revised ordering: **SP1-16** → SP1-09 → SP1-12 (CI/CD) → SP1-10 (live
+  dashboard) → SP1-11 (landing) → SP1-13 (v0.1.0 wrap).
+  **Detailed 8-phase execution plan: [`backend-manual-deploy-plan.md`](backend-manual-deploy-plan.md).**
+  Self-study before kickoff; we resume at Phase A pre-flight when ready.
 - Quiz capture from SP1-15: 3 Q&As across the primer + interview-prep + Word
   doc — crash-safety triangle, manifest commit marker, `IAsyncEnumerable<T>`
   deep dive. Reusable for the Tech Mahindra Tuesday interview.
