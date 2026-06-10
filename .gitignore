@@ -533,6 +533,10 @@ infra/**/*.json
 deploy-out.txt
 what-if-output.txt
 
+# Local Azure ops scripts — hardcode subscription ID for convenience.
+# Kept local so the ID doesn't end up in a public portfolio repo.
+scripts/azure-*.ps1
+
 # Claude Code — keep team settings, ignore per-user local overrides
 .claude/settings.local.json
 .claude/.credentials.json
