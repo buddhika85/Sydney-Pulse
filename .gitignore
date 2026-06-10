@@ -552,6 +552,10 @@ docs/interview-prep.md
 # dives (Parquet, Data Lake, etc.) double as private interview prep.
 docs/*-primer.md
 
+# Debug-story collections — interview-friendly narratives from real
+# bugs hit during sprint work. Same privacy rationale as interview-prep.md.
+docs/*-debug-stories.md
+
 # Test results / coverage (cross-language)
 TestResults/
 coverage/

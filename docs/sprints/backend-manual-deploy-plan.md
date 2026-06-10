@@ -24,6 +24,62 @@ Revised order in Sprint 1:
 No frontend dependency — SignalR smoke uses `spike.html` from SP1-02,
 not the Angular app.
 
+## Strategy — why real Azure dev (not local Docker)
+
+SP1-16 deploys to and verifies against the **real `sydney-pulse-rg-dev`
+resource group**, not local containers. Two reasons make this not a
+choice but the only viable path:
+
+- **Event Grid has no official local emulator.** You cannot run the
+  fans-out-to-three-subscribers pipeline locally end-to-end no matter
+  how many containers you spin up.
+- **Azure SignalR Serverless mode has no emulator either.** The whole
+  Negotiate → access token → cloud WebSocket flow requires the cloud
+  service. SP1-02 used real cloud SignalR for exactly this reason.
+
+The other reason: the *artefact* SP1-16 produces — App Insights traces,
+Cosmos Data Explorer screenshots, Live Metrics — only exists in real
+Azure. That's the interview material.
+
+Cost is not a blocker. The dev environment uses Consumption + Serverless
++ Free SKUs only; a 30-minute smoke window costs roughly **AUD $0.10 –
+$0.50**.
+
+### Emulator availability across our stack
+
+| Service | Local emulator? | SP1-16 (cloud dev) | Later (SP2-01 / CI / pure-local) |
+|---|---|---|---|
+| Azure Functions runtime | Yes — `func start` (Core Tools) | Real `sydney-pulse-func-dev` Function App | `func start` for local debug |
+| Cosmos DB | Yes — Linux preview Docker container | Real `sydney-pulse-cosmos-dev` (Serverless) | Cosmos emulator container |
+| Storage / Data Lake Gen 2 | Yes — **Azurite** (HNS supported) | Real `sydpulsedlsadev` + `sydpulsestordev` | Azurite |
+| Service Bus | Yes — official emulator container (since 2024) | Real shared `devpulse-service-bus` topic | SB emulator container |
+| **Event Grid** | **No official emulator** | Real custom topic `transit-events` in `sydney-pulse-rg-dev` | Mocks at unit-test level only |
+| **Azure SignalR (Serverless)** | **No emulator** | Real `sydney-pulse-signalr-dev` (Free SKU) | Real cloud SignalR even in local dev |
+| Key Vault | No emulator | Real KV + Managed Identity | env vars in `local.settings.json` |
+| Application Insights | No (cloud-only telemetry) | Real workspace + dev App Insights | console logs |
+
+### Where Docker emulators DO come in (not SP1-16)
+
+- **SP2-01** (deferred from SP1-15): Azurite + Cosmos emulator + Service
+  Bus emulator integration tests in CI. Catches drift between Moq mocks
+  and real wire behaviour. The `ArchiveManifestBlobName` mis-reference
+  we caught manually during SP1-15 review is exactly the kind of bug
+  SP2-01 will catch automatically.
+- Local debug during SP1-09 / SP1-10 frontend dev: point the Angular dev
+  server at the deployed dev Function App (`https://sydney-pulse-func-dev.azurewebsites.net`),
+  not local. Simpler than spinning up the whole container fleet just to
+  see one HTTP response.
+
+### The hybrid pattern already in use
+
+Unit tests use Moq mocks for Cosmos / Event Grid / Service Bus clients
+(`SydneyPulse.Tests` — 55 tests). The SP1-02 SignalR spike used real
+cloud SignalR end-to-end. SP1-16 deploys the rest of the pipeline to
+the same real cloud dev. Local-only "everything in Docker" isn't a
+model this project ever adopts — the cloud-native services have no
+faithful local equivalents and the cost of running everything in real
+dev is negligible.
+
 ## Pre-decision (before Phase A)
 
 - **Phase C webhook wiring approach:** Bicep re-deploy (preferred — keeps
@@ -54,16 +110,46 @@ Clear-the-decks before deploy. All commands are read-only.
 The Function App resource exists (SP1-03) but no code has ever been
 deployed.
 
+### What's about to be deployed (reference)
+
+Ten Functions in workflow order — event pipeline first, then HTTP API,
+then the SP1-02 spike (kept for SignalR connectivity smoke; not in the
+production flow).
+
+| # | Function | Trigger | Input bindings | Output bindings | Input parameters | What it does |
+|---|---|---|---|---|---|---|
+| 1 | `Poller` | `TimerTrigger("*/30 * * * * *")` | — | — *(injected `EventGridPublisherClient`)* | `TimerInfo timer` | • Iterates configured TfNSW modes (trains, buses, ferries, metro, light rail)<br>• Fetches GTFS-RT vehicle positions + service alerts via `TfNswFeedClient`<br>• Publishes `VehicleUpdate.v1` + `ServiceAlert.v1` CloudEvents to Event Grid<br>• Skips empty feeds (no empty batch sent) |
+| 2 | `StateWriter` | `EventGridTrigger` | — | `[SignalROutput(HubName = VehiclesSignalRHub)]` → `SignalRMessageAction?` | `VehicleUpdate update` *(deserialized from CloudEvent)* | • Receives `VehicleUpdate.v1` from Event Grid `state-writer` subscription<br>• Stale-write guard: reads existing doc, drops if stored timestamp ≥ incoming<br>• Upserts `VehicleDocument` to Cosmos `vehicles` (partition key `routeShortName`)<br>• Broadcasts `vehicleUpdated` to SignalR `vehicles` group |
+| 3 | `Alerter` | `ServiceBusTrigger("sydney-pulse-alerts", "alerter-sub", Connection = ServiceBus__fullyQualifiedNamespace)` | — | `[SignalROutput(HubName = AlertsSignalRHub)]` → `SignalRMessageAction?` | `string messageBody` *(raw SB message — full CloudEvent envelope)* | • EG fans `ServiceAlert.v1` events into the Service Bus topic<br>• Unwraps the CloudEvent JSON envelope (`CloudEvent.ParseMany`)<br>• Deserialises `ServiceAlert` (case-insensitive — Azure SDK camelCase)<br>• Upserts `AlertDocument` to Cosmos `alerts` (TTL 24 h)<br>• Broadcasts `alertReceived` to SignalR `alerts` group |
+| 4 | `ArchiverIngest` | `EventGridTrigger` | — | — *(writes via injected `IPendingBlobStore`)* | `CloudEvent cloudEvent` | • Receives every `VehicleUpdate.v1` + `ServiceAlert.v1` event<br>• Maps to unified flat `ArchiveEvent` (24 columns, discriminated by `eventType`)<br>• Appends one JSONL line to `pending/{HivePartition.ForHour(SourceTimestamp)}/events.jsonl`<br>• AppendBlock is atomic; duplicates tolerated and deduped at flush by `EventId` (ADR-0012) |
+| 5 | `ArchiverFlush` | `TimerTrigger("0 */5 * * * *")` | — | — *(writes via `BlobServiceClient` + `IPendingBlobStore`)* | `TimerInfo timer` | • Lists every partition path in `pending/` (streamed `IAsyncEnumerable`)<br>• Filters to those past `PartitionGraceMinutes` (closeable check)<br>• For each: read JSONL → dedupe by `EventId` → write Parquet → write `_manifest.json` (the commit point) → delete pending blob<br>• `overwrite: true` everywhere → re-flush after a crash is idempotent |
+| 6 | `negotiate` | `HttpTrigger(Anonymous, "post")` | `[SignalRConnectionInfoInput(HubName = VehiclesSignalRHub)] vehiclesInfo` + `[SignalRConnectionInfoInput(HubName = AlertsSignalRHub)] alertsInfo` | — *(returns `HttpResponseData`)* | Query: `?hub=vehicles\|alerts` *(default `vehicles`)* | • `POST /api/negotiate` — returns short-lived SignalR access token + URL<br>• Both hubs bound as inputs (HubName must be compile-time const); runtime picks one via `?hub=`<br>• Angular calls twice on startup, once per hub<br>• Response uses lowercase `url` / `accessToken` so the SignalR JS client detects the Azure redirect |
+| 7 | `Vehicles` | `HttpTrigger(Anonymous, "get", Route = "vehicles")` | — | — *(returns `HttpResponseData`)* | Query: `?mode=` + `?routeShortName=` *(both optional)* | • `GET /api/vehicles` — current vehicle state from Cosmos<br>• `routeShortName` set → single-partition read (most RU-efficient)<br>• `mode` set → cross-partition WHERE filter<br>• Neither set → full container scan<br>• 5 s in-process `IMemoryCache` keyed by full query string + `Cache-Control: public, max-age=5` for CDN / browser |
+| 8 | `Alerts` | `HttpTrigger(Anonymous, "get", Route = "alerts")` | — | — *(returns `HttpResponseData`)* | — | • `GET /api/alerts` — current service alerts from Cosmos<br>• Cross-partition scan `ORDER BY c.receivedAt DESC`<br>• Container TTL 24 h auto-purges expired alerts — no extra filter needed |
+| 9 | `Routes` | `HttpTrigger(Anonymous, "get", Route = "routes")` | — | — *(returns `HttpResponseData`)* | — | • `GET /api/routes` — GTFS static route metadata for every configured mode<br>• Served from `TfNswFeedClient`'s in-process 1 h cache (ADR-0009) — zero Cosmos RUs<br>• Projected to API contract fields (`routeShortName`, `routeLongName`, `routeColor`, `mode`) |
+| 10 | `spike` *(SP1-02, not production)* | `HttpTrigger(Anonymous, "post")` | — | `[SignalROutput(HubName = "spike")]` → `SignalRMessageAction` | — | • De-risk endpoint kept from SP1-02 SignalR spike<br>• `POST /api/spike` → broadcasts `{ "text": "hello" }` to the `spike` hub<br>• Useful as the absolute-minimum SignalR connectivity smoke before wiring real hubs |
+
+### Deploy
+
+`dotnet clean` first — the isolated-worker source generator drops
+`Microsoft.Azure.Functions.Worker.Extensions.csproj` into `obj/` during
+build, and `func` counts it as a second project ("Expected 1 .csproj
+or .fsproj but found 2"). Same gotcha as SP1-02's `func start`.
+
 ```powershell
 cd functions/SydneyPulse.Functions
-func azure functionapp publish sydney-pulse-func-dev --csharp
+dotnet clean
+func azure functionapp publish sydney-pulse-func-dev
 ```
+
+The publish output will print a ".NET 10 EOL warning" for .NET 8 —
+informational, ignore. Project is on .NET 8 LTS by design.
 
 **Verify after deploy:**
 
-- Azure portal → `sydney-pulse-func-dev` → Functions blade lists all 9:
-  `negotiate`, `spike`, `Poller`, `StateWriter`, `Alerter`,
-  `ArchiverIngest`, `ArchiverFlush`, `Vehicles`, `Alerts`, `Routes`.
+- Azure portal → `sydney-pulse-func-dev` → Functions blade lists all 10:
+  `Poller`, `StateWriter`, `Alerter`, `ArchiverIngest`, `ArchiverFlush`,
+  `negotiate`, `Vehicles`, `Alerts`, `Routes`, `spike`.
 - Note the Function App **default hostname** (e.g.
   `sydney-pulse-func-dev.azurewebsites.net`) — needed in Phase C.
 - App Insights → Live Metrics → confirm telemetry is flowing.

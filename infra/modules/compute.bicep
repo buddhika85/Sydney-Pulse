@@ -129,8 +129,11 @@ resource funcApp 'Microsoft.Web/sites@2023-01-01' = {
           value: appInsightsConnStr
         }
         // ── Cosmos DB (Managed Identity — endpoint only, no key) ──────────────
+        // Key MUST be Cosmos__AccountEndpoint — matches CosmosOptions.SectionName
+        // ("Cosmos") + property name (AccountEndpoint). Empty endpoint here means
+        // CosmosClient construction throws at host startup (SP1-16 caught this).
         {
-          name:  'CosmosDb__Endpoint'
+          name:  'Cosmos__AccountEndpoint'
           value: cosmosEndpoint
         }
         // ── Event Grid ────────────────────────────────────────────────────────
