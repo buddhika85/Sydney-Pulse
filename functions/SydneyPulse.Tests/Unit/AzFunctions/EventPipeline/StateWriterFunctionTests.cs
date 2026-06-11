@@ -3,6 +3,7 @@
 // Unit tests for StateWriterFunction.
 // CosmosClient and Container are mocked — no Azure connection required.
 
+using Azure.Messaging;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Functions.Worker.SignalRService;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -45,6 +46,11 @@ public class StateWriterFunctionTests
             OccupancyStatus: null,
             VehicleTimestamp: timestamp ?? DateTimeOffset.UtcNow);
 
+    private static CloudEvent MakeCloudEvent(string vehicleId = "VH-001", DateTimeOffset? timestamp = null) => new(
+           source: "/sydney-pulse/poller",
+           type: FunctionConstants.VehicleUpdateEventType,
+           jsonSerializableData: MakeUpdate(vehicleId: vehicleId, timestamp: timestamp));
+
     // Insert scenario: no existing document,
     // so ReadItemAsync throws NotFound; function should upsert and broadcast.
     [Fact]
@@ -64,10 +70,10 @@ public class StateWriterFunctionTests
             .ReturnsAsync(Mock.Of<ItemResponse<VehicleDocument>>());
 
         var fn = new StateWriterFunction(_cosmosClientMock.Object, NullLogger<StateWriterFunction>.Instance);
-        var update = MakeUpdate();
+        var cloudEvent = MakeCloudEvent();
 
         // Act - Execute StateWriterFunction azure function
-        var result = await fn.RunAsync(update, CancellationToken.None);
+        var result = await fn.RunAsync(cloudEvent, CancellationToken.None);
 
         // Assert — upsert was called and a SignalR broadcast was returned.
         _containerMock.Verify(c => c.UpsertItemAsync(
@@ -118,10 +124,10 @@ public class StateWriterFunctionTests
             .ReturnsAsync(responseMock.Object);
 
         var fn = new StateWriterFunction(_cosmosClientMock.Object, NullLogger<StateWriterFunction>.Instance);
-        var update = MakeUpdate(timestamp: incomingTimestamp);
+        var cloudEvent = MakeCloudEvent(timestamp: incomingTimestamp);
 
         // Act - Execute StateWriterFunction azure function
-        var result = await fn.RunAsync(update, CancellationToken.None);
+        var result = await fn.RunAsync(cloudEvent, CancellationToken.None);
 
         // Assert — stale event: no upsert, no broadcast.
         _containerMock.Verify(c => c.UpsertItemAsync(
@@ -168,10 +174,10 @@ public class StateWriterFunctionTests
             .ReturnsAsync(Mock.Of<ItemResponse<VehicleDocument>>());
 
         var fn = new StateWriterFunction(_cosmosClientMock.Object, NullLogger<StateWriterFunction>.Instance);
-        var update = MakeUpdate(vehicleId: "VH-002", timestamp: incomingTimestamp);
+        var cloudEvent = MakeCloudEvent(vehicleId: "VH-002", timestamp: incomingTimestamp);
 
         // Act - Execute StateWriterFunction azure function
-        var result = await fn.RunAsync(update, CancellationToken.None);
+        var result = await fn.RunAsync(cloudEvent, CancellationToken.None);
 
         // Assert — newer event: upsert runs and SignalR broadcast is returned.
         _containerMock.Verify(c => c.UpsertItemAsync(
@@ -180,5 +186,146 @@ public class StateWriterFunctionTests
             Times.Once);
         Assert.NotNull(result);
         Assert.Equal(FunctionConstants.VehicleUpdatedSignalREvent, result!.Target);
+    }
+
+    // Guard path: CloudEvent arrives with a Type that doesn't match
+    // VehicleUpdate.v1 (e.g., EG sub misroute). Function should early-return
+    // without touching Cosmos.
+    [Fact]
+    public async Task RunAsync_UnexpectedEventType_SkipsAndReturnsNull()
+    {
+        // Arrange — CloudEvent with a wrong type.
+        var cloudEvent = new CloudEvent(
+            source: "/sydney-pulse/poller",
+            type:   "com.sydneypulse.UnknownEvent.v1",
+            jsonSerializableData: MakeUpdate());
+        var fn = new StateWriterFunction(_cosmosClientMock.Object, NullLogger<StateWriterFunction>.Instance);
+
+        // Act
+        var result = await fn.RunAsync(cloudEvent, CancellationToken.None);
+
+        // Assert — early return, no Cosmos reads or upserts.
+        Assert.Null(result);
+        _containerMock.Verify(c => c.ReadItemAsync<VehicleDocument>(
+            It.IsAny<string>(), It.IsAny<PartitionKey>(),
+            It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        _containerMock.Verify(c => c.UpsertItemAsync(
+            It.IsAny<VehicleDocument>(), It.IsAny<PartitionKey>(),
+            It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    // Guard path: correct event type but CloudEvent.Data is null
+    // (e.g., publisher bug). Defensive null check fires before deserialization.
+    [Fact]
+    public async Task RunAsync_NullCloudEventData_SkipsAndReturnsNull()
+    {
+        // Arrange — null jsonSerializableData → CloudEvent.Data is null.
+        var cloudEvent = new CloudEvent(
+            source: "/sydney-pulse/poller",
+            type:   FunctionConstants.VehicleUpdateEventType,
+            jsonSerializableData: null);
+        var fn = new StateWriterFunction(_cosmosClientMock.Object, NullLogger<StateWriterFunction>.Instance);
+
+        // Act
+        var result = await fn.RunAsync(cloudEvent, CancellationToken.None);
+
+        // Assert — early return, no Cosmos reads or upserts.
+        Assert.Null(result);
+        _containerMock.Verify(c => c.ReadItemAsync<VehicleDocument>(
+            It.IsAny<string>(), It.IsAny<PartitionKey>(),
+            It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        _containerMock.Verify(c => c.UpsertItemAsync(
+            It.IsAny<VehicleDocument>(), It.IsAny<PartitionKey>(),
+            It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    // Guard path: VehicleUpdate deserializes successfully but VehicleId is empty.
+    // Defensive guard exists because Cosmos rejects ReadItem/Upsert with a
+    // null/empty id; TfNSW trains feed occasionally omits vehicle.id (SP1-16).
+    [Fact]
+    public async Task RunAsync_EmptyVehicleId_SkipsAndReturnsNull()
+    {
+        // Arrange — inline construction since MakeUpdate hardcodes a valid VehicleId.
+        var update = new VehicleUpdate(
+            VehicleId:        "",                                  // edge case
+            TripId:           "TRIP-1",
+            RouteId:          "NTH_1a",
+            RouteShortName:   "T1",
+            RouteLongName:    "T1 North Shore Line",
+            RouteColor:       "#F99D1C",
+            Mode:             "sydneytrains",
+            Latitude:         -33.8688,
+            Longitude:        151.2093,
+            Bearing:          90f,
+            SpeedKmh:         60f,
+            OccupancyStatus:  null,
+            VehicleTimestamp: DateTimeOffset.UtcNow);
+
+        var cloudEvent = new CloudEvent(
+            source: "/sydney-pulse/poller",
+            type:   FunctionConstants.VehicleUpdateEventType,
+            jsonSerializableData: update);
+        var fn = new StateWriterFunction(_cosmosClientMock.Object, NullLogger<StateWriterFunction>.Instance);
+
+        // Act
+        var result = await fn.RunAsync(cloudEvent, CancellationToken.None);
+
+        // Assert — defensive guard fires before any Cosmos call.
+        Assert.Null(result);
+        _containerMock.Verify(c => c.ReadItemAsync<VehicleDocument>(
+            It.IsAny<string>(), It.IsAny<PartitionKey>(),
+            It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        _containerMock.Verify(c => c.UpsertItemAsync(
+            It.IsAny<VehicleDocument>(), It.IsAny<PartitionKey>(),
+            It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    // Guard path: VehicleUpdate has empty RouteShortName — happens for
+    // "Out of Service" trains (RouteId RTTA_DEF) where the GTFS static
+    // cache has no route to look up (SP1-16 spike sample[1]).
+    [Fact]
+    public async Task RunAsync_EmptyRouteShortName_SkipsAndReturnsNull()
+    {
+        // Arrange — inline construction, mimics out-of-service rolling stock.
+        var update = new VehicleUpdate(
+            VehicleId:        "VH-001",
+            TripId:           "TRIP-1",
+            RouteId:          "RTTA_DEF",
+            RouteShortName:   "",                                  // edge case
+            RouteLongName:    "Out Of Service",
+            RouteColor:       "#888888",
+            Mode:             "sydneytrains",
+            Latitude:         -33.8688,
+            Longitude:        151.2093,
+            Bearing:          90f,
+            SpeedKmh:         60f,
+            OccupancyStatus:  null,
+            VehicleTimestamp: DateTimeOffset.UtcNow);
+
+        var cloudEvent = new CloudEvent(
+            source: "/sydney-pulse/poller",
+            type:   FunctionConstants.VehicleUpdateEventType,
+            jsonSerializableData: update);
+        var fn = new StateWriterFunction(_cosmosClientMock.Object, NullLogger<StateWriterFunction>.Instance);
+
+        // Act
+        var result = await fn.RunAsync(cloudEvent, CancellationToken.None);
+
+        // Assert — defensive guard fires before any Cosmos call.
+        Assert.Null(result);
+        _containerMock.Verify(c => c.ReadItemAsync<VehicleDocument>(
+            It.IsAny<string>(), It.IsAny<PartitionKey>(),
+            It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        _containerMock.Verify(c => c.UpsertItemAsync(
+            It.IsAny<VehicleDocument>(), It.IsAny<PartitionKey>(),
+            It.IsAny<ItemRequestOptions>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 }

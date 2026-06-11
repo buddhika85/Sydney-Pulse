@@ -537,6 +537,11 @@ what-if-output.txt
 # Kept local so the ID doesn't end up in a public portfolio repo.
 scripts/azure-*.ps1
 
+# One-off discovery-spike samples dumped at the repo root (e.g.
+# `dotnet run ... -- sydneytrains 5 sample-trains.json`). Root-anchored
+# so curated fixtures under SydneyPulse.Tests/Fixtures/ stay tracked.
+/sample-*.json
+
 # Claude Code — keep team settings, ignore per-user local overrides
 .claude/settings.local.json
 .claude/.credentials.json

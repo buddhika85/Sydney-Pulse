@@ -11,7 +11,7 @@ namespace SydneyPulse.Functions;
 internal static class FunctionConstants
 {
     // --- Cosmos DB ---
-    internal const string CosmosDatabaseName      = "sydneyPulse";
+    internal const string CosmosDatabaseName      = "sydney-pulse";
     internal const string VehiclesCosmosContainer = "vehicles";
     internal const string AlertsCosmosContainer   = "alerts";
 

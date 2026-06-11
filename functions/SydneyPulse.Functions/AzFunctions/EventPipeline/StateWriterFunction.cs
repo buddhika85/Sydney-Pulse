@@ -1,12 +1,15 @@
 // StateWriterFunction.cs
 // ----------------------
-// Consumes VehicleUpdate.v1 CloudEvents from Event Grid, upserts the latest
-// vehicle position into Cosmos DB, and broadcasts to the SignalR vehicles group.
-// Stale-write guard: incoming events older than the stored timestamp are dropped.
+// EG-triggered consumer of VehicleUpdate.v1 CloudEvents. Steps per event:
+//   1. Deserialize CloudEvent.Data → VehicleUpdate (manual; explicit JSON opts).
+//   2. Defensive guard — drop events with null/empty VehicleId or RouteShortName.
+//   3. Stale-write guard — drop if Cosmos already holds a newer position.
+//   4. Upsert VehicleDocument into Cosmos `vehicles` (PK = routeShortName).
+//   5. Broadcast vehicleUpdated to SignalR `vehicles` hub.
 
+using Azure.Messaging;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Functions.Worker;
-using Microsoft.Azure.Functions.Worker.SignalRService;
 using Microsoft.Extensions.Logging;
 using SydneyPulse.Core.Cosmos;
 using SydneyPulse.Core.Events;
@@ -20,32 +23,49 @@ public class StateWriterFunction(
     [Function("StateWriter")]
     [SignalROutput(HubName = FunctionConstants.VehiclesSignalRHub)]
     public async Task<SignalRMessageAction?> RunAsync(
-        [EventGridTrigger] VehicleUpdate update,
+        [EventGridTrigger] CloudEvent cloudEvent,
         CancellationToken cancellationToken)
     {
-        var container = cosmosClient.GetContainer(FunctionConstants.CosmosDatabaseName, FunctionConstants.VehiclesCosmosContainer);
-
-        var doc = new VehicleDocument
+        // Only handle VehicleUpdate events in this function; log and skip any others.
+        if (cloudEvent.Type != FunctionConstants.VehicleUpdateEventType)
         {
-            // One document per vehicle — upsert overwrites the previous position.
-            Id = update.VehicleId,
-            RouteShortName = update.RouteShortName,
-            VehicleId = update.VehicleId,
-            Latitude = update.Latitude,
-            Longitude = update.Longitude,
-            Bearing = update.Bearing,
-            SpeedKmh = update.SpeedKmh,
-            RouteId = update.RouteId,
-            // Denormalized route metadata — event already carries these from the
-            // Poller's GTFS static enrichment; no extra lookup needed (ADR-0011).
-            RouteLongName = update.RouteLongName,
-            RouteColor = update.RouteColor,
-            Mode = update.Mode,
-            OccupancyStatus = update.OccupancyStatus,
+            logger.LogWarning("Unexpected CloudEvent type: {Type}", cloudEvent.Type);
+            return null;
+        }
 
-            Timestamp = update.VehicleTimestamp,
-            UpdatedAt = DateTimeOffset.UtcNow,
-        };
+        // Defensive guard: log and skip if the event data is null,
+        // rather than throwing an exception and failing the whole function invocation.
+        if (cloudEvent.Data is null)
+        {
+            logger.LogWarning("CloudEvent data is null for event type: {Type}", cloudEvent.Type);
+            return null;
+        }
+
+        // Parse the CloudEvent data into a strongly-typed VehicleUpdate.
+        var vehicleUpdate = cloudEvent.Data.ToObjectFromJson<VehicleUpdate>();
+        if (vehicleUpdate is null)
+        {
+            logger.LogWarning(
+                "Json deserialization failed for CloudEvent: type={Type}, data={Data}",
+                cloudEvent.Type, cloudEvent.Data?.ToString());
+            return null;
+        }
+
+        // Defensive guard: TfNSW data quality is variable — some entities
+        // arrive without a vehicle id or routeShortName populated. Cosmos
+        // rejects ReadItem / Upsert with a null id (URI escape throws) or
+        // an empty PartitionKey, so drop the event with a warning rather
+        // than fail the whole invocation. Surfaced by SP1-16 cloud smoke.
+        if (string.IsNullOrEmpty(vehicleUpdate.VehicleId) || string.IsNullOrEmpty(vehicleUpdate.RouteShortName))
+        {
+            logger.LogWarning(
+                "Dropping VehicleUpdate with missing required fields: vehicleId='{VehicleId}', routeShortName='{RouteShortName}'",
+                vehicleUpdate.VehicleId, vehicleUpdate.RouteShortName);
+            return null;
+        }
+
+        var vehicleDocument = MapToVehicleDocument(vehicleUpdate);
+        var container = cosmosClient.GetContainer(FunctionConstants.CosmosDatabaseName, FunctionConstants.VehiclesCosmosContainer);
 
         // Stale-write guard: read the existing document and skip upsert if the
         // stored timestamp is already newer than this event (at-least-once delivery
@@ -53,15 +73,15 @@ public class StateWriterFunction(
         try
         {
             var existing = await container.ReadItemAsync<VehicleDocument>(
-                doc.Id,
-                new PartitionKey(doc.RouteShortName),
+                vehicleDocument.Id,
+                new PartitionKey(vehicleDocument.RouteShortName),
                 cancellationToken: cancellationToken);
 
-            if (existing.Resource.Timestamp >= update.VehicleTimestamp)
+            if (existing.Resource.Timestamp >= vehicleUpdate.VehicleTimestamp)
             {
                 logger.LogDebug(
                     "Dropping stale event for vehicle {VehicleId}: stored={Stored} >= incoming={Incoming}",
-                    update.VehicleId, existing.Resource.Timestamp, update.VehicleTimestamp);
+                    vehicleUpdate.VehicleId, existing.Resource.Timestamp, vehicleUpdate.VehicleTimestamp);
                 return null;
             }
         }
@@ -71,19 +91,46 @@ public class StateWriterFunction(
         }
 
         await container.UpsertItemAsync(
-            doc,
-            new PartitionKey(doc.RouteShortName),
+            vehicleDocument,
+            new PartitionKey(vehicleDocument.RouteShortName),
             cancellationToken: cancellationToken);
 
         logger.LogInformation(
             "Upserted vehicle {VehicleId} on route {Route}",
-            update.VehicleId, update.RouteShortName);
+            vehicleUpdate.VehicleId, vehicleUpdate.RouteShortName);
 
-        // Broadcast the updated position to all SignalR clients subscribed to the vehicles hub.
+        // Send the cloud event payload (not the Cosmos doc) to SignalR Hub,
+        // so the wire contract is independent of storage refactors.
         return new SignalRMessageAction(FunctionConstants.VehicleUpdatedSignalREvent)
         {
-            Arguments = [update],
+            Arguments = [vehicleUpdate],
             GroupName = FunctionConstants.VehiclesSignalRGroup,
         };
     }
+
+    private static VehicleDocument MapToVehicleDocument(VehicleUpdate vehicleUpdate)
+    {
+        return new VehicleDocument
+        {
+            // One document per vehicle — upsert overwrites the previous position.
+            Id = vehicleUpdate.VehicleId,
+            RouteShortName = vehicleUpdate.RouteShortName,
+            VehicleId = vehicleUpdate.VehicleId,
+            Latitude = vehicleUpdate.Latitude,
+            Longitude = vehicleUpdate.Longitude,
+            Bearing = vehicleUpdate.Bearing,
+            SpeedKmh = vehicleUpdate.SpeedKmh,
+            RouteId = vehicleUpdate.RouteId,
+            // Denormalized route metadata — event already carries these from the
+            // Poller's GTFS static enrichment; no extra lookup needed (ADR-0011).
+            RouteLongName = vehicleUpdate.RouteLongName,
+            RouteColor = vehicleUpdate.RouteColor,
+            Mode = vehicleUpdate.Mode,
+            OccupancyStatus = vehicleUpdate.OccupancyStatus,
+
+            Timestamp = vehicleUpdate.VehicleTimestamp,
+            UpdatedAt = DateTimeOffset.UtcNow,
+        };
+    }
+
 }

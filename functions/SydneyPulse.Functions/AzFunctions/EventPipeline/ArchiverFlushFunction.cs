@@ -55,7 +55,12 @@ public class ArchiverFlushFunction(
             allPartitions.Add(p);
 
         // 3. filter to those past the grace window
-        var closeable = ListCloseablePartitions(allPartitions, now);
+        // Materialised to a list so we can log Count and still enumerate in the foreach below.
+        var closeable = ListCloseablePartitions(allPartitions, now).ToList();
+
+        logger.LogInformation(
+            "Flush tick: {Total} pending partition(s), {Closeable} closeable past {Grace}-min grace.",
+            allPartitions.Count, closeable.Count, _opts.PartitionGraceMinutes);
 
         // 4. flush each — sequentially is fine at our event volume
         foreach (var partition in closeable)
@@ -102,6 +107,8 @@ public class ArchiverFlushFunction(
         string partitionPath,
         CancellationToken cancellationToken)
     {
+        logger.LogInformation("Flushing partition {Partition}", partitionPath);
+
         // 1. read raw events from pending JSONL
         var rawEvents = await ReadPendingEvents(partitionPath, cancellationToken);
 
@@ -138,6 +145,10 @@ public class ArchiverFlushFunction(
 
         // 6. THE COMMIT POINT — manifest write marks the partition queryable
         await WriteManifest(partitionPath, manifest, cancellationToken);
+
+        logger.LogInformation(
+            "Committed partition {Partition}: {EventCount} events, {ByteSize} bytes.",
+            partitionPath, uniqueEvents.Count, parquetByteSize);
 
         // 7. only NOW delete pending blob (cleanup that depends on commit)
         var pendingBlobPath = $"{partitionPath}/{FunctionConstants.PendingEventsBlobName}";

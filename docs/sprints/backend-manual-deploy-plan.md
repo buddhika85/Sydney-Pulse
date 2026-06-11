@@ -136,9 +136,14 @@ production flow).
 build, and `func` counts it as a second project ("Expected 1 .csproj
 or .fsproj but found 2"). Same gotcha as SP1-02's `func start`.
 
+`dotnet clean` alone sometimes leaves the generated csproj behind, so
+follow it with a scorched-earth `obj/` + `bin/` wipe to be safe.
+
 ```powershell
 cd functions/SydneyPulse.Functions
 dotnet clean
+# scorched-earth — guarantees the generator's stray csproj is gone
+Remove-Item obj, bin -Recurse -Force -ErrorAction SilentlyContinue
 func azure functionapp publish sydney-pulse-func-dev
 ```
 

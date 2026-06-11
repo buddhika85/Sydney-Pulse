@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    SydneyPulse.Spikes — de-risking console runners. NOT production code.
+    Used for spiking against external boundaries (TfNSW GTFS-RT, etc.) before
+    committing to a downstream design. Mirrors the SP1-02 SignalR spike pattern
+    but for non-Functions discovery work.
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>SydneyPulse.Spikes</RootNamespace>
+  </PropertyGroup>
+
+  <!-- Shared Core gives us TfNswFeedClient + the VehicleUpdate record. -->
+  <ItemGroup>
+    <ProjectReference Include="..\SydneyPulse.Core\SydneyPulse.Core.csproj" />
+  </ItemGroup>
+
+  <!--
+    Generic Host stack — same versions as the Functions worker so the spike
+    uses identical Polly resilience + HttpClient wiring as production.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
+    <!-- 8.0.1 (not 8.0.0) — required by Resilience 8.10.0 transitive graph. -->
+    <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="8.10.0" />
+  </ItemGroup>
+
+</Project>

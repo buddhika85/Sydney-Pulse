@@ -28,8 +28,8 @@ Expected output:
 
 ```
 Test Run Successful.
-Total tests: 55
-     Passed: 55
+Total tests: 61
+     Passed: 61
  Total time: ~10 Seconds
 ```
 
@@ -59,6 +59,7 @@ dotnet test functions/SydneyPulse.sln --filter "FullyQualifiedName~HivePartition
 dotnet test functions/SydneyPulse.sln --filter "FullyQualifiedName~ParquetArchiveWriterTests"
 dotnet test functions/SydneyPulse.sln --filter "FullyQualifiedName~ArchiverIngestFunctionTests"
 dotnet test functions/SydneyPulse.sln --filter "FullyQualifiedName~ArchiverFlushFunctionTests"
+dotnet test functions/SydneyPulse.sln --filter "FullyQualifiedName~VehicleUpdateCloudEventRoundTripTests"
 ```
 
 ---
@@ -107,7 +108,7 @@ Tests for `PollerFunction` (Event Grid batch publish, empty-feed guard, CloudEve
 
 ### `SydneyPulse.Tests/Unit/AzFunctions/EventPipeline/StateWriterFunctionTests.cs`
 
-Tests for `StateWriterFunction` (Cosmos upsert, stale-write guard, SignalR broadcast shape).
+Tests for `StateWriterFunction` (CloudEvent guards, Cosmos upsert, stale-write guard, SignalR broadcast shape).
 `CosmosClient` and `Container` are mocked — no Azure connection required.
 
 | Test | What it covers |
@@ -115,8 +116,22 @@ Tests for `StateWriterFunction` (Cosmos upsert, stale-write guard, SignalR broad
 | `RunAsync_NewVehicle_UpsertsDocumentAndReturnsBroadcast` | First write for a vehicle (no existing doc) → `UpsertItemAsync` called once, returned `SignalRMessageAction` targets `vehicleUpdated` on group `vehicles` |
 | `RunAsync_StaleEvent_SkipsUpsertAndReturnsNull` | Incoming timestamp older than stored → `UpsertItemAsync` never called, `null` returned (no broadcast) |
 | `RunAsync_NewerEvent_OverwritesExistingDocumentAndBroadcasts` | Incoming timestamp newer than stored → `UpsertItemAsync` called once, SignalR broadcast returned |
+| `RunAsync_UnexpectedEventType_SkipsAndReturnsNull` | CloudEvent type ≠ `VehicleUpdate.v1` → early-return, no Cosmos reads or upserts (defends against EG sub misroute) |
+| `RunAsync_NullCloudEventData_SkipsAndReturnsNull` | `CloudEvent.Data == null` → defensive null check fires before deserialisation, no Cosmos calls |
+| `RunAsync_EmptyVehicleId_SkipsAndReturnsNull` | Empty `VehicleId` (TfNSW trains sometimes omits vehicle.id) → guard fires before Cosmos (would otherwise throw `ArgumentNullException` in URI escape — debug story #8) |
+| `RunAsync_EmptyRouteShortName_SkipsAndReturnsNull` | Empty `RouteShortName` ("Out of Service" rolling stock, `RouteId=RTTA_DEF`) → guard fires before Cosmos |
 
-### `SydneyPulse.Tests/Unit/AzFunctions/EventPipeline/AlerterFunctionTests.cs`
+### `SydneyPulse.Tests/Unit/Events/VehicleUpdateCloudEventRoundTripTests.cs`
+
+Diagnostic + regression tests for the `Poller → Event Grid → StateWriter`
+JSON round-trip. Pure .NET — no Azure call. Captured from SP1-16
+debugging (see debug story #9) and kept as a permanent contract pin
+on `VehicleUpdate` serialisation through `CloudEvent`.
+
+| Test | What it covers |
+|------|----------------|
+| `CloudEvent_round_trip_preserves_VehicleUpdate_fields` | `new CloudEvent(..., jsonSerializableData: vehicleUpdate)` → `Data.ToObjectFromJson<VehicleUpdate>()` preserves every field with identical values |
+| `CloudEvent_Data_serializes_as_PascalCase` | Azure SDK emits PascalCase property names on the wire (`"VehicleId"`, `"RouteShortName"`) — pins the casing contract so a future SDK upgrade that switches default policy fails this test loudly |
 
 Tests for `AlerterFunction` (CloudEvent unwrapping, Cosmos upsert, SignalR broadcast shape).
 `CosmosClient` and `Container` are mocked — no Azure connection required.
