@@ -81,3 +81,6 @@ and we get it on the alert sub-path anyway.
 
 - ADR-0003 — Reuses existing Service Bus Standard namespace
 - ADR-0010 — Alert ordering is per-route best-effort, not strict
+- [justify_sb_usage.md](../justify_sb_usage.md) — Quick-read summary of
+  why Service Bus sits between Event Grid and the Alerter (DLQ, retry
+  control, backpressure — not ordering)

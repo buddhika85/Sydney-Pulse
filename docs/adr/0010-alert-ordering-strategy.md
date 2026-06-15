@@ -106,6 +106,9 @@ benefits from being able to retry for hours if the SignalR push fails.
 - ADR-0001 — Event Grid + Service Bus messaging architecture
 - ADR-0003 — Reused existing Standard namespace
 - `/docs/api.md` — Alert payload schema and deduplication contract
+- [justify_sb_usage.md](../justify_sb_usage.md) — Quick-read companion
+  to this ADR: why Service Bus is in the alert flow at all, and the
+  three-edit upgrade path if ordering ever becomes a requirement
 
 ## Forward compatibility
 

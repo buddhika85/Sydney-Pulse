@@ -80,7 +80,9 @@ DB partitioned by `routeShortName`. Idempotent via composite key
 
 Service Bus topic on the pre-existing Standard namespace. Topic named
 `sydney-pulse-alerts`. One subscription `alerter-sub`. Standard tier
-supports sessions but ADR-0010 chooses not to use them.
+supports sessions but ADR-0010 chooses not to use them. See
+[justify_sb_usage.md](justify_sb_usage.md) for a quick-read summary of
+why Service Bus sits between Event Grid and the Alerter at all.
 
 The Alerter Function consumes from the subscription, transforms each
 `ServiceAlert.v1` event into a UI-friendly payload, and broadcasts via

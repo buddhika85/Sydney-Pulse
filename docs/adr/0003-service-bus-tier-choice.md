@@ -83,6 +83,8 @@ portfolio budget.
 - ADR-0001 — Event Grid + Service Bus messaging architecture
 - ADR-0010 — Alert ordering chosen as per-route best-effort. Sessions
   are available on this Standard namespace if we ever change our mind.
+- [justify_sb_usage.md](../justify_sb_usage.md) — Quick-read summary of
+  what we use this namespace's topic for (and what we don't)
 
 ## Operational note
 
