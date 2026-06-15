@@ -542,6 +542,11 @@ scripts/azure-*.ps1
 # so curated fixtures under SydneyPulse.Tests/Fixtures/ stay tracked.
 /sample-*.json
 
+# DLQ exports produced by the SydneyPulse.Spikes `dlq` subcommand
+# (see DlqExporter.cs). Per-run diagnostic snapshots, can be tens of MB
+# and contain message bodies — keep local only.
+functions/SydneyPulse.Spikes/dlq-export-*.csv
+
 # Claude Code — keep team settings, ignore per-user local overrides
 .claude/settings.local.json
 .claude/.credentials.json

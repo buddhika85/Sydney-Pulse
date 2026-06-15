@@ -1,58 +1,73 @@
 // Program.cs
 // ----------
-// TfNSW vehicle-position discovery spike.
+// SydneyPulse spike runners. First arg selects the subcommand:
 //
-// Purpose: dump the first N VehicleUpdate objects returned by
-// TfNswFeedClient.GetVehiclePositionsAsync for a given mode, so we can
-// see field-level shape (and spot nulls) without paying for a full cloud
-// smoke. Originated from SP1-16 debugging — StateWriter was dropping every
-// trains event because VehicleId + RouteShortName were both null, and we
-// needed a local feedback loop instead of an AppInsights round-trip.
+//   tfnsw <mode> <topN> [outputPath]    TfNSW vehicle-position discovery
+//                                       (story #9 / SP1-16 origin)
+//   dlq   <topic> <subscription> <csv>  Service Bus DLQ export to CSV
+//                                       (SP1-16 Phase D Alerter investigation)
+//
+// Each subcommand documents its own setup in the matching SpikeRunner method
+// (RunDiscovery below for tfnsw; ExportDlqAsync in DlqExporter.cs for dlq).
 //
 // Usage (PowerShell):
-
-// 1. Set the API key in env vars (pull from Key Vault with az cli).
-// $env:TfNsw__ApiKey = (az keyvault secret show --vault-name sydney-pulse-kv-dev --name TfNswApiKey --query value -o tsv)
-
-// 2. Verify
-// if ($env: TfNsw__ApiKey) { "key loaded ($($env:TfNsw__ApiKey.Length) chars)" } else { "key NOT set" }
-
-// 3. Run the spike with `dotnet run` in this project folder. Optional args:
-//      mode    (default "sydneytrains")
-//      topN    (default 5)
-//      output  (optional file path — when set, writes valid JSON array; otherwise stdout)
-// dotnet run --project . -- sydneytrains 5
-// dotnet run --project . -- sydneytrains 5 ../SydneyPulse.Tests/Fixtures/sample-trains-2026-06-11.json
-
-// Output: a JSON array of the first N VehicleUpdate objects. Goes to
-// stdout when no output path is given, or to the file when one is.
-// The "Fetched X vehicles" summary always goes to stderr so a stdout
-// redirect (`> file.json`) captures pure JSON.
-// Look at the shape — null/empty VehicleId and/or RouteShortName here
-// proves the bug is upstream of StateWriter (in the mapper or the feed),
-// not in the Event Grid path.
+//
+//   # tfnsw discovery (pull API key from KV first)
+//   $env:TfNsw__ApiKey = (az keyvault secret show --vault-name sydney-pulse-kv-dev --name TfNswApiKey --query value -o tsv)
+//   dotnet run --project . -- tfnsw sydneytrains 5
+//   dotnet run --project . -- tfnsw sydneytrains 5 ../SydneyPulse.Tests/Fixtures/sample-trains.json
+//
+//   # dlq export (uses az login identity)
+//   dotnet run --project . -- dlq sydney-pulse-alerts alerter-sub dlq-export-2026-06-16.csv
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using SydneyPulse.Core.TfNsw;
 using System.Text.Json;
 
-// ── Entry point ──────────────────────────────────────────────────────────────
-// Top-level statements: parse args, build host, resolve client, run discovery.
-// 1. args[0] = mode (default "sydneytrains"), args[1] = topN (default 5),
-//    args[2] = optional output path (file gets a JSON array; stdout when omitted).
-var mode       = args.Length > 0 ? args[0] : "sydneytrains";
-var topN       = args.Length > 1 && int.TryParse(args[1], out var n) ? n : 5;
-var outputPath = args.Length > 2 ? args[2] : null;
+// ── Entry dispatch ───────────────────────────────────────────────────────────
+// Top-level statements parse args[0] as the subcommand, the rest go to the
+// handler. Unknown subcommand fails fast with a usage line on stderr.
 
-// 2. Build host + pull the singleton TfNswFeedClient out of DI.
-using var host = SpikeRunner.BuildHost();
-var client = host.Services.GetRequiredService<ITfNswFeedClient>();
+if (args.Length == 0)
+{
+    Console.Error.WriteLine("usage: dotnet run -- <tfnsw|dlq> [args...]");
+    return 1;
+}
 
-// 3. Run discovery — top-level await is allowed in top-level statements.
-await SpikeRunner.RunDiscovery(client, mode, topN, outputPath);
+var subcommand = args[0];
+var rest       = args.Skip(1).ToArray();
 
-return;
+return subcommand switch
+{
+    "tfnsw" => await RunTfNswAsync(rest),
+    "dlq"   => await SpikeRunner.ExportDlqAsync(rest),
+    _       => Unknown(subcommand)
+};
+
+// Unknown — print usage and return non-zero so a wrapper script can fail.
+static int Unknown(string given)
+{
+    Console.Error.WriteLine(
+        $"unknown subcommand '{given}' — expected 'tfnsw' or 'dlq'");
+    return 1;
+}
+
+// RunTfNswAsync — preserves the original TfNSW discovery flow from story #9,
+// now nested under the `tfnsw` subcommand.
+// args[0] = mode (default "sydneytrains"), args[1] = topN (default 5),
+// args[2] = optional output path. File gets a JSON array; stdout when omitted.
+static async Task<int> RunTfNswAsync(string[] args)
+{
+    var mode       = args.Length > 0 ? args[0] : "sydneytrains";
+    var topN       = args.Length > 1 && int.TryParse(args[1], out var n) ? n : 5;
+    var outputPath = args.Length > 2 ? args[2] : null;
+
+    using var host = SpikeRunner.BuildHost();
+    var client = host.Services.GetRequiredService<ITfNswFeedClient>();
+    await SpikeRunner.RunDiscovery(client, mode, topN, outputPath);
+    return 0;
+}
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -65,7 +80,7 @@ internal static partial class SpikeRunner
     //
     // Returns a built IHost — caller resolves services via host.Services.
     public static IHost BuildHost()
-    {        
+    {
         var builder = Host.CreateApplicationBuilder();
         builder.Services.Configure<TfNswOptions>(
              builder.Configuration.GetSection(TfNswOptions.SectionName));

@@ -31,4 +31,14 @@
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="8.10.0" />
   </ItemGroup>
 
+  <!--
+    Azure SDK packages for the DLQ-export spike (SP1-16 Phase D Alerter
+    investigation). Azure.Identity pinned to match the Functions worker
+    (SP1-05) so DefaultAzureCredential behaves identically across both.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Azure.Identity" Version="1.13.1" />
+    <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.18.2" />
+  </ItemGroup>
+
 </Project>
