@@ -95,6 +95,7 @@ public class TfNswFeedClient : ITfNswFeedClient
     {
         var bytes = await FetchBytesAsync($"/v2/gtfs/alerts/{mode}", cancellationToken);
         var feed = FeedMessage.Parser.ParseFrom(bytes);
+        var routes = await GetRoutesAsync(mode, cancellationToken);
 
         var results = new List<ServiceAlert>(feed.Entity.Count);
         foreach (var entity in feed.Entity)
@@ -102,13 +103,15 @@ public class TfNswFeedClient : ITfNswFeedClient
             if (entity.Alert is not { } alert) continue;
 
             var routeId = alert.InformedEntity.FirstOrDefault()?.RouteId ?? string.Empty;
+            routes.TryGetValue(routeId, out var route);
+
             var header = alert.HeaderText?.Translation.FirstOrDefault()?.Text ?? string.Empty;
             var description = alert.DescriptionText?.Translation.FirstOrDefault()?.Text ?? string.Empty;
             var period = alert.ActivePeriod.FirstOrDefault();
 
             results.Add(new ServiceAlert(
                 AlertId: entity.Id,
-                RouteShortName: routeId,
+                RouteShortName: route?.ShortName ?? routeId,
                 Severity: alert.Effect.ToString().ToLowerInvariant(),
                 HeaderText: header,
                 DescriptionText: description,

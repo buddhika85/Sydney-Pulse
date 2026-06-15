@@ -28,8 +28,8 @@ Expected output:
 
 ```
 Test Run Successful.
-Total tests: 61
-     Passed: 61
+Total tests: 64
+     Passed: 64
  Total time: ~10 Seconds
 ```
 
@@ -94,6 +94,9 @@ HTTP is stubbed via an inline `HttpMessageHandler` — no real network calls.
 | `GetVehiclePositionsAsync_WithValidFeed_ReturnsMappedPosition` | Protobuf decode → `VehicleUpdate` mapping; route short name + colour enrichment from static feed |
 | `GetRoutesAsync_SecondCallSameMode_DoesNotFetchAgain` | 1-hour in-memory cache hit: second call for the same mode makes zero HTTP requests |
 | `GetRoutesAsync_ParsesShortNameAndNormalisesColor` | GTFS stores colour without `#`; client must normalise to `#F99D1C` format |
+| `GetServiceAlertsAsync_WithRouteInCache_LooksUpShortName` | Alert with `route_id` present in cache → `RouteShortName` is the looked-up user-facing label (`T1`), not the raw `route_id` (SP1-16 follow-up — fix for the bug found in the 2026-06-16 DLQ analysis) |
+| `GetServiceAlertsAsync_WithRouteNotInCache_FallsBackToRouteId` | Alert with `route_id` not in routes.txt → falls back to the raw `route_id` (graceful degradation, same pattern as `GetVehiclePositionsAsync`) |
+| `GetServiceAlertsAsync_WithNoInformedEntity_RouteShortNameIsEmpty` | Alert with zero `InformedEntity` entries → `RouteShortName` is empty string, no exception thrown |
 
 ### `SydneyPulse.Tests/Unit/AzFunctions/EventPipeline/PollerFunctionTests.cs`
 

@@ -164,4 +164,121 @@ public class TfNswFeedClientTests
         Assert.Equal("#F99D1C",                     route.Color);
         Assert.Equal("sydneytrains",                route.Mode);
     }
+
+    // ── GetServiceAlertsAsync — RouteShortName lookup (SP1-16 follow-up) ──────
+    // These three tests pin the contract found during the 2026-06-16 DLQ
+    // analysis: alerts must enrich `route_id` via the static-routes cache
+    // (mirrors GetVehiclePositionsAsync), not write the raw route_id into the
+    // RouteShortName field. Before the fix this method skipped the lookup and
+    // every Cosmos `alerts` partition key would have been an internal route_id
+    // (`SCO_2a`, `WST_1a`) instead of a user-facing label (`T1`).
+
+    // Serialises a one-alert GTFS-RT feed to protobuf bytes.
+    // Pass `informedRouteIds` empty for the "no informed entity" case.
+    private static byte[] BuildAlertFeed(
+        string alertId, string[] informedRouteIds, string headerText)
+    {
+        var alert = new Alert
+        {
+            Effect     = Alert.Types.Effect.ModifiedService,
+            HeaderText = new TranslatedString
+            {
+                Translation =
+                {
+                    new TranslatedString.Types.Translation { Text = headerText, Language = "en" }
+                }
+            }
+        };
+
+        // InformedEntity carries the route_id(s) the alert applies to.
+        foreach (var routeId in informedRouteIds)
+        {
+            alert.InformedEntity.Add(new EntitySelector { RouteId = routeId });
+        }
+
+        var feed = new FeedMessage
+        {
+            Header = new FeedHeader { GtfsRealtimeVersion = "2.0", Timestamp = 1_748_000_000UL },
+            Entity = { new FeedEntity { Id = alertId, Alert = alert } }
+        };
+        return feed.ToByteArray();
+    }
+
+    [Fact]
+    public async Task GetServiceAlertsAsync_WithRouteInCache_LooksUpShortName()
+    {
+        // Arrange — alert references NTH_1a, routes.txt maps NTH_1a → T1.
+        var alertBytes = BuildAlertFeed("alert-1", ["NTH_1a"], "Some delays on T1");
+        var zipBytes   = BuildRoutesZip(
+            "route_id,route_short_name,route_long_name,route_color\n" +
+            "NTH_1a,T1,North Shore Line,F99D1C\n");
+
+        // Handler routes `/alerts/` to the alerts feed, everything else (the
+        // GTFS static ZIP fetch) to the routes payload.
+        var handler = new FuncHttpMessageHandler(req =>
+            req.RequestUri!.AbsolutePath.Contains("/alerts/")
+                ? new HttpResponseMessage { Content = new ByteArrayContent(alertBytes) }
+                : new HttpResponseMessage { Content = new ByteArrayContent(zipBytes) });
+
+        var client = CreateClient(handler);
+
+        // Act
+        var alerts = await client.GetServiceAlertsAsync("sydneytrains");
+
+        // Assert — the looked-up user-facing label, not the internal route_id.
+        Assert.Single(alerts);
+        Assert.Equal("T1", alerts[0].RouteShortName);
+    }
+
+    [Fact]
+    public async Task GetServiceAlertsAsync_WithRouteNotInCache_FallsBackToRouteId()
+    {
+        // Arrange — alert references "4T.T.SCO" (a service-specific code observed
+        // in real DLQ data) that isn't present in routes.txt. The mapper should
+        // fall back to the raw route_id rather than emit an empty short name.
+        var alertBytes = BuildAlertFeed("alert-2", ["4T.T.SCO"], "Buses replace trains");
+        var zipBytes   = BuildRoutesZip(
+            "route_id,route_short_name,route_long_name,route_color\n" +
+            "NTH_1a,T1,North Shore Line,F99D1C\n");
+
+        var handler = new FuncHttpMessageHandler(req =>
+            req.RequestUri!.AbsolutePath.Contains("/alerts/")
+                ? new HttpResponseMessage { Content = new ByteArrayContent(alertBytes) }
+                : new HttpResponseMessage { Content = new ByteArrayContent(zipBytes) });
+
+        var client = CreateClient(handler);
+
+        // Act
+        var alerts = await client.GetServiceAlertsAsync("sydneytrains");
+
+        // Assert — fallback preserves the raw route_id (graceful degradation,
+        // same pattern as GetVehiclePositionsAsync).
+        Assert.Single(alerts);
+        Assert.Equal("4T.T.SCO", alerts[0].RouteShortName);
+    }
+
+    [Fact]
+    public async Task GetServiceAlertsAsync_WithNoInformedEntity_RouteShortNameIsEmpty()
+    {
+        // Arrange — alert with zero InformedEntity entries (general notices).
+        // Mapper must not throw; should emit empty RouteShortName.
+        var alertBytes = BuildAlertFeed("alert-3", [], "Network-wide notice");
+        var zipBytes   = BuildRoutesZip(
+            "route_id,route_short_name,route_long_name,route_color\n" +
+            "NTH_1a,T1,North Shore Line,F99D1C\n");
+
+        var handler = new FuncHttpMessageHandler(req =>
+            req.RequestUri!.AbsolutePath.Contains("/alerts/")
+                ? new HttpResponseMessage { Content = new ByteArrayContent(alertBytes) }
+                : new HttpResponseMessage { Content = new ByteArrayContent(zipBytes) });
+
+        var client = CreateClient(handler);
+
+        // Act
+        var alerts = await client.GetServiceAlertsAsync("sydneytrains");
+
+        // Assert — no route_id available; empty string is the documented contract.
+        Assert.Single(alerts);
+        Assert.Equal(string.Empty, alerts[0].RouteShortName);
+    }
 }
