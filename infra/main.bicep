@@ -160,9 +160,10 @@ module compute 'modules/compute.bicep' = {
     keyVaultName:              names.keyVault
     appInsightsConnStr:        observability.outputs.appInsightsConnectionString
     cosmosEndpoint:            data.outputs.cosmosEndpoint
+    serviceBusFqdn:            '${existingServiceBusNamespaceName}.servicebus.windows.net'
     eventGridTopicEndpoint:    messaging.outputs.eventGridTopicEndpoint
     dataLakeStorageAccountName: names.dataLake
-    tags:                      tags
+    tags:                      tags    
   }
   dependsOn: [security]
 }
@@ -187,6 +188,20 @@ module roleAssignments 'modules/role-assignments.bicep' = {
     eventGridTopicName:   names.eventGrid
     dataLakeStorageName:  names.dataLake
     funcStorageName:      names.funcStorage
+  }
+}
+
+// Service Bus role assignment — separate module because the SB namespace
+// lives in a different RG (DevPulseRG, ADR-0003) and we need the Function
+// App MI (so this must run AFTER compute).
+module serviceBusRoles 'modules/servicebus-roles.bicep' = {
+  name: 'serviceBusRoles'
+  scope: resourceGroup(existingServiceBusResourceGroup)
+  params: {
+    existingServiceBusNamespaceName: existingServiceBusNamespaceName
+    topicName:                       'sydney-pulse-alerts'
+    subscriptionName:                'alerter-sub'
+    functionPrincipalId:             compute.outputs.principalId
   }
 }
 

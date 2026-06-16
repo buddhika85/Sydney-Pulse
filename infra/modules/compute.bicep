@@ -35,6 +35,9 @@ param appInsightsConnStr string
 @description('Cosmos DB account endpoint URL.')
 param cosmosEndpoint string
 
+@description('Service Bus namespace FQDN. Not a secret — passed directly. Used for ServiceBus__fullyQualifiedNamespace app setting (MI per ADR-0003).')
+param serviceBusFqdn string
+
 @description('Event Grid custom topic endpoint URL.')
 param eventGridTopicEndpoint string
 
@@ -43,6 +46,8 @@ param dataLakeStorageAccountName string
 
 @description('Resource tags.')
 param tags object
+
+
 
 // ── Helper: Key Vault reference constructor ───────────────────────────────────
 // Produces the @Microsoft.KeyVault(VaultName=...;SecretName=...) string.
@@ -155,12 +160,16 @@ resource funcApp 'Microsoft.Web/sites@2023-01-01' = {
           name:  'TfNsw__ApiKey'
           value: kvRef(keyVaultName, 'TfNswApiKey')
         }
-        // ── Service Bus (connection string stored in Key Vault) ────────────────
-        // Secret name: ServiceBusConnectionString
+        
+        // ── Service Bus (Managed Identity per ADR-0003) ────────────────────────
+        // FQDN is not a secret — passed directly, no KV reference. Runtime
+        // selects MI auth when the key carries the __fullyQualifiedNamespace
+        // suffix. Naming intuition like __ConnectionString is silently ignored.
         {
-          name:  'ServiceBus__ConnectionString'
-          value: kvRef(keyVaultName, 'ServiceBusConnectionString')
+          name:  'ServiceBus__fullyQualifiedNamespace'
+          value: serviceBusFqdn
         }
+
         // ── Archive (ADR-0012) ────────────────────────────────────────────────
         // Data Lake account hostname; BlobServiceClient builds the full URL.
         // Other Archive__* settings use code-side defaults from ArchiveOptions.
