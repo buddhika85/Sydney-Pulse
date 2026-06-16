@@ -17,8 +17,9 @@
 | 9 | Sprint wrap | Tag v0.2.0, README updates, Loom demo | 0.5 |
 | 10 | Code review + interview-prep quiz (always-on) | Sprint-long discipline per `CLAUDE.md` "Daily rhythm". Quiz this sprint's new code (Bicep modules, KV + MI, blue/green workflow, reusable workflows) + spaced-recall on Sprint 1 content. | sprint-long |
 | 11 | Reduce alert event volume via Poller-side content diff | `Dictionary<alertId, contentHash>` in PollerFunction; publish only on hash change. State persisted as a single JSON blob in `sydpulsestordev` (read at start, write only when state changes). Cuts wire volume by ~99.6% per 2026-06-16 DLQ analysis (see [debug story #13](../sp1-16-debug-stories.md)). | 1.5 |
+| 12 | Archiver data path smoke + Parquet manifest validation | Pre-flight de-risk before Sprint 3 Analytics view. Re-enable ArchiverFlush in Bicep + portal; run Poller for ≥1 hour; verify `pending/yyyy=.../events.jsonl` → `archive/.../*.parquet` + `_manifest.json`. DuckDB query the Parquet to confirm 24-column unified schema (ADR-0012). Deferred from SP1-16 D.5 + D.6 — Sprint 1 verifies only Commuter-facing paths. | 1 |
 
-**Total:** ~8.5 days dev + sprint-long always-on quiz discipline (SP2-10)
+**Total:** ~9.5 days dev + sprint-long always-on quiz discipline (SP2-10)
 
 ## Deliverables
 - Multi-env IaC  

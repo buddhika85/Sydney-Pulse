@@ -208,14 +208,22 @@ az eventgrid event-subscription update --name archiver --endpoint <real-url>
 
 The biggest phase. Verify each backend component end-to-end in Azure.
 
+> **Descope (2026-06-16):** D.5 (ArchiverIngest) and D.6 (ArchiverFlush)
+> moved out of SP1-16 to Sprint 2 [SP-19](https://gsoft85512.atlassian.net/browse/SP-19)
+> as a pre-Analytics-view de-risk. Sprint 1's frontend deliverable is the
+> Commuter Dashboard (SP1-10), which reads via HTTP API + SignalR — not from
+> the Parquet archive. The Archiver chain feeds the Analytics view (Sprint 3),
+> so its smoke is correctly paired with that sprint's pre-flight. SP1-16
+> verifies D.1–D.4, D.7, D.8 only.
+
 | # | Component | How to verify | Pass criterion |
 |---|---|---|---|
 | D.1 | Poller | App Insights → traces → filter `cloud_RoleName == "sydney-pulse-func-dev" and operation_Name == "Poller"` | Invocation every 30s, no failures |
 | D.2 | Event Grid | KQL: `traces \| where message contains "Published" \| summarize count() by bin(timestamp, 1m)` | Counts > 0 for last 5 min |
 | D.3 | State Writer | Cosmos Data Explorer → `sydneyPulse > vehicles` | Docs landing; `sourceTimestamp` increasing on re-read |
 | D.4 | Alerter chain | Service Bus → `sydney-pulse-alerts > alerter-sub` → peek messages; Cosmos `alerts` container | Messages flowing through SB; alert docs in Cosmos |
-| D.5 | Archiver Ingest | Storage Explorer → `sydpulsedlsadev > pending/yyyy=.../MM=.../dd=.../HH=.../events.jsonl` | Append blob present, size growing |
-| D.6 | Archiver Flush | After 5+ min: `sydpulsedlsadev > archive/yyyy=.../MM=.../dd=.../HH=.../` | `.parquet` + `_manifest.json` present; manifest valid |
+| ~~D.5~~ | ~~Archiver Ingest~~ | **DESCOPED → [SP-19](https://gsoft85512.atlassian.net/browse/SP-19)** (Sprint 2 row 12) | — |
+| ~~D.6~~ | ~~Archiver Flush~~ | **DESCOPED → [SP-19](https://gsoft85512.atlassian.net/browse/SP-19)** (Sprint 2 row 12) | — |
 | D.7 | HTTP API | `curl https://sydney-pulse-func-dev.azurewebsites.net/api/vehicles?routeShortName=T1` `curl .../api/alerts` `curl .../api/routes` | 200; non-empty JSON; `Cache-Control` header present on `/api/vehicles` |
 | D.8 | SignalR | Edit `spike.html` — point negotiate URL at deployed `/api/negotiate?hub=vehicles`; open in browser via `python -m http.server` | Browser status: "Connected"; log panel receives `vehicleUpdated` events |
 
