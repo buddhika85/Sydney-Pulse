@@ -118,7 +118,6 @@ Naming convention: `<Scope><AzureService><Kind>`
 - `CosmosDatabaseName`, `VehiclesCosmosContainer`, `AlertsCosmosContainer`
 - `AlertsServiceBusTopic`, `AlertsServiceBusSubscription`, `ServiceBusConnectionKey`
 - `VehiclesSignalRHub`, `AlertsSignalRHub`
-- `VehiclesSignalRGroup`, `AlertsSignalRGroup`
 - `VehicleUpdatedSignalREvent`, `AlertReceivedSignalREvent`
 
 C# allows `const string` fields in attribute arguments, so this works:

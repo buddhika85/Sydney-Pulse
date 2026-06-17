@@ -69,11 +69,10 @@ public class AlerterFunction(
             "Upserted alert {AlertId} on route {Route}",
             doc.AlertId, doc.RouteShortName);
 
-        // Broadcast to all SignalR clients subscribed to the alerts group
+        // Broadcast to all SignalR clients subscribed to the alerts hub
         return new SignalRMessageAction(FunctionConstants.AlertReceivedSignalREvent)
         {
-            Arguments = [doc],
-            GroupName = FunctionConstants.AlertsSignalRGroup,
+            Arguments = [doc]
         };
     }
 }

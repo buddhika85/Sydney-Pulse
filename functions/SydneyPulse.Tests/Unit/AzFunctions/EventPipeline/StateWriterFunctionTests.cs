@@ -89,7 +89,6 @@ public class StateWriterFunctionTests
 
         Assert.NotNull(result);
         Assert.Equal(FunctionConstants.VehicleUpdatedSignalREvent, result!.Target);
-        Assert.Equal(FunctionConstants.VehiclesSignalRGroup, result.GroupName);
     }
 
     // Update scenario: existing document is newer than incoming event;

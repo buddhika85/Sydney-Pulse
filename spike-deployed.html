@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<!--
+  spike.html
+  ----------
+  De-risk spike only — not part of the production UI.
+  Connects to the "spike" SignalR hub via the negotiate endpoint and
+  prints every incoming "newMessage" payload to the log panel.
+
+  Usage:
+    1. func start (with AzureSignalRConnectionString in local.settings.json)
+    2. Open this file in a browser (file:// is fine for local testing)
+    3. curl -X POST http://localhost:7071/api/spike
+    4. Expect {"text":"hello"} to appear in the log within ~1s
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>SignalR Spike</title>
+  <style>
+    body { font-family: monospace; padding: 1rem; background: #111; color: #eee; }
+    #status { margin-bottom: 0.5rem; color: #aaa; }
+    #log    { background: #1e1e1e; padding: 1rem; min-height: 4rem; border: 1px solid #333; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h2>SignalR Spike — Sydney Pulse</h2>
+  <div id="status">Connecting…</div>
+  <pre id="log"></pre>
+
+  <!-- Load the SignalR client from CDN; pin to a specific minor to avoid surprise breakage -->
+  <script src="https://cdn.jsdelivr.net/npm/@microsoft/signalr@8.0.7/dist/browser/signalr.min.js"></script>
+  <script>
+    const statusEl = document.getElementById("status");
+    const logEl    = document.getElementById("log");
+
+    // Append a timestamped line to the log panel.
+    function appendLog(msg) {
+      const ts = new Date().toISOString().substring(11, 23);
+      logEl.textContent += `[${ts}] ${msg}\n`;
+    }
+
+    // Use the negotiate endpoint so the Functions host issues the access token —
+    // the client never holds the connection string directly.
+    const connection = new signalR.HubConnectionBuilder()
+      .withUrl("https://sydney-pulse-func-dev.azurewebsites.net/api?hub=vehicles", {
+        skipNegotiation: false,  // let the SDK call /api/negotiate automatically
+        withCredentials: false   // spike has no auth; avoids wildcard CORS rejection
+      })
+      .withAutomaticReconnect()
+      .build();
+
+    // Print every VehicleUpdatedSignalREvent message broadcasted by StateWriter azure function 
+    connection.on("vehicleUpdated", (payload) => {
+      appendLog(JSON.stringify(payload));
+    });
+
+    connection.onclose(() => {
+      statusEl.textContent = "Disconnected.";
+    });
+
+    // Start the connection; report status so we know the spike is live.
+    connection.start()
+      .then(() => {
+        statusEl.textContent = "Connected to hub: vehicles";
+        appendLog("connection established");
+      })
+      .catch((err) => {
+        statusEl.textContent = "Connection failed — is sydney-pulse-func-dev azure function app up?";
+        appendLog("error: " + err.toString());
+      });
+  </script>
+</body>
+</html>

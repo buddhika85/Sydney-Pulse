@@ -59,7 +59,6 @@ public class AlerterFunctionTests
 
         Assert.NotNull(result);
         Assert.Equal(FunctionConstants.AlertReceivedSignalREvent, result.Target);
-        Assert.Equal(FunctionConstants.AlertsSignalRGroup, result.GroupName);
     }
 
     [Fact]

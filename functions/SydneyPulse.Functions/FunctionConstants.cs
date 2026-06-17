@@ -23,12 +23,8 @@ internal static class FunctionConstants
 
     // --- SignalR hubs ---
     internal const string VehiclesSignalRHub = "vehicles";
-    internal const string AlertsSignalRHub   = "alerts";
-
-    // --- SignalR groups ---
-    internal const string VehiclesSignalRGroup = "vehicles";
-    internal const string AlertsSignalRGroup   = "alerts";
-
+    internal const string AlertsSignalRHub = "alerts";
+    
     // --- SignalR event names (received by Angular clients) ---
     internal const string VehicleUpdatedSignalREvent = "vehicleUpdated";
     internal const string AlertReceivedSignalREvent  = "alertReceived";

@@ -103,8 +103,7 @@ public class StateWriterFunction(
         // so the wire contract is independent of storage refactors.
         return new SignalRMessageAction(FunctionConstants.VehicleUpdatedSignalREvent)
         {
-            Arguments = [vehicleUpdate],
-            GroupName = FunctionConstants.VehiclesSignalRGroup,
+            Arguments = [vehicleUpdate]
         };
     }
 
