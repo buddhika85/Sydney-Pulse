@@ -1,0 +1,963 @@
+{
+  "routes": [
+    {
+      "routeId": "APS_1a",
+      "routeShortName": "T8",
+      "routeLongName": "City Circle to Macarthur via Airport",
+      "routeColor": "#00954C",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "APS_1b",
+      "routeShortName": "T8",
+      "routeLongName": "City Circle to Leppington via Airport",
+      "routeColor": "#00954C",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "APS_1c",
+      "routeShortName": "T8",
+      "routeLongName": "City Circle to Macarthur via Sydenham",
+      "routeColor": "#00954C",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "APS_1d",
+      "routeShortName": "T8",
+      "routeLongName": "City Circle to Macarthur via Sydenham",
+      "routeColor": "#00954C",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "APS_1e",
+      "routeShortName": "T8",
+      "routeLongName": "City Circle to Leppington via Sydenham",
+      "routeColor": "#00954C",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "APS_1f",
+      "routeShortName": "T8",
+      "routeLongName": "City Circle to Leppington via Sydenham",
+      "routeColor": "#00954C",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "APS_2a",
+      "routeShortName": "T8",
+      "routeLongName": "Macarthur to City Circle via Airport",
+      "routeColor": "#00954C",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "APS_2b",
+      "routeShortName": "T8",
+      "routeLongName": "Leppington to City Circle via Airport",
+      "routeColor": "#00954C",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "APS_2c",
+      "routeShortName": "T8",
+      "routeLongName": "Macarthur to City Circle via Sydenham",
+      "routeColor": "#00954C",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "APS_2d",
+      "routeShortName": "T8",
+      "routeLongName": "Macarthur to City Circle via Sydenham",
+      "routeColor": "#00954C",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "APS_2e",
+      "routeShortName": "T8",
+      "routeLongName": "Leppington to City Circle via Sydenham",
+      "routeColor": "#00954C",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "APS_2f",
+      "routeShortName": "T8",
+      "routeLongName": "Leppington to City Circle via Sydenham",
+      "routeColor": "#00954C",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "BMT_1",
+      "routeShortName": "BMT",
+      "routeLongName": "Central to Lithgow and Bathurst",
+      "routeColor": "#F99D1C",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "BMT_2",
+      "routeShortName": "BMT",
+      "routeLongName": "Bathurst and Lithgow to Central",
+      "routeColor": "#F99D1C",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "CCN_1a",
+      "routeShortName": "CCN",
+      "routeLongName": "Central to Newcastle Interchange via Strathfield",
+      "routeColor": "#D11F2F",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "CCN_1b",
+      "routeShortName": "CCN",
+      "routeLongName": "Central to Newcastle Interchange via Gordon",
+      "routeColor": "#D11F2F",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "CCN_1c",
+      "routeShortName": "CCN",
+      "routeLongName": "Central to Newcastle Interchange via Strathfield",
+      "routeColor": "#D11F2F",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "CCN_2a",
+      "routeShortName": "CCN",
+      "routeLongName": "Newcastle Interchange to Central via Strathfield",
+      "routeColor": "#D11F2F",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "CCN_2b",
+      "routeShortName": "CCN",
+      "routeLongName": "Newcastle Interchange to Central via Gordon",
+      "routeColor": "#D11F2F",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "CMB_1a",
+      "routeShortName": "T5",
+      "routeLongName": "Richmond to Leppington",
+      "routeColor": "#C4258F",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "CMB_1b",
+      "routeShortName": "T5",
+      "routeLongName": "Emu Plains to Leppington",
+      "routeColor": "#C4258F",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "CMB_1c",
+      "routeShortName": "T5",
+      "routeLongName": "Richmond to Campbelltown",
+      "routeColor": "#C4258F",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "CMB_1d",
+      "routeShortName": "T5",
+      "routeLongName": "Emu Plains to Campbelltown",
+      "routeColor": "#C4258F",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "CMB_2a",
+      "routeShortName": "T5",
+      "routeLongName": "Leppington to Richmond",
+      "routeColor": "#C4258F",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "CMB_2b",
+      "routeShortName": "T5",
+      "routeLongName": "Leppington to Emu Plains",
+      "routeColor": "#C4258F",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "CMB_2c",
+      "routeShortName": "T5",
+      "routeLongName": "Campbelltown to Richmond",
+      "routeColor": "#C4258F",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "CMB_2d",
+      "routeShortName": "T5",
+      "routeLongName": "Campbelltown to Emu Plains",
+      "routeColor": "#C4258F",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "CTY_NC1",
+      "routeShortName": "NRC",
+      "routeLongName": "Sydney (Central) to Brisbane (Roma Street)",
+      "routeColor": "#F6891F",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "CTY_NC1a",
+      "routeShortName": "NRC",
+      "routeLongName": "Sydney (Central) to Brisbane (Roma Street)",
+      "routeColor": "#F6891F",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "CTY_NC2",
+      "routeShortName": "NRC",
+      "routeLongName": "Brisbane (Roma Street) to Sydney (Central)",
+      "routeColor": "#F6891F",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "CTY_NW1a",
+      "routeShortName": "NRW",
+      "routeLongName": "Sydney (Central) to Moree",
+      "routeColor": "#F6891F",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "CTY_NW1b",
+      "routeShortName": "NRW",
+      "routeLongName": "Sydney (Central) to Armidale",
+      "routeColor": "#F6891F",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "CTY_NW1c",
+      "routeShortName": "NRW",
+      "routeLongName": "Sydney (Central) to Moree",
+      "routeColor": "#F6891F",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "CTY_NW1d",
+      "routeShortName": "NRW",
+      "routeLongName": "Sydney (Central) to Armidale",
+      "routeColor": "#F6891F",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "CTY_NW2a",
+      "routeShortName": "NRW",
+      "routeLongName": "Moree to Sydney (Central)",
+      "routeColor": "#F6891F",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "CTY_NW2b",
+      "routeShortName": "NRW",
+      "routeLongName": "Armidale to Sydney (Central)",
+      "routeColor": "#F6891F",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "CTY_S1a",
+      "routeShortName": "STH",
+      "routeLongName": "Sydney (Central) to Canberra",
+      "routeColor": "#F6891F",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "CTY_S1b",
+      "routeShortName": "STH",
+      "routeLongName": "Sydney (Central) to Canberra",
+      "routeColor": "#F6891F",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "CTY_S1c",
+      "routeShortName": "STH",
+      "routeLongName": "Sydney (Central) to Canberra",
+      "routeColor": "#F6891F",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "CTY_S1d",
+      "routeShortName": "STH",
+      "routeLongName": "Sydney (Central) to Griffith",
+      "routeColor": "#F6891F",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "CTY_S1e",
+      "routeShortName": "STH",
+      "routeLongName": "Sydney (Central) to Griffith",
+      "routeColor": "#F6891F",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "CTY_S1f",
+      "routeShortName": "STH",
+      "routeLongName": "Sydney (Central) to Griffith",
+      "routeColor": "#F6891F",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "CTY_S1g",
+      "routeShortName": "STH",
+      "routeLongName": "Sydney (Central) to Melbourne (Southern Cross)",
+      "routeColor": "#F6891F",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "CTY_S1h",
+      "routeShortName": "STH",
+      "routeLongName": "Sydney (Central) to Melbourne (Southern Cross)",
+      "routeColor": "#F6891F",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "CTY_S1i",
+      "routeShortName": "STH",
+      "routeLongName": "Sydney (Central) to Melbourne (Southern Cross)",
+      "routeColor": "#F6891F",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "CTY_S2a",
+      "routeShortName": "STH",
+      "routeLongName": "Canberra to Sydney (Central)",
+      "routeColor": "#F6891F",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "CTY_S2b",
+      "routeShortName": "STH",
+      "routeLongName": "Canberra to Sydney (Central)",
+      "routeColor": "#F6891F",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "CTY_S2c",
+      "routeShortName": "STH",
+      "routeLongName": "Canberra to Sydney (Central)",
+      "routeColor": "#F6891F",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "CTY_S2d",
+      "routeShortName": "STH",
+      "routeLongName": "Griffith to Sydney (Central)",
+      "routeColor": "#F6891F",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "CTY_S2e",
+      "routeShortName": "STH",
+      "routeLongName": "Griffith to Sydney (Central)",
+      "routeColor": "#F6891F",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "CTY_S2f",
+      "routeShortName": "STH",
+      "routeLongName": "Griffith to Sydney (Central)",
+      "routeColor": "#F6891F",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "CTY_S2g",
+      "routeShortName": "STH",
+      "routeLongName": "Melbourne (Southern Cross) to Sydney (Central)",
+      "routeColor": "#F6891F",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "CTY_S2h",
+      "routeShortName": "STH",
+      "routeLongName": "Melbourne (Southern Cross) to Sydney (Central)",
+      "routeColor": "#F6891F",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "CTY_S2i",
+      "routeShortName": "STH",
+      "routeLongName": "Melbourne (Southern Cross) to Sydney (Central)",
+      "routeColor": "#F6891F",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "CTY_W1a",
+      "routeShortName": "WST",
+      "routeLongName": "Sydney (Central) to Dubbo",
+      "routeColor": "#F6891F",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "CTY_W1b",
+      "routeShortName": "WST",
+      "routeLongName": "Sydney (Central) to Broken Hill",
+      "routeColor": "#F6891F",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "CTY_W2a",
+      "routeShortName": "WST",
+      "routeLongName": "Dubbo to Sydney (Central)",
+      "routeColor": "#F6891F",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "CTY_W2b",
+      "routeShortName": "WST",
+      "routeLongName": "Broken Hill to Sydney (Central)",
+      "routeColor": "#F6891F",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "ESI_1a",
+      "routeShortName": "T4",
+      "routeLongName": "Bondi Junction to Waterfall via City",
+      "routeColor": "#005AA3",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "ESI_1b",
+      "routeShortName": "T4",
+      "routeLongName": "City Circle to Waterfall",
+      "routeColor": "#005AA3",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "ESI_1c",
+      "routeShortName": "T4",
+      "routeLongName": "City Circle to Waterfall",
+      "routeColor": "#005AA3",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "ESI_1d",
+      "routeShortName": "T4",
+      "routeLongName": "Bondi Junction to Cronulla via City",
+      "routeColor": "#005AA3",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "ESI_1e",
+      "routeShortName": "T4",
+      "routeLongName": "City Circle to Cronulla",
+      "routeColor": "#005AA3",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "ESI_1f",
+      "routeShortName": "T4",
+      "routeLongName": "City Circle to Cronulla",
+      "routeColor": "#005AA3",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "ESI_2a",
+      "routeShortName": "T4",
+      "routeLongName": "Waterfall to Bondi Junction via City",
+      "routeColor": "#005AA3",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "ESI_2b",
+      "routeShortName": "T4",
+      "routeLongName": "Waterfall to City Circle",
+      "routeColor": "#005AA3",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "ESI_2c",
+      "routeShortName": "T4",
+      "routeLongName": "Waterfall to City Circle",
+      "routeColor": "#005AA3",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "ESI_2d",
+      "routeShortName": "T4",
+      "routeLongName": "Cronulla to Bondi Junction via City",
+      "routeColor": "#005AA3",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "ESI_2e",
+      "routeShortName": "T4",
+      "routeLongName": "Cronulla to City Circle",
+      "routeColor": "#005AA3",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "ESI_2f",
+      "routeShortName": "T4",
+      "routeLongName": "Cronulla to City Circle",
+      "routeColor": "#005AA3",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "HUN_1a",
+      "routeShortName": "HUN",
+      "routeLongName": "Newcastle Interchange to Dungog",
+      "routeColor": "#833134",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "HUN_1b",
+      "routeShortName": "HUN",
+      "routeLongName": "Newcastle Interchange to Scone",
+      "routeColor": "#833134",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "HUN_2a",
+      "routeShortName": "HUN",
+      "routeLongName": "Dungog to Newcastle Interchange",
+      "routeColor": "#833134",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "HUN_2b",
+      "routeShortName": "HUN",
+      "routeLongName": "Scone to Newcastle Interchange",
+      "routeColor": "#833134",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "IWL_1a",
+      "routeShortName": "T2",
+      "routeLongName": "City Circle to Parramatta",
+      "routeColor": "#0098CD",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "IWL_1b",
+      "routeShortName": "T2",
+      "routeLongName": "City Circle to Parramatta",
+      "routeColor": "#0098CD",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "IWL_1c",
+      "routeShortName": "T2",
+      "routeLongName": "City Circle to Leppington via Granville",
+      "routeColor": "#0098CD",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "IWL_1d",
+      "routeShortName": "T2",
+      "routeLongName": "City Circle to Leppington via Granville",
+      "routeColor": "#0098CD",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "IWL_1e",
+      "routeShortName": "T2",
+      "routeLongName": "City Circle to Leppington via Regents Park",
+      "routeColor": "#0098CD",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "IWL_1f",
+      "routeShortName": "T2",
+      "routeLongName": "City Circle to Leppington via Regents Park",
+      "routeColor": "#0098CD",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "IWL_1g",
+      "routeShortName": "T2",
+      "routeLongName": "Bankstown to Leppington",
+      "routeColor": "#0098CD",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "IWL_1i",
+      "routeShortName": "T2",
+      "routeLongName": "City Circle to Campbelltown via Granville",
+      "routeColor": "#0098CD",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "IWL_1j",
+      "routeShortName": "T2",
+      "routeLongName": "City Circle to Campbelltown via Granville",
+      "routeColor": "#0098CD",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "IWL_2a",
+      "routeShortName": "T2",
+      "routeLongName": "Parramatta to City Circle",
+      "routeColor": "#0098CD",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "IWL_2b",
+      "routeShortName": "T2",
+      "routeLongName": "Parramatta to City Circle",
+      "routeColor": "#0098CD",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "IWL_2c",
+      "routeShortName": "T2",
+      "routeLongName": "Leppington to City Circle via Granville",
+      "routeColor": "#0098CD",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "IWL_2d",
+      "routeShortName": "T2",
+      "routeLongName": "Leppington to City Circle via Granville",
+      "routeColor": "#0098CD",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "IWL_2e",
+      "routeShortName": "T2",
+      "routeLongName": "Leppington to City Circle via Regents Park",
+      "routeColor": "#0098CD",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "IWL_2f",
+      "routeShortName": "T2",
+      "routeLongName": "Leppington to City Circle via Regents Park",
+      "routeColor": "#0098CD",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "IWL_2g",
+      "routeShortName": "T2",
+      "routeLongName": "Leppington to Bankstown",
+      "routeColor": "#0098CD",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "IWL_2i",
+      "routeShortName": "T2",
+      "routeLongName": "Campbelltown to City Circle via Granville",
+      "routeColor": "#0098CD",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "IWL_2j",
+      "routeShortName": "T2",
+      "routeLongName": "Campbelltown to City Circle via Granville",
+      "routeColor": "#0098CD",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "NSN_1a",
+      "routeShortName": "T1",
+      "routeLongName": "City to Hornsby and Berowra via Gordon",
+      "routeColor": "#F99D1C",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "NSN_2a",
+      "routeShortName": "T1",
+      "routeLongName": "Berowra and Hornsby to City via Gordon",
+      "routeColor": "#F99D1C",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "NSN_2i",
+      "routeShortName": "T1",
+      "routeLongName": "Berowra to Richmond via City",
+      "routeColor": "#F99D1C",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "NSN_2k",
+      "routeShortName": "T1",
+      "routeLongName": "Berowra to Emu Plains via City",
+      "routeColor": "#F99D1C",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "NTH_1a",
+      "routeShortName": "T9",
+      "routeLongName": "North Shore to Hornsby and Berowra via City and Strathfield",
+      "routeColor": "#D11F2F",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "NTH_1b",
+      "routeShortName": "T9",
+      "routeLongName": "North Shore to Hornsby and Berowra via City and Strathfield",
+      "routeColor": "#D11F2F",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "NTH_2a",
+      "routeShortName": "T9",
+      "routeLongName": "Berowra and Hornsby to North Shore via Strathfield and City",
+      "routeColor": "#D11F2F",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "OLY_1a",
+      "routeShortName": "T7",
+      "routeLongName": "Central to Olympic Park",
+      "routeColor": "#6F818E",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "OLY_1b",
+      "routeShortName": "T7",
+      "routeLongName": "Olympic Park to Blacktown",
+      "routeColor": "#6F818E",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "OLY_2a",
+      "routeShortName": "T7",
+      "routeLongName": "Olympic Park to Central",
+      "routeColor": "#6F818E",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "OLY_2b",
+      "routeShortName": "T7",
+      "routeLongName": "Blacktown to Olympic Park",
+      "routeColor": "#6F818E",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "RTTA_DEF",
+      "routeShortName": "",
+      "routeLongName": "Out Of Service",
+      "routeColor": "#888888",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "RTTA_REV",
+      "routeShortName": "",
+      "routeLongName": "Non Revenue",
+      "routeColor": "#888888",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "SCO_1a",
+      "routeShortName": "SCO",
+      "routeLongName": "Bondi Junction and Central to Bomaderry",
+      "routeColor": "#005AA3",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "SCO_1b",
+      "routeShortName": "SCO",
+      "routeLongName": "Bondi Junction and Central to Port Kembla",
+      "routeColor": "#005AA3",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "SCO_2a",
+      "routeShortName": "SCO",
+      "routeLongName": "Bomaderry to Central and Bondi Junction",
+      "routeColor": "#005AA3",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "SCO_2b",
+      "routeShortName": "SCO",
+      "routeLongName": "Port Kembla to Central and Bondi Junction",
+      "routeColor": "#005AA3",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "SHL_1a",
+      "routeShortName": "SHL",
+      "routeLongName": "Central to Campbelltown and Goulburn via Granville",
+      "routeColor": "#00954C",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "SHL_1b",
+      "routeShortName": "SHL",
+      "routeLongName": "Central to Campbelltown and Goulburn via Regents Park",
+      "routeColor": "#00954C",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "SHL_1c",
+      "routeShortName": "SHL",
+      "routeLongName": "Central to Campbelltown and Goulburn via Airport",
+      "routeColor": "#00954C",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "SHL_1d",
+      "routeShortName": "SHL",
+      "routeLongName": "Central to Campbelltown and Goulburn via East Hills and Sydenham",
+      "routeColor": "#00954C",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "SHL_1e",
+      "routeShortName": "SHL",
+      "routeLongName": "Campbelltown to Goulburn",
+      "routeColor": "#00954C",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "SHL_2a",
+      "routeShortName": "SHL",
+      "routeLongName": "Goulburn to Campbelltown and Central via Granville",
+      "routeColor": "#00954C",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "SHL_2b",
+      "routeShortName": "SHL",
+      "routeLongName": "Goulburn to Campbelltown and Central via Regents Park",
+      "routeColor": "#00954C",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "SHL_2c",
+      "routeShortName": "SHL",
+      "routeLongName": "Goulburn to Campbelltown and Central via Airport",
+      "routeColor": "#00954C",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "SHL_2d",
+      "routeShortName": "SHL",
+      "routeLongName": "Goulburn to Campbelltown and Central via East Hills and Sydenham",
+      "routeColor": "#00954C",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "SHL_2e",
+      "routeShortName": "SHL",
+      "routeLongName": "Goulburn to Campbelltown",
+      "routeColor": "#00954C",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "T3_1a",
+      "routeShortName": "T3",
+      "routeLongName": "City Circle to Liverpool via Regents Park",
+      "routeColor": "#F37021",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "T3_1b",
+      "routeShortName": "T3",
+      "routeLongName": "City Circle to Liverpool via Regents Park",
+      "routeColor": "#F37021",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "T3_1c",
+      "routeShortName": "T3",
+      "routeLongName": "Lidcombe to Liverpool via Regents Park",
+      "routeColor": "#F37021",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "T3_1d",
+      "routeShortName": "T3",
+      "routeLongName": "Bankstown to Liverpool",
+      "routeColor": "#F37021",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "T3_2a",
+      "routeShortName": "T3",
+      "routeLongName": "Liverpool to City Circle via Regents Park",
+      "routeColor": "#F37021",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "T3_2b",
+      "routeShortName": "T3",
+      "routeLongName": "Liverpool to City Circle via Regents Park",
+      "routeColor": "#F37021",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "T3_2c",
+      "routeShortName": "T3",
+      "routeLongName": "Liverpool to Lidcombe via Regents Park",
+      "routeColor": "#F37021",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "T3_2d",
+      "routeShortName": "T3",
+      "routeLongName": "Liverpool to Bankstown",
+      "routeColor": "#F37021",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "T6_1a",
+      "routeShortName": "T6",
+      "routeLongName": "Lidcombe to Bankstown",
+      "routeColor": "#7C3E21",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "T6_1b",
+      "routeShortName": "T6",
+      "routeLongName": "City Circle to Bankstown",
+      "routeColor": "#7C3E21",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "T6_1c",
+      "routeShortName": "T6",
+      "routeLongName": "City Circle to Bankstown",
+      "routeColor": "#7C3E21",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "T6_2a",
+      "routeShortName": "T6",
+      "routeLongName": "Bankstown to Lidcombe",
+      "routeColor": "#7C3E21",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "T6_2b",
+      "routeShortName": "T6",
+      "routeLongName": "Bankstown to City Circle",
+      "routeColor": "#7C3E21",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "T6_2c",
+      "routeShortName": "T6",
+      "routeLongName": "Bankstown to City Circle",
+      "routeColor": "#7C3E21",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "WST_1a",
+      "routeShortName": "T1",
+      "routeLongName": "City to Emu Plains",
+      "routeColor": "#F99D1C",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "WST_1b",
+      "routeShortName": "T1",
+      "routeLongName": "City to Richmond",
+      "routeColor": "#F99D1C",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "WST_2c",
+      "routeShortName": "T1",
+      "routeLongName": "Emu Plains to Berowra via City",
+      "routeColor": "#F99D1C",
+      "mode": "sydneytrains"
+    },
+    {
+      "routeId": "WST_2d",
+      "routeShortName": "T1",
+      "routeLongName": "Richmond to Berowra via City",
+      "routeColor": "#F99D1C",
+      "mode": "sydneytrains"
+    }
+  ]
+}
