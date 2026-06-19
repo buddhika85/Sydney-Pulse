@@ -24,7 +24,7 @@ dashboard, tagged `v0.1.0`.
 | SP1-07 | Alerter chain                     | ✅     | 2026-05-30  | 2026-05-30  | PR #4 squash-merged |
 | SP1-08 | HTTP API                          | ✅     | 2026-05-30  | 2026-05-31  | PR #5 squash-merged |
 | SP1-15 | Archiver Function                 | ✅     | 2026-06-04  | 2026-06-05  | `b04b766` (PR #7 squash-merged) |
-| SP1-16 | Backend visibility (manual deploy + smoke) — [plan](backend-manual-deploy-plan.md) | ⬜     | —           | —           | —                   |
+| SP1-16 | Backend visibility (manual deploy + smoke) — [plan](backend-manual-deploy-plan.md) | ✅     | 2026-06-09  | 2026-06-20  | many on main + PR #8 (`cbe32eb`) |
 | SP1-09 | Angular scaffolding (deeper)      | ⬜     | —           | —           | —                   |
 | SP1-14 | Code review + interview-prep quiz (always-on) | 🔄     | 2026-06-01  | —           | —                   |
 | SP1-12 | GitHub Actions CI/CD              | ⬜     | —           | —           | —                   |
@@ -517,6 +517,74 @@ Pipeline is end-to-end functional: Event Grid → `ArchiverIngestFunction`
   declares it conditionally; first-pass deploy passes empty strings, second-pass
   deploy or post-deploy CLI step wires it. Decision deferred to **SP1-12** (CI/CD).
 
+## SP1-16 — Backend visibility (manual deploy + smoke) ✅
+
+Started 2026-06-09. Closed 2026-06-20. Execution plan:
+[`backend-manual-deploy-plan.md`](backend-manual-deploy-plan.md).
+
+Phases A–D shipped directly to `main` across multiple commits during the
+active smoke + debug period. Phases E + F shipped via PR #8 squash-merged
+as `cbe32eb`.
+
+### What landed
+
+**Infra + runtime (Phases A–C)**
+- First Function App publish to `sydney-pulse-func-dev` (10 functions discovered)
+- Key Vault secrets seeded (`TfNswApiKey`, `AzureSignalRConnectionString`,
+  `ServiceBusConnectionString`)
+- Event Grid webhook subscriptions wired to the real Function App hostname
+  (state-writer + archiver no longer placeholders)
+- CORS tightened from `*` → `http://localhost:5500` for the spike client
+
+**End-to-end smoke (Phase D)**
+- D.1 Poller ✅ — App Insights confirms 30 s cadence
+- D.2 Event Grid ✅ — publish counts > 0
+- D.3 StateWriter ✅ — Cosmos `vehicles` populating
+- D.4 Alerter chain ✅ — Service Bus topic → SignalR alerts hub end-to-end
+- ~~D.5 ArchiverIngest~~ + ~~D.6 ArchiverFlush~~ — descoped to SP-19 (Sprint 2)
+- D.7 HTTP API ✅ — `/api/vehicles`, `/api/alerts`, `/api/routes` all 200
+  (fixtures captured)
+- D.8 SignalR ✅ — `spike-deployed.html` receives `vehicleUpdated` events
+  end-to-end
+
+**Debug stories surfaced during D** (writeups in gitignored
+`docs/sp1-16-debug-stories.md`):
+- #11–#14 — Poller / Service Bus DLQ findings (became the SP-18 Sprint 2
+  feature design)
+- #15 ★ — Service Bus app-setting key drift (Functions runtime suffix
+  vocabulary is `__fullyQualifiedNamespace`, not `__ConnectionString`).
+  Fixed via Managed Identity switch in `ff32796`
+- #20 ★ — SignalR group-vs-hub silent drop. `GroupName` on broadcast
+  filtered to a 0-member group. Fixed by removing `GroupName` from
+  StateWriter + Alerter in `6f84c16`. Mirrored to `interview-prep.md`
+  Q2 + Word doc
+
+**Documentation (Phases E + F)**
+- `docs/runbooks/dev-smoke-evidence.md` — 10 screenshots, 4 KQL queries,
+  captured fixtures, ★ SignalR Live Trace section
+- `docs/runbooks/manual-deploy-dev.md` — reproducible deploy recipe;
+  fresh-RG and code-only paths, 3-layer rollback
+- 3 dated HTTP API fixtures under `functions/SydneyPulse.Tests/Fixtures/` —
+  reusable by SP1-09 and SP-18
+
+### Non-obvious decisions
+
+- **D.5 / D.6 descoped → SP-19.** Sprint 1 frontend is the Commuter
+  Dashboard (HTTP API + SignalR only); archive smoke pairs with Sprint 3
+  Analytics view.
+- **Direct-to-main commits during D.** Several fixes pushed straight to
+  main with admin override during active debug. PR #8 is the formal
+  SP1-16 closing artefact; prior commits' context lives in the
+  debug-stories doc.
+- **`spike-deployed.html` kept in repo root.** Smoke verification
+  dependency; not production code, mirrors SP1-02's `spike.html`.
+
+### Out of scope (deferred)
+
+- Phase G plan's 3 quiz Qs (MI/RBAC, KQL, publish gotcha) — folded into
+  always-on SP1-14 cadence
+- Archiver smoke (D.5 / D.6) → SP-19, Sprint 2
+
 ## SP1-14 — Code review + interview-prep quiz (always-on) 🔄
 
 Started 2026-06-01. Jira: SP-15. Reframed 2026-06-03 from a 2-day discrete
@@ -682,81 +750,56 @@ When an item is blocked:
 1. Flip to ⚠️ with a note in "Risks / open items" describing the blocker
    and what unblocks it.
 
-## Next session handoff (2026-06-05 evening — SP1-15 shipped)
+## Next session handoff (2026-06-20 — SP1-16 shipped)
 
-**SP1-15 is done.** PR #7 squash-merged to `main` as `b04b766` on 2026-06-05
-afternoon. Branch `feat/sp1-15-archiver-function` deleted local + remote.
-Local main is in sync with origin. See the **SP1-15 — Archiver Function ✅**
-section above for full state.
+**SP1-16 is done.** PR #8 squash-merged to `main` as `cbe32eb` on
+2026-06-20. Local main in sync with origin. See **SP1-16 — Backend
+visibility (manual deploy + smoke) ✅** section above for full state.
 
 ### Quick state snapshot
 
-- On `main` at `b04b766`. Working tree clean.
-- Tests: **55 passing across the solution** (36 new for SP1-15). Build clean,
-  bicep build clean.
-- **Next sprint item: SP1-16 — Backend visibility (manual deploy + smoke).**
-  Order flipped 2026-06-09: do SP1-16 *before* SP1-09 so the backend is
-  verified in real Azure before any UI work begins, and so SP1-09 / SP1-10
-  can target a working dev URL instead of mocks. No frontend dependency —
-  SignalR smoke uses `spike.html` from SP1-02.
-  Revised ordering: **SP1-16** → SP1-09 → SP1-12 (CI/CD) → SP1-10 (live
-  dashboard) → SP1-11 (landing) → SP1-13 (v0.1.0 wrap).
-  **Detailed 8-phase execution plan: [`backend-manual-deploy-plan.md`](backend-manual-deploy-plan.md).**
-  Self-study before kickoff; we resume at Phase A pre-flight when ready.
-- Quiz capture from SP1-15: 3 Q&As across the primer + interview-prep + Word
-  doc — crash-safety triangle, manifest commit marker, `IAsyncEnumerable<T>`
-  deep dive. Reusable for the Tech Mahindra Tuesday interview.
-
-### Interview context (separate from sprint)
-
-- **Tech Mahindra AUS interview confirmed for Tuesday 2026-06-09.** See memory
-  `project_tech_mahindra_interview_lead.md`. Weekend (Jun 6–7) is the serious
-  prep block — mock interview Saturday, refinement Sunday, light polish Monday.
-- New sprint item to scope for Sprint 2 / post-interview: **SP2-01 — Data
-  inspection + observability tooling** (Azurite integration, DuckDB queries
-  over Parquet, Service Bus Explorer, App Insights KQL, end-to-end tour).
-
-### (Stale below this point — kept for history)
-
-- Concept primer extended today with **Section 7 — Event-driven durability**
-  (the at-least-once + atomic append + read-time dedupe triangle, plus the
-  EventId-provenance gotcha).
-- Quiz capture today: SP1-15 Q1 (crash-safety) landed in all three docs —
-  primer Section 7, `interview-prep.md`, and the Word reference doc.
+- On `main` at `cbe32eb`. Working tree has only a pre-existing untouched
+  `M host.json` (formatting tweak, not in any SP1-16 scope).
+- Tests: **55 passing**, build clean, bicep build clean.
+- **Next sprint item: SP1-09 — Angular scaffolding (deeper).** Revised
+  Sprint 1 order: SP1-16 → SP1-09 → SP1-12 → SP1-10 → SP1-11 → SP1-13.
+  SP1-09 / SP1-10 can now target the working deployed dev URL instead of
+  mocks; the captured HTTP API JSON fixtures under
+  `functions/SydneyPulse.Tests/Fixtures/*-2026-06-17.json` are the
+  contract reference.
+- Quiz capture from SP1-16: Debug Story #20 mirrored to
+  `interview-prep.md` Q2 + Word doc.
 
 ### Where we are (cumulative since SP1-08)
 
-- Bicep deployed to `sydney-pulse-rg-dev` — all resources healthy.
+- Full event pipeline running end-to-end in dev: Poller → Event Grid →
+  StateWriter / Alerter / (Archiver wired but smoke deferred to SP-19)
+  → Cosmos + SignalR + HTTP API. `spike-deployed.html` confirms SignalR
+  end-to-end.
+- Bicep deployed to `sydney-pulse-rg-dev` — all resources healthy and
+  smoke-verified.
 - App Insights daily cap: 1 GB/day. Sampling: fixed 5% in `host.json`.
-- Key Vault secrets seeded: `TfNswApiKey`, `AzureSignalRConnectionString`,
-  `ServiceBusConnectionString`.
-- Poller, State Writer, Alerter, HTTP API all live on `main` (SP1-05 through SP1-08).
-- Event Grid `state-writer` webhook subscription still placeholder
-  — update after Function App URL is known (deferred to SP1-12).
-- Event Grid `archiver` subscription declared in `messaging.bicep` behind a
-  conditional (`if (!empty(funcAppDefaultHostname) && !empty(funcAppEventGridSystemKey))`)
-  — initial deploys pass empty strings; second-pass deploy or post-deploy CLI
-  step wires the subscription up. Decision deferred to SP1-15 Phase 4.
-- Data Lake `archive` container provisioned (SP1-03); `pending` container +
-  lifecycle policy (Hot → Cool 30d → Cold 90d) added in SP1-15 scaffolding.
-- `main` branch protection enabled on GitHub: PR required before merging,
-  force push blocked. Status checks to be added at SP1-12.
-- `Cosmos__AccountEndpoint` and `ServiceBus__fullyQualifiedNamespace` need to be
-  added to `local.settings.json` manually when running Functions locally.
+- Key Vault secrets seeded.
+- Event Grid `state-writer` + `archiver` webhook subscriptions wired
+  to real Function App hostname (no longer placeholders).
+- Data Lake `archive` + `pending` containers provisioned + lifecycle
+  policy (Hot → Cool 30d → Cold 90d).
+- CORS on dev Function App tightened from `*` to `http://localhost:5500`.
+- `main` branch protection enabled: PR required, force push blocked.
+  CI status checks to be added at SP1-12.
+- `Cosmos__AccountEndpoint` and `ServiceBus__fullyQualifiedNamespace`
+  need to be in `local.settings.json` to run Functions locally.
 
-### Resume sequence (tomorrow)
+### Resume sequence (next session)
 
-1. Follow session start protocol per `CLAUDE.md` — read this file (you're here),
+1. Follow session start protocol per `CLAUDE.md` — read this file,
    then `sprint-1.md`, then glob `docs/**/*.md`.
-2. `git status` (should be clean) + `git log -5 --oneline` to confirm today's
-   commits `66f0cc3` and `e2f20d6` are on the branch.
-3. **Resume SP1-15 Phase 3 at method 9 — `ArchiverFlushFunction.ListCloseablePartitions`**.
-   Different file from yesterday (`ArchiverFlushFunction.cs`), different trigger
-   (Timer, not EventGrid). Claude writes the failing test, developer implements,
-   repeat through methods 9–13.
-4. Phase 4 wrap after method 13 green: update `docs/testing.md` (3 new inventory
-   rows + total count 19→41+), update `docs/diagrams.md` (archive flow), commit
-   + push + open PR via GitHub MCP `create_pull_request`.
+2. `git status` (only `M host.json` expected) + `git log -5 --oneline`
+   to confirm `cbe32eb` is HEAD.
+3. **Start SP1-09 — Angular scaffolding (deeper)** per `sprint-1.md`
+   row 9. TDD Phase 1 (Plan): read sprint spec, agree on files/methods.
+4. Optional pre-kickoff: short quiz recall on debug stories #15 / #20
+   while still fresh.
 
 ### Standing operating rules
 
