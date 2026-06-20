@@ -632,6 +632,25 @@ Sections added so far:
 - SP1-14: TfNSW Client (TfNswOptions, ITfNswFeedClient, TfNswFeedClient) (6 questions)
 - SP1-14: PollerFunction — all 6 questions + 1 follow-up (local dev / Event Grid emulator)
 
+### Story-flavoured answers (`docs/interview-prep.md`)
+
+Story-mode counterparts to the Word doc per the two-doc system (CLAUDE.md
+"Daily rhythm"). File is gitignored — local reference only.
+
+Debug-story / scenario Qs landed:
+- SP1-15 — Archiver: Q1 (crash-safety) + Q2 (manifest files) + Q3 (`IAsyncEnumerable<T>`) — 2026-06-05
+- SP1-16 — Q1 (zombie freshness) + Q2 (SignalR group-vs-hub diagnostic) — 2026-06-19
+- SP1-16 — Q3 (defending hub-wide vs groups, PM-pushback scenario) — 2026-06-21
+
+### Verbal-recall sessions
+
+- 2026-06-21 — Debug Story #20 (SignalR group-vs-hub): Q1 diagnostic-order
+  walked end-to-end (strong on chain-of-proof + Live Trace as the
+  asymmetry-finding tool); Q3 design-defence calibrated up from
+  junior-YAGNI to senior-triangle (numbers + alternative + reversal
+  conditions). Q3 captured back to `interview-prep.md` SP1-16 section
+  with PM-pushback scenario in the question header.
+
 ## SP1-09 through SP1-13
 
 Not started. Refer to `sprint-1.md` for scope and per-item description.
