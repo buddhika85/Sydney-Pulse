@@ -2,15 +2,14 @@
     "version": "2.0",
     "logging": {
         "applicationInsights": {
-            "samplingSettings": {
-                "isEnabled": true,
-                // Pin adaptive sampler to exactly 5% — prevents cost blowout on low-traffic dev.
-                // Requests are excluded so every HTTP call is always logged for debugging.
-                "initialSamplingPercentage": 5.0,
-                "minSamplingPercentage": 5.0,
-                "maxSamplingPercentage": 5.0,
-                "excludedTypes": "Request"
-            },
+          "samplingSettings": {
+            "isEnabled": true,
+            "_comment": "Pin adaptive sampler to exactly 5% per as per design constraint (low-traffic dev — prevents cost blowout). Requests excluded so every HTTP call is logged.",
+            "initialSamplingPercentage": 5.0,
+            "minSamplingPercentage": 5.0,
+            "maxSamplingPercentage": 5.0,
+            "excludedTypes": "Request"
+          },
             "enableLiveMetricsFilters": true
         }
     }
