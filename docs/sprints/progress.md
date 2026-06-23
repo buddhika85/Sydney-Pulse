@@ -25,7 +25,7 @@ dashboard, tagged `v0.1.0`.
 | SP1-08 | HTTP API                          | ✅     | 2026-05-30  | 2026-05-31  | PR #5 squash-merged |
 | SP1-15 | Archiver Function                 | ✅     | 2026-06-04  | 2026-06-05  | `b04b766` (PR #7 squash-merged) |
 | SP1-16 | Backend visibility (manual deploy + smoke) — [plan](backend-manual-deploy-plan.md) | ✅     | 2026-06-09  | 2026-06-20  | many on main + PR #8 (`cbe32eb`) |
-| SP1-09 | Angular scaffolding (deeper)      | ⬜     | —           | —           | —                   |
+| SP1-09 | Angular scaffolding (deeper)      | ✅     | 2026-06-20  | 2026-06-24  | `fcb4466` (PR #9 squash-merged) |
 | SP1-14 | Code review + interview-prep quiz (always-on) | 🔄     | 2026-06-01  | —           | —                   |
 | SP1-12 | GitHub Actions CI/CD              | ⬜     | —           | —           | —                   |
 | SP1-10 | Live dashboard                    | ⬜     | —           | —           | —                   |
@@ -585,6 +585,68 @@ as `cbe32eb`.
   always-on SP1-14 cadence
 - Archiver smoke (D.5 / D.6) → SP-19, Sprint 2
 
+## SP1-09 — Angular scaffolding (deeper) ✅
+
+Started 2026-06-20. Closed 2026-06-24. **Shipped via PR #9, squash-merged
+as `fcb4466`.** Jira: SP-9.
+
+### What landed (4 commits → 1 squash)
+
+- **`dae300a` — Angular 18 → 20 upgrade.** Cleared 8 high-sev advisories
+  surfaced by `npm audit`; closed the SP-20 tech-debt row in-sprint with
+  zero app-code changes (framework-only).
+- **`474c0ae` — Service layer + env config + 3 HTTP services.**
+  `VehiclesService`, `AlertsService`, `RoutesService` against the deployed
+  dev API. `environment.ts` / `environment.prod.ts` swap via `angular.json`
+  `fileReplacements`. Models derived from captured
+  `Fixtures/*-2026-06-17.json` so backend/frontend drift surfaces as a
+  type error at the import site.
+- **`f28ba19` — RealtimeService crash-safety fix + FE tests deferred.**
+  `connect()` builds locally → publishes refs only after BOTH hub starts
+  succeed (prevents leaked Free-SKU connection slots on partial failure).
+  `disconnect()` uses `Promise.allSettled` so a stop() failure can't
+  strand the refs. Frontend unit tests pulled out to [SP-21](https://gsoft85512.atlassian.net/browse/SP-21);
+  `app.component.spec.ts` retained so `ng test` infrastructure is intact.
+- **`45958a4` — App shell + 4 lazy routes + nav.** `RouterOutlet` + nav
+  linking to `landing`, `live`, `analytics`, `ops` — all `loadComponent`
+  so initial bundle stays small.
+
+### Key design decisions locked in
+
+- **A — Mixed envelope/array return.** Services drop the envelope where it
+  carries no extra fields (`AlertsService`, `RoutesService` → `T[]`), keep
+  the envelope where it carries timing data (`VehiclesService` →
+  `VehiclesResponse` so the live view can render stale-data UI from
+  `feedTimestamp`).
+- **B — Two `HubConnection`s, one service.** Mirrors the backend's two
+  separate hubs (`vehicles`, `alerts`). Hub names + event names live in
+  `signalr-events.constants.ts`, mirrored from `FunctionConstants.cs`
+  (no-magic-strings rule). Drift = silent dropped messages on the client
+  — Debug Story #20 ★ cluster precedent.
+- **C — `inject()` over ctor injection** throughout. Modern Angular 18+
+  idiom; lighter syntax for standalone services.
+- **Raw Leaflet + RxJS/Signals (no NgRx).** Confirmed at sprint scope per
+  `project_sp109_angular_decisions` memory; no library beyond `leaflet`
+  + `@microsoft/signalr` added.
+
+### Non-obvious decisions
+
+- **Dev Function App CORS amended.** `http://localhost:4200` added to the
+  dev Function App allow-list in this sprint item (SP1-16 had it at
+  `http://localhost:5500` only for `spike-deployed.html`). `ng serve`
+  against the deployed dev API now works without proxy.
+- **Backend tests stayed green at 64 across the upgrade** — no API
+  surface change, services are pure HttpClient wrappers.
+- **`Route` interface named `TransportRoute`** to avoid collision with
+  Angular Router's `Route` type.
+
+### Out of scope (deferred)
+
+- Frontend unit tests → [SP-21](https://gsoft85512.atlassian.net/browse/SP-21).
+  Rationale captured in PR #9 + `web/CLAUDE.md` Testing section.
+- Real header/footer styling → SP1-11. Nav is functional but bare.
+- Leaflet map wiring → SP1-10. `live.component` is a placeholder.
+
 ## SP1-14 — Code review + interview-prep quiz (always-on) 🔄
 
 Started 2026-06-01. Jira: SP-15. Reframed 2026-06-03 from a 2-day discrete
@@ -769,25 +831,26 @@ When an item is blocked:
 1. Flip to ⚠️ with a note in "Risks / open items" describing the blocker
    and what unblocks it.
 
-## Next session handoff (2026-06-20 — SP1-16 shipped)
+## Next session handoff (2026-06-24 — SP1-09 shipped)
 
-**SP1-16 is done.** PR #8 squash-merged to `main` as `cbe32eb` on
-2026-06-20. Local main in sync with origin. See **SP1-16 — Backend
-visibility (manual deploy + smoke) ✅** section above for full state.
+**SP1-09 is done.** PR #9 squash-merged to `main` as `fcb4466` on
+2026-06-24. Local main in sync with origin. See **SP1-09 — Angular
+scaffolding (deeper) ✅** section above for full state.
 
 ### Quick state snapshot
 
-- On `main` at `cbe32eb`. Working tree has only a pre-existing untouched
-  `M host.json` (formatting tweak, not in any SP1-16 scope).
-- Tests: **55 passing**, build clean, bicep build clean.
-- **Next sprint item: SP1-09 — Angular scaffolding (deeper).** Revised
-  Sprint 1 order: SP1-16 → SP1-09 → SP1-12 → SP1-10 → SP1-11 → SP1-13.
-  SP1-09 / SP1-10 can now target the working deployed dev URL instead of
-  mocks; the captured HTTP API JSON fixtures under
-  `functions/SydneyPulse.Tests/Fixtures/*-2026-06-17.json` are the
-  contract reference.
-- Quiz capture from SP1-16: Debug Story #20 mirrored to
-  `interview-prep.md` Q2 + Word doc.
+- On `main` at `fcb4466`. Working tree has only a pre-existing untouched
+  `M host.json` (formatting tweak, carried since pre-SP1-16, not in any
+  shipped scope).
+- Tests: **64 backend passing**, `ng build` clean, bicep build clean.
+  Frontend unit tests deferred to SP-21.
+- **Next sprint item: SP1-12 — GitHub Actions CI/CD.** Revised Sprint 1
+  order: SP1-16 ✅ → SP1-09 ✅ → **SP1-12** → SP1-10 → SP1-11 → SP1-13.
+  SP1-12 builds on the manual-deploy recipe captured in
+  `docs/runbooks/manual-deploy-dev.md` from SP1-16.
+- Quiz capture pending from SP1-09: none yet; candidate Qs are the
+  RealtimeService partial-failure design (Promise.all vs allSettled) and
+  the two-hub-vs-one-hub topology decision.
 
 ### Where we are (cumulative since SP1-08)
 
@@ -803,7 +866,8 @@ visibility (manual deploy + smoke) ✅** section above for full state.
   to real Function App hostname (no longer placeholders).
 - Data Lake `archive` + `pending` containers provisioned + lifecycle
   policy (Hot → Cool 30d → Cold 90d).
-- CORS on dev Function App tightened from `*` to `http://localhost:5500`.
+- CORS on dev Function App: `http://localhost:5500` (spike-deployed.html)
+  + `http://localhost:4200` (Angular `ng serve`, added in SP1-09).
 - `main` branch protection enabled: PR required, force push blocked.
   CI status checks to be added at SP1-12.
 - `Cosmos__AccountEndpoint` and `ServiceBus__fullyQualifiedNamespace`
@@ -814,11 +878,16 @@ visibility (manual deploy + smoke) ✅** section above for full state.
 1. Follow session start protocol per `CLAUDE.md` — read this file,
    then `sprint-1.md`, then glob `docs/**/*.md`.
 2. `git status` (only `M host.json` expected) + `git log -5 --oneline`
-   to confirm `cbe32eb` is HEAD.
-3. **Start SP1-09 — Angular scaffolding (deeper)** per `sprint-1.md`
-   row 9. TDD Phase 1 (Plan): read sprint spec, agree on files/methods.
-4. Optional pre-kickoff: short quiz recall on debug stories #15 / #20
-   while still fresh.
+   to confirm `fcb4466` is HEAD.
+3. **Start SP1-12 — GitHub Actions CI/CD** per `sprint-1.md` row 12.
+   Build on the manual-deploy steps captured in
+   `docs/runbooks/manual-deploy-dev.md`. TDD Phase 1 (Plan): list
+   workflows (lint, test, deploy infra, deploy app) and trigger model
+   (push to main vs `workflow_dispatch`).
+4. Confirm `gh` CLI is on bash PATH (open risk from SP1-01) before
+   starting SP1-12 — needed for `workflow_dispatch` from terminal.
+5. Optional pre-kickoff: short quiz recall on debug stories #15 / #20
+   while still fresh, or capture the SP1-09 RealtimeService design Q.
 
 ### Sprint 1 deferrals (logged to backlog)
 
