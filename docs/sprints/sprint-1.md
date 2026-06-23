@@ -31,7 +31,7 @@ Deliver a public live URL showing real-time vehicle updates from TfNSW, backed b
 | 6 | State Writer Function | Event Grid trigger, upsert to Cosmos | 0.5 |
 | 7 | Alerter chain | Event Grid → Service Bus → SignalR | 1 |
 | 8 | HTTP API | /vehicles, /alerts, /routes, /negotiate | 1 |
-| 9 | Angular scaffolding | ng new, install libs, create routes | 0.5 |
+| 9 | Angular scaffolding | ng new, install libs, create routes. **Frontend unit tests deferred to [SP-21](https://gsoft85512.atlassian.net/browse/SP-21)** — keeps Sprint 1 focused on shipping the live URL by Jul 1; backend already at 55 tests, target roles are .NET-senior with Angular secondary | 0.5 |
 | 10 | Live dashboard | Leaflet map, SignalR, alerts panel, filters | 2 |
 | 11 | Minimal landing page | Hero, CTA, simple architecture SVG | 0.75 |
 | 12 | GitHub Actions | Lint, test, deploy infra + app | 0.75 |

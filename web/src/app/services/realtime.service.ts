@@ -10,14 +10,33 @@
 // Negotiate flow: client POSTs to /api/negotiate?hub=<name>; SignalR JS client
 // handles this internally when withUrl() points at the Function's negotiate
 // endpoint (the spike-deployed.html reference from SP1-02 proves the wiring).
+/*
+SignalR backend hub          this service                   components
+  ──────────────────────────────────────────────────────────────────────
+  "vehicles" hub  ──push──▶  vehiclesHub.on(...)
+                                    │
+                                    ▼
+                             vehicleUpdates (Subject)  ──as Observable──▶  map/list
+                                    ▲
+                                    └── .next(payload) called by the handler
 
-import { Injectable, inject } from '@angular/core';
-import { HubConnection } from '@microsoft/signalr';
+  "alerts" hub    ──push──▶  alertsHub.on(...)
+                                    │
+                                    ▼
+                             alertsReceived (Subject)  ──as Observable──▶  banner
+*/
+
+import { Injectable } from '@angular/core';
+import { HubConnection, HubConnectionBuilder } from '@microsoft/signalr';
 import { Observable, Subject } from 'rxjs';
 
 import { environment } from '../../environments/environment';
 import { Alert, Vehicle } from '../models';
-import { SIGNALR_EVENTS, SIGNALR_HUBS, SignalRHubName } from './signalr-events.constants';
+import {
+  SIGNALR_EVENTS,
+  SIGNALR_HUBS,
+  SignalRHubName,
+} from './signalr-events.constants';
 
 @Injectable({ providedIn: 'root' })
 export class RealtimeService {
@@ -31,34 +50,75 @@ export class RealtimeService {
   private alertsHub: HubConnection | null = null;
 
   // Public streams - consumers .subscribe() or use toSignal() in components.
-  readonly vehicleUpdates$: Observable<Vehicle> = this.vehicleUpdates.asObservable();
-  readonly alertsReceived$: Observable<Alert> = this.alertsReceived.asObservable();
+  readonly vehicleUpdates$: Observable<Vehicle> =
+    this.vehicleUpdates.asObservable();
+  readonly alertsReceived$: Observable<Alert> =
+    this.alertsReceived.asObservable();
 
   /**
    * Build, wire, and start both hub connections.
    * Idempotent: safe to call twice (no-op on second call).
-   *
-   * Estimate: ~20 min - guard if already connected, call buildConnection
-   * for SIGNALR_HUBS.Vehicles and SIGNALR_HUBS.Alerts, wire .on() with
-   * SIGNALR_EVENTS.VehicleUpdated / .AlertReceived into their Subjects,
-   * await both .start() in parallel.
    */
   async connect(): Promise<void> {
-    // TODO(SP1-09 step 5): implement.
-    throw new Error('Not implemented');
+    // 1 idempotency guard - both hubs already up, nothing to do
+    if (this.vehiclesHub && this.alertsHub) {
+      return;
+    }
+
+    // 2 build locally first; only publish to instance fields after BOTH
+    // starts succeed, so a partial failure leaves the service exactly as
+    // it was before the call. Prevents the leak path where one hub is
+    // connected but the other failed - on retry the next connect() would
+    // either skip past the guard (stranding the dead hub) or rebuild on
+    // top of the live one (leaking a Free SKU connection slot, cap 20).
+    const vehiclesHub = this.buildConnection(SIGNALR_HUBS.Vehicles);
+    const alertsHub = this.buildConnection(SIGNALR_HUBS.Alerts);
+
+    // 3 .on() BEFORE .start() so we never miss the first message
+    vehiclesHub.on(SIGNALR_EVENTS.VehicleUpdated, (payload: Vehicle) => {
+      this.vehicleUpdates.next(payload);
+    });
+    alertsHub.on(SIGNALR_EVENTS.AlertReceived, (payload: Alert) => {
+      this.alertsReceived.next(payload);
+    });
+
+    // 4 start both in parallel; on any failure, tear down whatever
+    // started (allSettled so a cleanup failure doesn't mask the original
+    // error) and re-throw so the caller can retry from a clean slate
+    try {
+      await Promise.all([vehiclesHub.start(), alertsHub.start()]);
+    } catch (err) {
+      await Promise.allSettled([vehiclesHub.stop(), alertsHub.stop()]);
+      throw err;
+    }
+
+    // 5 publish only after both starts succeeded
+    this.vehiclesHub = vehiclesHub;
+    this.alertsHub = alertsHub;
   }
 
   /**
    * Stop both hub connections and release references.
    * Idempotent: safe to call when not connected.
-   *
-   * Estimate: ~10 min - if hub non-null, await .stop(); set both to null.
-   * Subjects are NOT completed (service is a singleton; future connect()
-   * calls must keep emitting to the same Subjects).
    */
   async disconnect(): Promise<void> {
-    // TODO(SP1-09 step 5): implement.
-    throw new Error('Not implemented');
+    const stops: Promise<void>[] = [];
+
+    if (this.vehiclesHub) {
+      stops.push(this.vehiclesHub.stop());
+    }
+    if (this.alertsHub) {
+      stops.push(this.alertsHub.stop());
+    }
+
+    // allSettled (not all): we're tearing down, so a stop() failure
+    // must not strand the refs in a non-null state and block future
+    // connect()s. Caller doesn't care why a stop failed - the
+    // contract that matters is that both refs are null afterwards.
+    await Promise.allSettled(stops);
+
+    this.vehiclesHub = null;
+    this.alertsHub = null;
   }
 
   /**
@@ -68,13 +128,12 @@ export class RealtimeService {
    * disconnect resilience (SignalR Free SKU drops idle connections).
    *
    * `hubName` typed as SignalRHubName so typos fail compile, not runtime.
-   *
-   * Estimate: ~15 min - new HubConnectionBuilder().withUrl(negotiateUrl)
-   *                     .withAutomaticReconnect().build().
-   * negotiateUrl shape: `${environment.apiBaseUrl}/negotiate?hub=<hubName>`.
    */
   private buildConnection(hubName: SignalRHubName): HubConnection {
-    // TODO(SP1-09 step 5): implement.
-    throw new Error('Not implemented');
+    const negotiateUrl = `${environment.apiBaseUrl}/negotiate?hub=${hubName}`;
+    return new HubConnectionBuilder()
+      .withUrl(negotiateUrl)
+      .withAutomaticReconnect()
+      .build();
   }
 }

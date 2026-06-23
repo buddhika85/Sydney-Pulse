@@ -95,7 +95,16 @@ vehicles = toSignal(this.signalR.vehicles$, { initialValue: [] });
 
 ## Testing
 
+Frontend unit tests are **deferred from Sprint 1** to backlog item
+[SP-21](https://gsoft85512.atlassian.net/browse/SP-21). Sprint 1 ships
+the live URL without frontend test coverage; the Angular CLI auto-scaffolded
+`app.component.spec.ts` stays so `ng test` infrastructure is intact for
+SP-21 to build on.
+
+When SP-21 is picked up the scope is:
+
 - **Unit tests** for services using `TestBed` and HTTP testing utilities
+  (`RealtimeService`, `VehiclesService`, `AlertsService`, `RoutesService`)
 - **Component tests** with `ComponentFixture`, but limit scope — heavy
   template testing has diminishing returns
 - **E2E tests** with Playwright in `/e2e/` (Sprint 4 enhancement;

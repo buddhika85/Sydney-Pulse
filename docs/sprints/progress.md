@@ -820,6 +820,19 @@ visibility (manual deploy + smoke) ✅** section above for full state.
 4. Optional pre-kickoff: short quiz recall on debug stories #15 / #20
    while still fresh.
 
+### Sprint 1 deferrals (logged to backlog)
+
+- **Frontend unit tests → [SP-21](https://gsoft85512.atlassian.net/browse/SP-21).**
+  Decided 2026-06-23 during SP1-09. Drafted a first failing
+  `RealtimeService` spec to force the `Promise.all` vs `Promise.allSettled`
+  design decision in `disconnect()`, then deferred the whole frontend test
+  layer to keep Sprint 1 focused on shipping the live URL. Spec file
+  removed; `app.component.spec.ts` (Angular CLI auto-scaffold) retained so
+  `ng test` infrastructure is intact for SP-21 to build on. Rationale:
+  target roles are .NET-senior with Angular secondary; backend already at
+  55 tests; the `disconnect()` design question is captured in SP-21's
+  description and revisited as the story's first test.
+
 ### Standing operating rules
 
 - User runs all Azure mutations. Claude provides instructions and
