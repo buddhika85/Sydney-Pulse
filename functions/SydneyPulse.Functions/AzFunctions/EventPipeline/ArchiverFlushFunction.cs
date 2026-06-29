@@ -86,7 +86,7 @@ public class ArchiverFlushFunction(
     {
         // Partition becomes closeable at: hour-end + grace-window. If `now` has
         // reached that moment, no more JSONL is accepted to parition → safe to close & flush.
-        return partitionPaths.Where(x => 
+        return partitionPaths.Where(x =>
             HivePartitionPath.Parse(x)
             .AddHours(1)
             .AddMinutes(_opts.PartitionGraceMinutes) <= now);
@@ -137,8 +137,8 @@ public class ArchiverFlushFunction(
                 LastSourceTimestamp: uniqueEvents.Max(e => e.SourceTimestamp),
                 Files: [
                     new ArchiveManifestFile(
-                        FunctionConstants.ArchiveEventsBlobName, 
-                        uniqueEvents.Count, 
+                        FunctionConstants.ArchiveEventsBlobName,
+                        uniqueEvents.Count,
                         parquetByteSize)
                     ]
             );
@@ -154,8 +154,8 @@ public class ArchiverFlushFunction(
         var pendingBlobPath = $"{partitionPath}/{FunctionConstants.PendingEventsBlobName}";
         var pendingBlobClient = pendingStore.GetAppendBlob(pendingBlobPath);
         await pendingBlobClient.DeleteAsync(
-            snapshotsOption: DeleteSnapshotsOption.None, 
-            conditions: null, 
+            snapshotsOption: DeleteSnapshotsOption.None,
+            conditions: null,
             cancellationToken: cancellationToken);
     }
 
@@ -167,7 +167,7 @@ public class ArchiverFlushFunction(
     // `internal static` because it's pure CPU and trivially testable without
     // any of the Function's instance dependencies.
     internal static IReadOnlyList<ArchiveEvent> DedupeByEventId(
-        IEnumerable<ArchiveEvent> events) => 
+        IEnumerable<ArchiveEvent> events) =>
         [..events
             .GroupBy(e => e.EventId)
             .Select(g => g.First())];
@@ -199,8 +199,8 @@ public class ArchiverFlushFunction(
         // jsonL lines
         // JSONL mandates '\n' — Environment.NewLine would break on Windows where it's "\r\n"
         var jsonLines = blobDownloadResult.Value.Content.ToString()
-            .Split('\n', StringSplitOptions.RemoveEmptyEntries);        
-       
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries);
+
         // conversion json lines to ArchiveEvent list
         return jsonLines.Select(line => JsonSerializer.Deserialize<ArchiveEvent>(line)).ToList()!;
     }

@@ -167,7 +167,7 @@ public class ParquetArchiveWriterTests
 
     // ─── BuildColumns ───────────────────────────────────────────────────────
 
-    
+
 
     // Pin the structural contract: 24 columns in schema order, zero-length data
     // arrays when no events provided. Column ORDER matters because Parquet binds
@@ -199,7 +199,7 @@ public class ParquetArchiveWriterTests
     {
         // Arrange — vehicle at index 0, alert at index 1
         var vehicleEvent = MakeVehicleEvent(eventId: "vu-1", vehicleId: "VH-001");
-        var alertEvent   = MakeAlertEvent(eventId: "sa-1", alertId: "ALERT-1");
+        var alertEvent = MakeAlertEvent(eventId: "sa-1", alertId: "ALERT-1");
         var events = new[] { vehicleEvent, alertEvent };
         var schema = ParquetArchiveWriter.BuildSchema();
 
@@ -294,7 +294,7 @@ public class ParquetArchiveWriterTests
     {
         // Arrange
         var vehicleEvent = MakeVehicleEvent(eventId: "vu-1", vehicleId: "VH-001");
-        var alertEvent   = MakeAlertEvent(eventId: "sa-1", alertId: "ALERT-1");
+        var alertEvent = MakeAlertEvent(eventId: "sa-1", alertId: "ALERT-1");
         var events = new[] { vehicleEvent, alertEvent };
         var writer = new ParquetArchiveWriter();
         using var stream = new MemoryStream();

@@ -35,7 +35,7 @@ public class AlertsFunction(
 
         // Cross-partition scan — alerts are partitioned by routeShortName and there
         // is no use case for returning alerts for a single route in isolation.
-        var results  = new List<AlertDocument>();
+        var results = new List<AlertDocument>();
         var iterator = container.GetItemQueryIterator<AlertDocument>(
             new QueryDefinition("SELECT * FROM c ORDER BY c.receivedAt DESC"));
 

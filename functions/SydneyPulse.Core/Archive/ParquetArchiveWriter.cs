@@ -191,7 +191,7 @@ public sealed class ParquetArchiveWriter : IParquetArchiveWriter
             latitudesColumn, longitudesColumn, bearingsColumn, speedKmhsColumn, occupancyStatusesColumn,
             alertIdsColumn, severitiesColumn, headerTextsColumn, descriptionTextsColumn, startsAtColumn, endsAtColumn
         };
-        return columns;        
+        return columns;
     }
 
     // WriteAsync: open ParquetWriter on destination, write one row group, dispose.

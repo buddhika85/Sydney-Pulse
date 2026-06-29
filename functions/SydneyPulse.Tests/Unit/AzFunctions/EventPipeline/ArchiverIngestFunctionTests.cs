@@ -407,8 +407,8 @@ public class ArchiverIngestFunctionTests
     public async Task AppendToPendingAsync_LateEvent_PartitionPathFollowsSourceTimestampNotArchivedAt()
     {
         // Arrange — event happened in hour 13 but we're ingesting it in hour 14
-        var sourceTs   = new DateTimeOffset(2026, 6, 4, 13, 55, 0, TimeSpan.Zero);
-        var archivedAt = new DateTimeOffset(2026, 6, 4, 14,  5, 0, TimeSpan.Zero);
+        var sourceTs = new DateTimeOffset(2026, 6, 4, 13, 55, 0, TimeSpan.Zero);
+        var archivedAt = new DateTimeOffset(2026, 6, 4, 14, 5, 0, TimeSpan.Zero);
         var archiveEvent = MakeArchiveEvent(sourceTimestamp: sourceTs, archivedAt: archivedAt);
 
         // Act

@@ -27,7 +27,7 @@ public class NegotiateFunction(ILogger<NegotiateFunction> logger)
     public async Task<HttpResponseData> RunAsync(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post")] HttpRequestData req,
         [SignalRConnectionInfoInput(HubName = FunctionConstants.VehiclesSignalRHub)] SignalRConnectionInfo vehiclesInfo,
-        [SignalRConnectionInfoInput(HubName = FunctionConstants.AlertsSignalRHub)]   SignalRConnectionInfo alertsInfo)
+        [SignalRConnectionInfoInput(HubName = FunctionConstants.AlertsSignalRHub)] SignalRConnectionInfo alertsInfo)
     {
         var queryParams = QueryHelpers.ParseQuery(req.Url.Query);
         var hub = queryParams.TryGetValue("hub", out var h) ? h.ToString() : FunctionConstants.VehiclesSignalRHub;

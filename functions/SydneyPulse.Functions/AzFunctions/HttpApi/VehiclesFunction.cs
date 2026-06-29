@@ -45,7 +45,7 @@ public class VehiclesFunction(
         if (!cache.TryGetValue(cacheKey, out string? cachedJson))
         {
             var queryParams = QueryHelpers.ParseQuery(req.Url.Query);
-            var mode           = queryParams.TryGetValue("mode",           out var m)   ? m.ToString() : null;
+            var mode = queryParams.TryGetValue("mode", out var m) ? m.ToString() : null;
             var routeShortName = queryParams.TryGetValue("routeShortName", out var rsn) ? rsn.ToString() : null;
 
             var vehicles = await QueryVehiclesAsync(mode, routeShortName, cancellationToken);
@@ -97,11 +97,11 @@ public class VehiclesFunction(
         else
         {
             // Unfiltered — full container scan for initial dashboard load.
-            query   = new QueryDefinition("SELECT * FROM c");
+            query = new QueryDefinition("SELECT * FROM c");
             options = new QueryRequestOptions();
         }
 
-        var results  = new List<VehicleDocument>();
+        var results = new List<VehicleDocument>();
         var iterator = container.GetItemQueryIterator<VehicleDocument>(query, requestOptions: options);
         while (iterator.HasMoreResults)
         {

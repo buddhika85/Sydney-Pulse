@@ -175,9 +175,9 @@ public class TfNswFeedClient : ITfNswFeedClient
         if (headerLine is null) return new Dictionary<string, RouteInfo>();
 
         var headers = SplitCsvLine(headerLine);
-        int iId    = Array.IndexOf(headers, "route_id");
+        int iId = Array.IndexOf(headers, "route_id");
         int iShort = Array.IndexOf(headers, "route_short_name");
-        int iLong  = Array.IndexOf(headers, "route_long_name");
+        int iLong = Array.IndexOf(headers, "route_long_name");
         int iColor = Array.IndexOf(headers, "route_color");
 
         var dict = new Dictionary<string, RouteInfo>(StringComparer.OrdinalIgnoreCase);
@@ -211,9 +211,9 @@ public class TfNswFeedClient : ITfNswFeedClient
 
         foreach (var ch in line)
         {
-            if (ch == '"')            { inQuotes = !inQuotes; }
+            if (ch == '"') { inQuotes = !inQuotes; }
             else if (ch == ',' && !inQuotes) { fields.Add(current.ToString()); current.Clear(); }
-            else                      { current.Append(ch); }
+            else { current.Append(ch); }
         }
         fields.Add(current.ToString());
         return [.. fields];

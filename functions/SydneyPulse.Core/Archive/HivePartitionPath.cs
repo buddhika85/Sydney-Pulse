@@ -21,7 +21,7 @@ public static class HivePartitionPath
     public static string ForHour(DateTimeOffset timestamp)
     {
         // Normalise to UTC first.
-        timestamp = timestamp.ToUniversalTime();  
+        timestamp = timestamp.ToUniversalTime();
 
         // Format with zero-padding. Note the fixed-width components (MM, dd, HH).
         return $"yyyy={timestamp:yyyy}/MM={timestamp:MM}/dd={timestamp:dd}/HH={timestamp:HH}";
@@ -53,7 +53,7 @@ public static class HivePartitionPath
         return new DateTimeOffset(
 
             // range starting at index 5 (yyyy= is 5) and going to the end of the string.
-            year: int.Parse(parts[0]["yyyy=".Length..]),   
+            year: int.Parse(parts[0]["yyyy=".Length..]),
 
             month: int.Parse(parts[1]["MM=".Length..]),
             day: int.Parse(parts[2]["dd=".Length..]),
@@ -61,5 +61,5 @@ public static class HivePartitionPath
             minute: 0,
             second: 0,
             offset: TimeSpan.Zero);
-    } 
+    }
 }

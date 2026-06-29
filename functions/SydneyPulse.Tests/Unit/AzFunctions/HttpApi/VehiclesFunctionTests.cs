@@ -34,17 +34,17 @@ public class VehiclesFunctionTests
 
     private static VehicleDocument MakeDoc(string vehicleId = "VH-001", string routeShortName = "T1", string mode = "sydneytrains") => new()
     {
-        Id             = vehicleId,
-        VehicleId      = vehicleId,
+        Id = vehicleId,
+        VehicleId = vehicleId,
         RouteShortName = routeShortName,
-        RouteId        = "NTH_1a",
-        RouteLongName  = "T1 North Shore Line",
-        RouteColor     = "#F99D1C",
-        Mode           = mode,
-        Latitude       = -33.8688,
-        Longitude      = 151.2093,
-        Timestamp      = DateTimeOffset.UtcNow,
-        UpdatedAt      = DateTimeOffset.UtcNow,
+        RouteId = "NTH_1a",
+        RouteLongName = "T1 North Shore Line",
+        RouteColor = "#F99D1C",
+        Mode = mode,
+        Latitude = -33.8688,
+        Longitude = 151.2093,
+        Timestamp = DateTimeOffset.UtcNow,
+        UpdatedAt = DateTimeOffset.UtcNow,
     };
 
     // Wires the mocked container to return a single-page iterator with the given docs.

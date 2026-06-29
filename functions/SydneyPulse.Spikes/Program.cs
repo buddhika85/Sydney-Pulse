@@ -36,13 +36,13 @@ if (args.Length == 0)
 }
 
 var subcommand = args[0];
-var rest       = args.Skip(1).ToArray();
+var rest = args.Skip(1).ToArray();
 
 return subcommand switch
 {
     "tfnsw" => await RunTfNswAsync(rest),
-    "dlq"   => await SpikeRunner.ExportDlqAsync(rest),
-    _       => Unknown(subcommand)
+    "dlq" => await SpikeRunner.ExportDlqAsync(rest),
+    _ => Unknown(subcommand)
 };
 
 // Unknown — print usage and return non-zero so a wrapper script can fail.
@@ -59,8 +59,8 @@ static int Unknown(string given)
 // args[2] = optional output path. File gets a JSON array; stdout when omitted.
 static async Task<int> RunTfNswAsync(string[] args)
 {
-    var mode       = args.Length > 0 ? args[0] : "sydneytrains";
-    var topN       = args.Length > 1 && int.TryParse(args[1], out var n) ? n : 5;
+    var mode = args.Length > 0 ? args[0] : "sydneytrains";
+    var topN = args.Length > 1 && int.TryParse(args[1], out var n) ? n : 5;
     var outputPath = args.Length > 2 ? args[2] : null;
 
     using var host = SpikeRunner.BuildHost();
@@ -114,7 +114,7 @@ internal static partial class SpikeRunner
     {
         // 1. Fetch live data and pick the first N for inspection.
         var vehicles = await client.GetVehiclePositionsAsync(mode, cancellationToken);
-        var sample   = vehicles.Take(topN).ToList();
+        var sample = vehicles.Take(topN).ToList();
 
         // 2. Human-readable summary on stderr so stdout stays pure JSON
         //    (lets `> file.json` redirects produce valid JSON without -- arg).

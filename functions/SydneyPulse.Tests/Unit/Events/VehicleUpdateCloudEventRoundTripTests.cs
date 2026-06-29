@@ -39,18 +39,18 @@ public class VehicleUpdateCloudEventRoundTripTests
     {
         // 1. Arrange — known-good record from the live spike output.
         var original = new VehicleUpdate(
-            VehicleId:        "4020.9909.3191.8154.4042.7685.2060.9836",
-            TripId:           "611H.1287.134.48.T.8.89913364",
-            RouteId:          "ESI_2a",
-            RouteShortName:   "T4",
-            RouteLongName:    "Waterfall to Bondi Junction via City",
-            RouteColor:       "#005AA3",
-            Mode:             "sydneytrains",
-            Latitude:         -33.874778747558594,
-            Longitude:        151.2223358154297,
-            Bearing:          0f,
-            SpeedKmh:         0f,
-            OccupancyStatus:  "Empty",
+            VehicleId: "4020.9909.3191.8154.4042.7685.2060.9836",
+            TripId: "611H.1287.134.48.T.8.89913364",
+            RouteId: "ESI_2a",
+            RouteShortName: "T4",
+            RouteLongName: "Waterfall to Bondi Junction via City",
+            RouteColor: "#005AA3",
+            Mode: "sydneytrains",
+            Latitude: -33.874778747558594,
+            Longitude: 151.2223358154297,
+            Bearing: 0f,
+            SpeedKmh: 0f,
+            OccupancyStatus: "Empty",
             VehicleTimestamp: DateTimeOffset.Parse("2026-06-11T02:55:08+00:00"));
 
         // 2. Act — publish-side: same constructor PollerFunction uses.
@@ -58,7 +58,7 @@ public class VehicleUpdateCloudEventRoundTripTests
         //    JsonObjectSerializer.Default (System.Text.Json with default opts).
         var ce = new CloudEvent(
             source: "/sydney-pulse/poller",
-            type:   "com.sydneypulse.VehicleUpdate.v1",
+            type: "com.sydneypulse.VehicleUpdate.v1",
             jsonSerializableData: original);
 
         // 3. Receive-side: same shape the Worker EG extension uses to
@@ -68,16 +68,16 @@ public class VehicleUpdateCloudEventRoundTripTests
 
         // 4. Assert — every field must survive the round-trip.
         Assert.NotNull(roundTripped);
-        Assert.Equal(original.VehicleId,        roundTripped!.VehicleId);
-        Assert.Equal(original.RouteShortName,   roundTripped.RouteShortName);
-        Assert.Equal(original.TripId,           roundTripped.TripId);
-        Assert.Equal(original.RouteId,          roundTripped.RouteId);
-        Assert.Equal(original.RouteLongName,    roundTripped.RouteLongName);
-        Assert.Equal(original.RouteColor,       roundTripped.RouteColor);
-        Assert.Equal(original.Mode,             roundTripped.Mode);
-        Assert.Equal(original.Latitude,         roundTripped.Latitude);
-        Assert.Equal(original.Longitude,        roundTripped.Longitude);
-        Assert.Equal(original.OccupancyStatus,  roundTripped.OccupancyStatus);
+        Assert.Equal(original.VehicleId, roundTripped!.VehicleId);
+        Assert.Equal(original.RouteShortName, roundTripped.RouteShortName);
+        Assert.Equal(original.TripId, roundTripped.TripId);
+        Assert.Equal(original.RouteId, roundTripped.RouteId);
+        Assert.Equal(original.RouteLongName, roundTripped.RouteLongName);
+        Assert.Equal(original.RouteColor, roundTripped.RouteColor);
+        Assert.Equal(original.Mode, roundTripped.Mode);
+        Assert.Equal(original.Latitude, roundTripped.Latitude);
+        Assert.Equal(original.Longitude, roundTripped.Longitude);
+        Assert.Equal(original.OccupancyStatus, roundTripped.OccupancyStatus);
         Assert.Equal(original.VehicleTimestamp, roundTripped.VehicleTimestamp);
     }
 
@@ -102,7 +102,7 @@ public class VehicleUpdateCloudEventRoundTripTests
         var json = ce.Data!.ToString();
 
         // 3. Assert — PascalCase keys must be present on the wire.
-        Assert.Contains("\"VehicleId\"",      json);
+        Assert.Contains("\"VehicleId\"", json);
         Assert.Contains("\"RouteShortName\"", json);
     }
 }
