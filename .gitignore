@@ -582,3 +582,11 @@ coverage/
 *.bak
 *.orig
 *.rej
+
+# Local working artefacts — single-developer notes / prep files / lock files
+# that should never land in the public portfolio repo.
+.claude/scheduled_tasks.lock
+/.vscode/
+web/.vscode/settings.json
+full-reasoning.txt
+reading-plan.xlsx
