@@ -1,0 +1,108 @@
+# Reusable workflow - .NET lint + .NET build + .NET test + Bicep validation + Bicep What-If Delta (optional).
+# Called by - ci.yml (PR gate) and deploy-dev.yml (pre-deploy gate).
+# When runWhatIf=true, additionally previews the Bicep delta vs live dev azure Resource Group.
+
+# Appears in GitHub Actions UI
+name: dotnet-lint-test
+
+on:
+  # when called by parent workflow file ci.yml OR deploy-dev.yml
+  workflow_call:
+    inputs:
+      # which .NET solution to build
+      solution:
+        description: Path to the .NET solution
+        type: string
+        default: functions/SydneyPulse.sln
+
+      # which Bicep file to validate
+      bicepEntrypoint:
+        description: Bicep entrypoint file
+        type: string
+        default: infra/main.bicep
+
+      # where to find Bicep parameters
+      bicepParams:
+        description: Bicep parameter file (used by what-if only)
+        type: string
+        default: infra/parameters/dev.bicepparam
+
+      # which Azure Resource Group to run what‑if against
+      resourceGroup:
+        description: Resource group for what-if preview
+        type: string
+        default: sydney-pulse-rg-dev
+
+      # whether to run what‑if or not - defaults to false
+      runWhatIf:
+        description: Run Bicep what-if (requires Azure OIDC secrets)
+        type: boolean
+        default: false
+
+    # secrets to use if what‑if is true
+    # They are injected into the workflow at runtime, and read from
+    # GitHub → Settings → Secrets and variables → Actions → Repository secrets
+    secrets:
+      AZURE_CLIENT_ID:
+        required: false
+      AZURE_TENANT_ID:
+        required: false
+      AZURE_SUBSCRIPTION_ID:
+        required: false
+
+# id-token write is required by azure/login (OIDC). contents read covers checkout of .NET solution.
+permissions:
+  # write: allows OIDC token issuance for azure/login may run what‑if and log into Azure
+  id-token: write
+  # read: allows checkout of the repo
+  contents: read
+
+jobs:
+  lint-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # install .NET SDK required to build/test the .NET Solution
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      # Fail fast on whitespace/style before burning the build and before Unit tests run
+      - name: dotnet format --verify-no-changes
+        run: dotnet format ${{ inputs.solution }} --verify-no-changes
+
+      # Restores NuGet packages
+      - name: dotnet restore
+        run: dotnet restore ${{ inputs.solution }}
+
+      # Builds the solution in Release mode
+      - name: dotnet build
+        run: dotnet build ${{ inputs.solution }} --no-restore --configuration Release
+
+      # Runs all Unit Tests
+      - name: dotnet test
+        run: dotnet test ${{ inputs.solution }} --no-build --configuration Release --verbosity normal
+
+      # Validates every Bicep module compiles cleanly before any deployments
+      - name: az bicep build
+        run: az bicep build --file ${{ inputs.bicepEntrypoint }}
+
+      # OIDC login ONLY WHEN what-if = true — keeps PRs from forks (no OIDC) failing-safe.
+      - name: Azure login (OIDC)
+        if: ${{ inputs.runWhatIf }}
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # Runs What-if on Bicep - shows Azure Infra changes and prevents accidental infra destruction
+      - name: Bicep what-if (dev)
+        if: ${{ inputs.runWhatIf }}
+        run: |
+          az deployment group what-if \
+            --resource-group ${{ inputs.resourceGroup }} \
+            --template-file ${{ inputs.bicepEntrypoint }} \
+            --parameters ${{ inputs.bicepParams }}
