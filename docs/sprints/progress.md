@@ -27,7 +27,7 @@ dashboard, tagged `v0.1.0`.
 | SP1-16 | Backend visibility (manual deploy + smoke) — [plan](backend-manual-deploy-plan.md) | ✅     | 2026-06-09  | 2026-06-20  | many on main + PR #8 (`cbe32eb`) |
 | SP1-09 | Angular scaffolding (deeper)      | ✅     | 2026-06-20  | 2026-06-24  | `fcb4466` (PR #9 squash-merged) |
 | SP1-14 | Code review + interview-prep quiz (always-on) | 🔄     | 2026-06-01  | —           | —                   |
-| SP1-12 | GitHub Actions CI/CD              | ⬜     | —           | —           | —                   |
+| SP1-12 | GitHub Actions CI/CD              | ✅     | 2026-06-25  | 2026-06-29  | `6256c39` (PR #10 squash-merged) |
 | SP1-10 | Live dashboard                    | ⬜     | —           | —           | —                   |
 | SP1-11 | Landing page                      | ⬜     | —           | —           | —                   |
 | SP1-13 | Sprint wrap → v0.1.0              | ⬜     | —           | —           | —                   |
@@ -713,7 +713,115 @@ Debug-story / scenario Qs landed:
   conditions). Q3 captured back to `interview-prep.md` SP1-16 section
   with PM-pushback scenario in the question header.
 
-## SP1-09 through SP1-13
+## SP1-12 — GitHub Actions CI/CD ✅
+
+Started 2026-06-25. Closed 2026-06-29. **Shipped via PR #10, squash-merged
+as `6256c39`.** Jira: SP-12. Carried across two sessions: 2026-06-25
+scaffolded + walked 5 of 7 files; 2026-06-29 dropped the walkthrough
+(per new "no dev-time Q&A capture" rule), bootstrapped Azure OIDC,
+opened the PR, debugged 5 distinct gotchas, and shipped.
+
+### What landed
+
+- **`ci.yml`** — PR merge gate. `pull_request` trigger to `main`. Calls
+  `_dotnet-lint-test.yml` with `runWhatIf: true`. No Azure mutations —
+  pure validation.
+- **`deploy-dev.yml`** — full pipeline. Triggers: `push: branches: [main]`
+  (auto-deploy) + `workflow_dispatch` (manual re-run for incident drills).
+  Sequential job graph: `lint-test` → `deploy-infra` → `publish-app` with
+  `needs`-based gating. `concurrency: deploy-dev` group with
+  `cancel-in-progress: false` so stacked pushes serialise instead of
+  killing the running deploy.
+- **3 reusable workflows** at the top of `.github/workflows/` with `_`
+  prefix (forced by the GitHub validator — reusables can't live in a
+  subdirectory; see Debug Story #20):
+  - `_dotnet-lint-test.yml` — format check → restore → build → test → bicep
+    build → optional OIDC login + `bicep what-if`.
+  - `_bicep-deploy.yml` — OIDC `azure/login` → `az deployment group create`.
+  - `_func-publish.yml` — `dotnet publish` → zip → OIDC login → zip-deploy →
+    smoke (Function App state == Running).
+- **OIDC federated identity** to Azure — no client secret stored anywhere.
+  Three federated credentials on `sp-github-actions-dev` app registration
+  (branch=main, pull_request, environment=dev), scoped to
+  `repo:buddhika85/Sydney-Pulse:...`. RBAC: Contributor + User Access
+  Administrator on **both** `sydney-pulse-rg-dev` AND `DevPulseRG` (cross-RG
+  Bicep needs roles on every RG it touches — see Debug Story #22).
+- **Environment protection** on GitHub `dev` environment with
+  deployment-branch rule restricting to `main` only.
+- **Two OIDC bootstrap runbooks** — `docs/runbooks/github-actions-oidc-setup.md`
+  (CLI) and `docs/runbooks/github-actions-oidc-setup-portal.md`
+  (Portal companion). Portal version walked end-to-end this sprint item.
+- **README.md** in `.github/workflows/` — file-layout map, per-workflow
+  description, **OIDC handshake explainer with ASCII diagram** (4 actors,
+  2 tokens), repo-secret list, branch-protection recommendations.
+
+### Pipeline proven end-to-end
+
+First real automated deploy via `workflow_dispatch` from feature branch on
+2026-06-29 (after temporarily widening the dev environment allow-list):
+**5 minutes from dispatch to deployed**. Then the squash-merge to `main`
+auto-fired `deploy-dev.yml` via `push: branches: [main]` — green deploy
+on `6256c39`.
+
+| Job | Time | Result |
+|---|---|---|
+| `lint-test` | 1m 22s | ✅ format + build + test + bicep build + what-if |
+| `deploy-infra` | 2m 17s | ✅ Bicep deploy to `sydney-pulse-rg-dev` + cross-RG topic to `DevPulseRG` |
+| `publish-app` | 1m 17s | ✅ Function App publish + smoke (state=Running) |
+
+### Five debug stories surfaced during the cycle
+
+Full writeups in gitignored `docs/sp1-12-debug-stories.md`:
+
+- **#20 ★** — Reusable workflows can't live in `.github/workflows/reusable/`.
+  GitHub validator rejects nested `uses:` paths; surfaces only at PR-open
+  time, not at commit time.
+- **#21** — `dotnet format` drift accumulated invisibly across 15+ sprint
+  items because no pre-commit hook enforced format. First CI lint pass
+  found 21 files with whitespace violations.
+- **#22 ★** — Cross-RG Bicep needs RBAC on every RG it touches. ADR-0003
+  reuse pattern (DevPulseRG Service Bus namespace) has a hidden CD shadow
+  — every consumer needs explicit RBAC on the reused RG.
+- **#23** — GitHub UI `workflow_dispatch` button only appears after the
+  workflow file exists on the default branch. CLI `gh workflow run` bypasses.
+- **#24 ★** — Environment branch protection blocks pre-merge deploy
+  validation. Two-edged tool — protection you want in steady state
+  actively blocks the testing you need before steady state.
+
+Cross-cutting takeaway: **first run of automated CI/CD against real Azure
+surfaced 5 distinct gotchas across 5 completely different surfaces** (YAML
+validator, code drift, cross-RG RBAC, UI affordance, protection rule) —
+none caught by unit tests, dev-time builds, or the manual deploy recipe.
+That's the case for CI/CD being its own discipline, not a packaging of a
+working manual recipe.
+
+### Non-obvious decisions
+
+- **`_` prefix on reusables** — chosen over a flat name to keep the
+  visual grouping the original `reusable/` subdir was meant to provide.
+  Sorts to the top of the Actions UI alphabetically + marks them as
+  "internal, not directly triggerable."
+- **What-if step always runs on PR (`runWhatIf: true`)** — shows the
+  Bicep delta in the PR's check log so reviewers can see infra changes
+  without leaving GitHub. Skipped on `deploy-dev.yml`'s pre-deploy
+  gate (`runWhatIf: false`) because the what-if already ran on the PR.
+- **OIDC condition on UAA: "Allow user to assign all roles"** — simplest
+  dev-tier choice. Sprint 2 prod hardening will constrain to just the
+  roles `infra/modules/role-assignments.bicep` needs.
+- **Separate prod app registration (Sprint 2)** — not a fourth federated
+  credential on the dev app reg. Blast-radius isolation: a dev-side
+  mistake cannot reach prod.
+
+### Out of scope (deferred)
+
+- **Prod CI/CD** (`deploy-prod.yml`, prod app registration, slot swap step)
+  → Sprint 2. Section "Adding prod" in the OIDC runbook + `.github/workflows/README.md`
+  document the pattern.
+- **Branch protection main rule with `lint-test` required check** → can be
+  added now via Settings → Branches → main, since `lint-test / lint-test`
+  is a stable check name. Pending until Sprint 2 hardening.
+
+## SP1-10 / SP1-11 / SP1-13
 
 Not started. Refer to `sprint-1.md` for scope and per-item description.
 
@@ -831,26 +939,23 @@ When an item is blocked:
 1. Flip to ⚠️ with a note in "Risks / open items" describing the blocker
    and what unblocks it.
 
-## Next session handoff (2026-06-24 — SP1-09 shipped)
+## Next session handoff (2026-06-29 — SP1-12 shipped)
 
-**SP1-09 is done.** PR #9 squash-merged to `main` as `fcb4466` on
-2026-06-24. Local main in sync with origin. See **SP1-09 — Angular
-scaffolding (deeper) ✅** section above for full state.
+**SP1-12 is done.** PR #10 squash-merged to `main` as `6256c39` on
+2026-06-29. Local main in sync with origin. See **SP1-12 — GitHub Actions
+CI/CD ✅** section above for full state.
 
 ### Quick state snapshot
 
-- On `main` at `fcb4466`. Working tree has only a pre-existing untouched
-  `M host.json` (formatting tweak, carried since pre-SP1-16, not in any
-  shipped scope).
+- On `main` at `6256c39`. Working tree clean.
 - Tests: **64 backend passing**, `ng build` clean, bicep build clean.
   Frontend unit tests deferred to SP-21.
-- **Next sprint item: SP1-12 — GitHub Actions CI/CD.** Revised Sprint 1
-  order: SP1-16 ✅ → SP1-09 ✅ → **SP1-12** → SP1-10 → SP1-11 → SP1-13.
-  SP1-12 builds on the manual-deploy recipe captured in
-  `docs/runbooks/manual-deploy-dev.md` from SP1-16.
-- Quiz capture pending from SP1-09: none yet; candidate Qs are the
-  RealtimeService partial-failure design (Promise.all vs allSettled) and
-  the two-hub-vs-one-hub topology decision.
+- **Live CI/CD pipeline.** Every push to `main` auto-deploys the full
+  stack (Bicep + Function App + cross-RG Service Bus topic) to
+  `sydney-pulse-rg-dev` via OIDC federated identity. ~5 minutes
+  end-to-end dispatch → deployed.
+- **Next sprint item: SP1-10 — Live dashboard.** Revised Sprint 1
+  order: SP1-16 ✅ → SP1-09 ✅ → SP1-12 ✅ → **SP1-10** → SP1-11 → SP1-13.
 
 ### Where we are (cumulative since SP1-08)
 
@@ -859,7 +964,7 @@ scaffolding (deeper) ✅** section above for full state.
   → Cosmos + SignalR + HTTP API. `spike-deployed.html` confirms SignalR
   end-to-end.
 - Bicep deployed to `sydney-pulse-rg-dev` — all resources healthy and
-  smoke-verified.
+  smoke-verified. **Now redeployed via CI/CD (SP1-12).**
 - App Insights daily cap: 1 GB/day. Sampling: fixed 5% in `host.json`.
 - Key Vault secrets seeded.
 - Event Grid `state-writer` + `archiver` webhook subscriptions wired
@@ -869,25 +974,31 @@ scaffolding (deeper) ✅** section above for full state.
 - CORS on dev Function App: `http://localhost:5500` (spike-deployed.html)
   + `http://localhost:4200` (Angular `ng serve`, added in SP1-09).
 - `main` branch protection enabled: PR required, force push blocked.
-  CI status checks to be added at SP1-12.
+  `lint-test / lint-test` available as a required check (Sprint 2 hardening).
+- **OIDC federated identity** to Azure: `sp-github-actions-dev` app reg
+  with 3 federated credentials + Contributor + UAA on both
+  `sydney-pulse-rg-dev` and `DevPulseRG`. `dev` environment restricted
+  to `main`-only deploys.
 - `Cosmos__AccountEndpoint` and `ServiceBus__fullyQualifiedNamespace`
   need to be in `local.settings.json` to run Functions locally.
 
 ### Resume sequence (next session)
 
 1. Follow session start protocol per `CLAUDE.md` — read this file,
-   then `sprint-1.md`, then glob `docs/**/*.md`.
-2. `git status` (only `M host.json` expected) + `git log -5 --oneline`
-   to confirm `fcb4466` is HEAD.
-3. **Start SP1-12 — GitHub Actions CI/CD** per `sprint-1.md` row 12.
-   Build on the manual-deploy steps captured in
-   `docs/runbooks/manual-deploy-dev.md`. TDD Phase 1 (Plan): list
-   workflows (lint, test, deploy infra, deploy app) and trigger model
-   (push to main vs `workflow_dispatch`).
-4. Confirm `gh` CLI is on bash PATH (open risk from SP1-01) before
-   starting SP1-12 — needed for `workflow_dispatch` from terminal.
-5. Optional pre-kickoff: short quiz recall on debug stories #15 / #20
-   while still fresh, or capture the SP1-09 RealtimeService design Q.
+   then `sprint-1.md`, then glob `docs/**/*.md`. Also read
+   `C:\BUDDHIKA\2026 July\CLAUDE.md` per the auto-read memory.
+2. `git status` (clean) + `git log -5 --oneline` to confirm `6256c39`
+   is HEAD on `main`.
+3. **Start SP1-10 — Live dashboard** per `sprint-1.md` row 10. Leaflet
+   integration + RxJS streams + SignalR live updates + alerts panel
+   + filters. Per the day-by-day plan at
+   `C:\BUDDHIKA\2026 July\Plan.xlsx`, Sprint days for SP1-10 are
+   Sat 4 / Sun 5 / Mon 6 / Tue 7 Jul (weekend nights + first weekdays
+   of Week 2). 4-day block.
+4. Pre-kickoff: review the Angular shell scaffolded in SP1-09 + the
+   captured HTTP API fixtures at
+   `functions/SydneyPulse.Tests/Fixtures/*-2026-06-17.json` — those
+   drive the Leaflet marker shape.
 
 ### Sprint 1 deferrals (logged to backlog)
 

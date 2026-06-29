@@ -588,5 +588,6 @@ coverage/
 .claude/scheduled_tasks.lock
 /.vscode/
 web/.vscode/settings.json
+.github/workflows/.vscode/
 full-reasoning.txt
 reading-plan.xlsx
