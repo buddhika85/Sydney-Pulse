@@ -33,7 +33,7 @@ permissions:
 jobs:
   # Re-run the same gate the PR ran, against the merge commit. what-if=false (already ran on PR).
   lint-test:
-    uses: ./.github/workflows/reusable/dotnet-lint-test.yml
+    uses: ./.github/workflows/_dotnet-lint-test.yml
     with:
       # no Bicep what-if here (it already ran on the PR CI.yml).
       runWhatIf: false
@@ -43,7 +43,7 @@ jobs:
   deploy-infra:
     # runs only after lint-test succeeds (lint+test gate).
     needs: lint-test
-    uses: ./.github/workflows/reusable/bicep-deploy.yml
+    uses: ./.github/workflows/_bicep-deploy.yml
     with:
       environment: dev
       resourceGroup: sydney-pulse-rg-dev
@@ -53,7 +53,7 @@ jobs:
   publish-app:
     # runs only after infra deploy succeeds.
     needs: deploy-infra
-    uses: ./.github/workflows/reusable/func-publish.yml
+    uses: ./.github/workflows/_func-publish.yml
     with:
       environment: dev
       functionAppName: sydney-pulse-func-dev

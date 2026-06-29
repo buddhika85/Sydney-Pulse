@@ -7,21 +7,25 @@ CI/CD for Sydney Pulse — automated by SP1-12, replaces the manual
 
 ```
 .github/workflows/
-├── ci.yml              # PR trigger — lint + test + bicep what-if
-├── deploy-dev.yml      # push-to-main + dispatch — full deploy pipeline
-├── README.md           # this file
-└── reusable/
-    ├── dotnet-lint-test.yml   # format check + build + test + bicep validation
-    ├── bicep-deploy.yml       # OIDC login + az deployment group create
-    └── func-publish.yml       # build, zip, az zip-deploy + smoke check
+├── ci.yml                    # PR trigger — lint + test + bicep what-if
+├── deploy-dev.yml            # push-to-main + dispatch — full deploy pipeline
+├── README.md                 # this file
+├── _dotnet-lint-test.yml     # reusable: format check + build + test + bicep validation
+├── _bicep-deploy.yml         # reusable: OIDC login + az deployment group create
+└── _func-publish.yml         # reusable: build, zip, az zip-deploy + smoke check
 ```
+
+> **Why the `_` prefix?** GitHub Actions requires reusable workflows to live
+> directly in `.github/workflows/` — they can't be nested in a subdirectory.
+> The leading underscore sorts them at the top of the Actions UI and marks
+> them visually as "internal, not directly triggerable."
 
 ## What each file does
 
 ### `ci.yml` — PR merge gate
 
 - **Trigger:** `pull_request` to `main`
-- **Calls:** `reusable/dotnet-lint-test.yml` with `runWhatIf=true`
+- **Calls:** `_dotnet-lint-test.yml` with `runWhatIf=true`
 - **Purpose:** never merge a red build; surface infra drift in PR review
 - **Checks:** dotnet format, build, test, bicep build, bicep what-if
 - **Mutations:** none — pure validation
@@ -33,21 +37,21 @@ CI/CD for Sydney Pulse — automated by SP1-12, replaces the manual
 - **Jobs (sequential):** `lint-test` → `deploy-infra` → `publish-app`
 - **Purpose:** every merge to `main` deploys to `sydney-pulse-rg-dev`
 
-### `reusable/dotnet-lint-test.yml`
+### `_dotnet-lint-test.yml`
 
 - `workflow_call` — invoked by `ci.yml` + `deploy-dev.yml`
 - **Steps:** `dotnet format --verify-no-changes` → restore → build → test → `az bicep build`
 - **Optional:** when `runWhatIf=true`, adds OIDC login + `az deployment group what-if`
 - **Mutations:** none (Bicep what-if is read-only)
 
-### `reusable/bicep-deploy.yml`
+### `_bicep-deploy.yml`
 
 - `workflow_call` — invoked by `deploy-dev.yml` (and future `deploy-prod.yml`)
 - **Inputs:** `environment`, `resourceGroup`, `bicepParams`, `bicepEntrypoint`
 - **Steps:** OIDC `azure/login` → `az deployment group create`
 - **Idempotent** — Bicep is declarative, re-running is a no-op
 
-### `reusable/func-publish.yml`
+### `_func-publish.yml`
 
 - `workflow_call` — invoked by `deploy-dev.yml`
 - **Inputs:** `environment`, `functionAppName`, `resourceGroup`, `functionsProject`
@@ -121,7 +125,7 @@ credential** that says:
 
 > "Trust GitHub's OIDC tokens whose `iss` is
 > `token.actions.githubusercontent.com` AND `sub` is
-> `repo:gsoft85512/Sydney-Pulse:environment:dev`."
+> `repo:buddhika85/Sydney-Pulse:environment:dev`."
 
 Three federated credentials are added — one per trigger pattern
 (branch push, pull request, environment dispatch). Each scoping is

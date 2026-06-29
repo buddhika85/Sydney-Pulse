@@ -30,14 +30,14 @@ az ad sp create --id <appId>
 
 Three federated credentials, one per trigger pattern.
 
-**Replace `gsoft85512/Sydney-Pulse` with the actual repo path if different.**
+**Replace `buddhika85/Sydney-Pulse` with the actual repo path if different.**
 
 ```powershell
 # Push to main → deploy-dev.yml
 az ad app federated-credential create --id <appId> --parameters '{
   "name": "sp-github-main-push",
   "issuer": "https://token.actions.githubusercontent.com",
-  "subject": "repo:gsoft85512/Sydney-Pulse:ref:refs/heads/main",
+  "subject": "repo:buddhika85/Sydney-Pulse:ref:refs/heads/main",
   "audiences": ["api://AzureADTokenExchange"]
 }'
 
@@ -45,7 +45,7 @@ az ad app federated-credential create --id <appId> --parameters '{
 az ad app federated-credential create --id <appId> --parameters '{
   "name": "sp-github-pull-request",
   "issuer": "https://token.actions.githubusercontent.com",
-  "subject": "repo:gsoft85512/Sydney-Pulse:pull_request",
+  "subject": "repo:buddhika85/Sydney-Pulse:pull_request",
   "audiences": ["api://AzureADTokenExchange"]
 }'
 
@@ -53,7 +53,7 @@ az ad app federated-credential create --id <appId> --parameters '{
 az ad app federated-credential create --id <appId> --parameters '{
   "name": "sp-github-environment-dev",
   "issuer": "https://token.actions.githubusercontent.com",
-  "subject": "repo:gsoft85512/Sydney-Pulse:environment:dev",
+  "subject": "repo:buddhika85/Sydney-Pulse:environment:dev",
   "audiences": ["api://AzureADTokenExchange"]
 }'
 ```
@@ -122,7 +122,7 @@ az role assignment list --assignee <appId> `
 gh secret list
 
 # Environment exists
-gh api repos/gsoft85512/Sydney-Pulse/environments/dev --jq '.name'
+gh api repos/buddhika85/Sydney-Pulse/environments/dev --jq '.name'
 ```
 
 ## Failure modes
@@ -139,7 +139,7 @@ gh api repos/gsoft85512/Sydney-Pulse/environments/dev --jq '.name'
 Repeat steps 1–5 with:
 
 - App reg name `sp-github-actions-prod`
-- Federated subject `repo:gsoft85512/Sydney-Pulse:environment:prod`
+- Federated subject `repo:buddhika85/Sydney-Pulse:environment:prod`
 - RBAC scope `sydney-pulse-rg-prod`
 - Separate `AZURE_CLIENT_ID_PROD` repo secret (or use GitHub environment secrets scoped to `prod`)
 - GitHub environment `prod` with required reviewer

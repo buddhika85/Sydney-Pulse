@@ -20,7 +20,7 @@ federation. Required before the SP1-12 CI/CD workflows can deploy.
 - You can sign in to the Azure Portal as a user with `Owner` or
   `User Access Administrator` on `sydney-pulse-rg-dev` (needed to assign
   roles to the new service principal).
-- You can sign in to GitHub as a repo admin on `gsoft85512/Sydney-Pulse`
+- You can sign in to GitHub as a repo admin on `buddhika85/Sydney-Pulse`
   (needed to add repo secrets + create environments).
 - You know the tenant ID and subscription ID — both are visible in the
   Portal once signed in.
@@ -64,7 +64,7 @@ Repeat the form three times — one per trigger pattern. Common fields for
 all three:
 
 - **Federated credential scenario:** `GitHub Actions deploying Azure resources`
-- **Organization:** `gsoft85512`
+- **Organization:** `buddhika85`
 - **Repository:** `Sydney-Pulse`
 - **Audience:** `api://AzureADTokenExchange` (pre-filled, leave as-is)
 
@@ -79,9 +79,9 @@ Per-entry fields:
 > **Tip:** The Portal previews the generated `subject` claim near the
 > bottom of the form before you click **Add**. It should match:
 >
-> - 2a → `repo:gsoft85512/Sydney-Pulse:ref:refs/heads/main`
-> - 2b → `repo:gsoft85512/Sydney-Pulse:pull_request`
-> - 2c → `repo:gsoft85512/Sydney-Pulse:environment:dev`
+> - 2a → `repo:buddhika85/Sydney-Pulse:ref:refs/heads/main`
+> - 2b → `repo:buddhika85/Sydney-Pulse:pull_request`
+> - 2c → `repo:buddhika85/Sydney-Pulse:environment:dev`
 >
 > If the subject doesn't match exactly, the GitHub-Actions → Azure-AD
 > handshake fails at runtime with `AADSTS70021`. Verify the preview

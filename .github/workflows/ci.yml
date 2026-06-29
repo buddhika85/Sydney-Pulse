@@ -19,7 +19,7 @@ permissions:
 jobs:
   # call dotnet-lint-test.yml
   lint-test:
-    uses: ./.github/workflows/reusable/dotnet-lint-test.yml
+    uses: ./.github/workflows/_dotnet-lint-test.yml
 
     # what-if = true infra changes are visible during PR review
     with:
