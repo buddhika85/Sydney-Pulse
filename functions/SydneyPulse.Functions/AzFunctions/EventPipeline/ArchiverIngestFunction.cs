@@ -86,8 +86,8 @@ public class ArchiverIngestFunction(
 
         return new ArchiveEvent(
             // Id fields
-            EventId: cloudEvent.Id, 
-            EventType: cloudEvent.Type, 
+            EventId: cloudEvent.Id,
+            EventType: cloudEvent.Type,
             EventVersion: ExtractVersion(cloudEvent.Type),
 
             // Timestamp fields
@@ -100,15 +100,15 @@ public class ArchiverIngestFunction(
 
             // Vehicle fields            
             VehicleId: vehicleUpdateEvent.VehicleId,
-            TripId: vehicleUpdateEvent.TripId, 
+            TripId: vehicleUpdateEvent.TripId,
             RouteId: vehicleUpdateEvent.RouteId,
-            RouteLongName: vehicleUpdateEvent.RouteLongName, 
-            RouteColor: vehicleUpdateEvent.RouteColor, 
-            Mode: vehicleUpdateEvent.Mode, 
-            Latitude: vehicleUpdateEvent.Latitude, 
-            Longitude: vehicleUpdateEvent.Longitude, 
-            Bearing: vehicleUpdateEvent.Bearing, 
-            SpeedKmh: vehicleUpdateEvent.SpeedKmh, 
+            RouteLongName: vehicleUpdateEvent.RouteLongName,
+            RouteColor: vehicleUpdateEvent.RouteColor,
+            Mode: vehicleUpdateEvent.Mode,
+            Latitude: vehicleUpdateEvent.Latitude,
+            Longitude: vehicleUpdateEvent.Longitude,
+            Bearing: vehicleUpdateEvent.Bearing,
+            SpeedKmh: vehicleUpdateEvent.SpeedKmh,
             OccupancyStatus: vehicleUpdateEvent.OccupancyStatus,
 
             // ServiceAlert fields null for vehicle updates
@@ -120,7 +120,7 @@ public class ArchiverIngestFunction(
             EndsAt: null);
     }
 
-    
+
 
     private static ArchiveEvent MapServiceAlert(CloudEvent cloudEvent, DateTimeOffset archivedAt, JsonSerializerOptions jsonOptions)
     {
@@ -166,7 +166,7 @@ public class ArchiverIngestFunction(
     // A helper to extract version from event type string
     // example eventType "com.sydneypulse.VehicleUpdate.v1" → returns "v1"
     private static string ExtractVersion(string eventType) =>
-     eventType[(eventType.LastIndexOf('.') + 1)..];   
+     eventType[(eventType.LastIndexOf('.') + 1)..];
 
     // AppendToPendingAsync: writes one JSONL line to the partition's pending blob.
     // Blob path: {pendingContainer}/{HivePartitionPath.ForHour(SourceTimestamp)}/events.jsonl
@@ -187,7 +187,7 @@ public class ArchiverIngestFunction(
 
         // CreateIfNotExistsAsync is idempotent and concurrency-safe;
         // only the first call for a given blob creates it, subsequent calls are no-ops.
-        await blob.CreateIfNotExistsAsync(options:null, cancellationToken);
+        await blob.CreateIfNotExistsAsync(options: null, cancellationToken);
 
         // JSONL = one JSON object per line. Newline terminator matters for downstream readers.
         var jsonLine = JsonSerializer.Serialize(archiveEvent) + "\n";

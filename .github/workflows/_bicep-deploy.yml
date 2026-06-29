@@ -1,0 +1,80 @@
+# Reusable workflow: Bicep deploy to a named environment (Prod or Dev).
+# Mutates Azure Infra.
+# Currently Called by deploy-dev.yml.
+# Future deploy-prod.yml (SPRINT 2) reuses with prod inputs.
+
+name: bicep-deploy
+
+on:
+  # when called by parent workflow file  deploy-dev.yml OR deploy-prod.yml
+  workflow_call:
+    inputs:
+      # This maps to a GitHub Environment (e.g. dev, prod)
+      # environment dictates - which federated credential to use, different protection rules.
+      environment:
+        description: GitHub environment name (gates the federated credential subject)
+        type: string
+        required: true
+
+      # Azure Resource Group where the Bicep deployment will be applied
+      resourceGroup:
+        description: Target resource group
+        type: string
+        required: true
+
+      # first bicep file to run for infra changes
+      bicepEntrypoint:
+        description: Bicep entrypoint file
+        type: string
+        default: infra/main.bicep
+
+      # bicep parameters
+      bicepParams:
+        description: Bicep parameter file (.bicepparam)
+        type: string
+        required: true
+
+    # secrets to use if what‑if is true
+    # They are injected into the workflow at runtime, and read from
+    # GitHub → Settings → Secrets and variables → Actions → Repository secrets
+    secrets:
+      AZURE_CLIENT_ID:
+        # This workflow always logs into Azure and always mutates infra.
+        # so secrets are mandatory
+        required: true
+      AZURE_TENANT_ID:
+        required: true
+      AZURE_SUBSCRIPTION_ID:
+        required: true
+
+permissions:
+  # write: allows OIDC token issuance for azure/login may run what‑if and log into Azure
+  id-token: write
+  # read: allows checkout of the repo
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # GitHub environment gates federated credential subject claim + optional approvals for that env.
+    environment: ${{ inputs.environment }}
+    steps:
+      # Step 1: Check out the repo so the runner has access to infra/main.bicep, params, etc.
+      - uses: actions/checkout@v4
+
+      # Step 2: Log into Azure using OIDC. - Open ID Connect
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # Step 3: Perform the actual Bicep deployment.
+      # Bicep is declarative — re-running with the same params is a idempotent.
+      - name: az deployment group create
+        run: |
+          az deployment group create \
+            --resource-group ${{ inputs.resourceGroup }} \
+            --template-file ${{ inputs.bicepEntrypoint }} \
+            --parameters ${{ inputs.bicepParams }}

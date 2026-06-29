@@ -35,7 +35,7 @@ public class TfNswFeedClientTests
         factory.Setup(f => f.CreateClient("TfNsw")).Returns(httpClient);
         var options = Options.Create(new TfNswOptions
         {
-            ApiKey  = "test-key",
+            ApiKey = "test-key",
             BaseUrl = "https://api.transport.nsw.gov.au"
         });
         return new TfNswFeedClient(factory.Object, options, NullLogger<TfNswFeedClient>.Instance);
@@ -89,7 +89,7 @@ public class TfNswFeedClientTests
         // Arrange
         const ulong ts = 1_748_000_000UL;
         var feedBytes = BuildVehicleFeed("v001", "NTH_1a", -33.8f, 151.2f, ts);
-        var zipBytes  = BuildRoutesZip(
+        var zipBytes = BuildRoutesZip(
             "route_id,route_short_name,route_long_name,route_color\n" +
             "NTH_1a,T1,North Shore Line,F99D1C\n");
 
@@ -106,11 +106,11 @@ public class TfNswFeedClientTests
         // Assert
         Assert.Single(positions);
         var pos = positions[0];
-        Assert.Equal("v001",   pos.VehicleId);
+        Assert.Equal("v001", pos.VehicleId);
         Assert.Equal("NTH_1a", pos.RouteId);
-        Assert.Equal("T1",     pos.RouteShortName);
+        Assert.Equal("T1", pos.RouteShortName);
         Assert.Equal("#F99D1C", pos.RouteColor);
-        Assert.Equal(-33.8f, (float)pos.Latitude,  precision: 1);
+        Assert.Equal(-33.8f, (float)pos.Latitude, precision: 1);
         Assert.Equal(151.2f, (float)pos.Longitude, precision: 1);
         Assert.Equal(DateTimeOffset.FromUnixTimeSeconds((long)ts), pos.VehicleTimestamp);
     }
@@ -159,10 +159,10 @@ public class TfNswFeedClientTests
         // Assert
         Assert.True(routes.ContainsKey("NTH_1a"));
         var route = routes["NTH_1a"];
-        Assert.Equal("T1",                          route.ShortName);
-        Assert.Equal("North Shore & Western Line",  route.LongName);
-        Assert.Equal("#F99D1C",                     route.Color);
-        Assert.Equal("sydneytrains",                route.Mode);
+        Assert.Equal("T1", route.ShortName);
+        Assert.Equal("North Shore & Western Line", route.LongName);
+        Assert.Equal("#F99D1C", route.Color);
+        Assert.Equal("sydneytrains", route.Mode);
     }
 
     // ── GetServiceAlertsAsync — RouteShortName lookup (SP1-16 follow-up) ──────
@@ -180,7 +180,7 @@ public class TfNswFeedClientTests
     {
         var alert = new Alert
         {
-            Effect     = Alert.Types.Effect.ModifiedService,
+            Effect = Alert.Types.Effect.ModifiedService,
             HeaderText = new TranslatedString
             {
                 Translation =
@@ -209,7 +209,7 @@ public class TfNswFeedClientTests
     {
         // Arrange — alert references NTH_1a, routes.txt maps NTH_1a → T1.
         var alertBytes = BuildAlertFeed("alert-1", ["NTH_1a"], "Some delays on T1");
-        var zipBytes   = BuildRoutesZip(
+        var zipBytes = BuildRoutesZip(
             "route_id,route_short_name,route_long_name,route_color\n" +
             "NTH_1a,T1,North Shore Line,F99D1C\n");
 
@@ -237,7 +237,7 @@ public class TfNswFeedClientTests
         // in real DLQ data) that isn't present in routes.txt. The mapper should
         // fall back to the raw route_id rather than emit an empty short name.
         var alertBytes = BuildAlertFeed("alert-2", ["4T.T.SCO"], "Buses replace trains");
-        var zipBytes   = BuildRoutesZip(
+        var zipBytes = BuildRoutesZip(
             "route_id,route_short_name,route_long_name,route_color\n" +
             "NTH_1a,T1,North Shore Line,F99D1C\n");
 
@@ -263,7 +263,7 @@ public class TfNswFeedClientTests
         // Arrange — alert with zero InformedEntity entries (general notices).
         // Mapper must not throw; should emit empty RouteShortName.
         var alertBytes = BuildAlertFeed("alert-3", [], "Network-wide notice");
-        var zipBytes   = BuildRoutesZip(
+        var zipBytes = BuildRoutesZip(
             "route_id,route_short_name,route_long_name,route_color\n" +
             "NTH_1a,T1,North Shore Line,F99D1C\n");
 

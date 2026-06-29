@@ -45,11 +45,11 @@ public class RoutesFunction(
         // API contract uses qualified names (routeShortName, routeLongName, routeColor).
         var projected = allRoutes.Select(r => new
         {
-            routeId        = r.RouteId,
+            routeId = r.RouteId,
             routeShortName = r.ShortName,
-            routeLongName  = r.LongName,
-            routeColor     = r.Color,
-            mode           = r.Mode,
+            routeLongName = r.LongName,
+            routeColor = r.Color,
+            mode = r.Mode,
         });
 
         logger.LogInformation("Routes query returned {Count} routes across {Modes} modes",

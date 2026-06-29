@@ -44,9 +44,9 @@ internal static partial class SpikeRunner
             return 1;
         }
 
-        var topic        = args[0];
+        var topic = args[0];
         var subscription = args[1];
-        var outputCsv    = args[2];
+        var outputCsv = args[2];
 
         // 1. SB client. Prefer a connection string when set (fast local path,
         //    bypasses RBAC); otherwise fall back to az-login identity. Either

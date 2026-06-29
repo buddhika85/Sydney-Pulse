@@ -1,0 +1,61 @@
+# Full pipeline to sydney-pulse-rg-dev: lint+test → bicep deploy → function app publish → smoke.
+# Triggers: push to main (auto-deploy) + workflow_dispatch (manual re-run for incident drills).
+
+name: deploy-dev
+
+on:
+  # Trigger 1: runs whenever code is pushed to the main branch (auto-deploy to dev).
+  push:
+    branches: [main]
+  # Trigger 2: manual run via the GitHub Actions UI.
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        type: choice
+        options: [dev] # select from options (as of now only dev, later prod)
+        default: dev
+
+# Serialize deploys — cancel-in-progress=false so a stacked push waits, doesn't kill the running deploy.
+concurrency:
+  group: deploy-dev
+  # if multiple pushes happen,
+  # later runs wait instead of cancelling the current deploy.
+  # Prevents overlapping deploys to dev.
+  cancel-in-progress: false
+
+permissions:
+  # write: allows OIDC token issuance for azure/login may run what‑if and log into Azure
+  id-token: write
+  # read: allows checkout of the repo
+  contents: read
+
+jobs:
+  # Re-run the same gate the PR ran, against the merge commit. what-if=false (already ran on PR).
+  lint-test:
+    uses: ./.github/workflows/_dotnet-lint-test.yml
+    with:
+      # no Bicep what-if here (it already ran on the PR CI.yml).
+      runWhatIf: false
+    #  passes caller secrets into the reusable workflow.
+    secrets: inherit
+
+  deploy-infra:
+    # runs only after lint-test succeeds (lint+test gate).
+    needs: lint-test
+    uses: ./.github/workflows/_bicep-deploy.yml
+    with:
+      environment: dev
+      resourceGroup: sydney-pulse-rg-dev
+      bicepParams: infra/parameters/dev.bicepparam
+    secrets: inherit
+
+  publish-app:
+    # runs only after infra deploy succeeds.
+    needs: deploy-infra
+    uses: ./.github/workflows/_func-publish.yml
+    with:
+      environment: dev
+      functionAppName: sydney-pulse-func-dev
+      resourceGroup: sydney-pulse-rg-dev
+    secrets: inherit

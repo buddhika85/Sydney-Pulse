@@ -196,7 +196,7 @@ public class StateWriterFunctionTests
         // Arrange — CloudEvent with a wrong type.
         var cloudEvent = new CloudEvent(
             source: "/sydney-pulse/poller",
-            type:   "com.sydneypulse.UnknownEvent.v1",
+            type: "com.sydneypulse.UnknownEvent.v1",
             jsonSerializableData: MakeUpdate());
         var fn = new StateWriterFunction(_cosmosClientMock.Object, NullLogger<StateWriterFunction>.Instance);
 
@@ -223,7 +223,7 @@ public class StateWriterFunctionTests
         // Arrange — null jsonSerializableData → CloudEvent.Data is null.
         var cloudEvent = new CloudEvent(
             source: "/sydney-pulse/poller",
-            type:   FunctionConstants.VehicleUpdateEventType,
+            type: FunctionConstants.VehicleUpdateEventType,
             jsonSerializableData: null);
         var fn = new StateWriterFunction(_cosmosClientMock.Object, NullLogger<StateWriterFunction>.Instance);
 
@@ -250,23 +250,23 @@ public class StateWriterFunctionTests
     {
         // Arrange — inline construction since MakeUpdate hardcodes a valid VehicleId.
         var update = new VehicleUpdate(
-            VehicleId:        "",                                  // edge case
-            TripId:           "TRIP-1",
-            RouteId:          "NTH_1a",
-            RouteShortName:   "T1",
-            RouteLongName:    "T1 North Shore Line",
-            RouteColor:       "#F99D1C",
-            Mode:             "sydneytrains",
-            Latitude:         -33.8688,
-            Longitude:        151.2093,
-            Bearing:          90f,
-            SpeedKmh:         60f,
-            OccupancyStatus:  null,
+            VehicleId: "",                                  // edge case
+            TripId: "TRIP-1",
+            RouteId: "NTH_1a",
+            RouteShortName: "T1",
+            RouteLongName: "T1 North Shore Line",
+            RouteColor: "#F99D1C",
+            Mode: "sydneytrains",
+            Latitude: -33.8688,
+            Longitude: 151.2093,
+            Bearing: 90f,
+            SpeedKmh: 60f,
+            OccupancyStatus: null,
             VehicleTimestamp: DateTimeOffset.UtcNow);
 
         var cloudEvent = new CloudEvent(
             source: "/sydney-pulse/poller",
-            type:   FunctionConstants.VehicleUpdateEventType,
+            type: FunctionConstants.VehicleUpdateEventType,
             jsonSerializableData: update);
         var fn = new StateWriterFunction(_cosmosClientMock.Object, NullLogger<StateWriterFunction>.Instance);
 
@@ -293,23 +293,23 @@ public class StateWriterFunctionTests
     {
         // Arrange — inline construction, mimics out-of-service rolling stock.
         var update = new VehicleUpdate(
-            VehicleId:        "VH-001",
-            TripId:           "TRIP-1",
-            RouteId:          "RTTA_DEF",
-            RouteShortName:   "",                                  // edge case
-            RouteLongName:    "Out Of Service",
-            RouteColor:       "#888888",
-            Mode:             "sydneytrains",
-            Latitude:         -33.8688,
-            Longitude:        151.2093,
-            Bearing:          90f,
-            SpeedKmh:         60f,
-            OccupancyStatus:  null,
+            VehicleId: "VH-001",
+            TripId: "TRIP-1",
+            RouteId: "RTTA_DEF",
+            RouteShortName: "",                                  // edge case
+            RouteLongName: "Out Of Service",
+            RouteColor: "#888888",
+            Mode: "sydneytrains",
+            Latitude: -33.8688,
+            Longitude: 151.2093,
+            Bearing: 90f,
+            SpeedKmh: 60f,
+            OccupancyStatus: null,
             VehicleTimestamp: DateTimeOffset.UtcNow);
 
         var cloudEvent = new CloudEvent(
             source: "/sydney-pulse/poller",
-            type:   FunctionConstants.VehicleUpdateEventType,
+            type: FunctionConstants.VehicleUpdateEventType,
             jsonSerializableData: update);
         var fn = new StateWriterFunction(_cosmosClientMock.Object, NullLogger<StateWriterFunction>.Instance);
 

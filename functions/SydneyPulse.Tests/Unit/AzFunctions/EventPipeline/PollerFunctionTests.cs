@@ -20,8 +20,8 @@ public class PollerFunctionTests
 {
     // Mirror the constants from PollerFunction — tests break if the type strings drift.
     private const string VehicleUpdateType = "com.sydneypulse.VehicleUpdate.v1";
-    private const string ServiceAlertType  = "com.sydneypulse.ServiceAlert.v1";
-    private const string EventSource       = "/sydney-pulse/poller";
+    private const string ServiceAlertType = "com.sydneypulse.ServiceAlert.v1";
+    private const string EventSource = "/sydney-pulse/poller";
 
     private static PollerFunction CreateFunction(
         Mock<ITfNswFeedClient> feedMock,
@@ -48,7 +48,7 @@ public class PollerFunctionTests
     {
         // Arrange
         var feedMock = new Mock<ITfNswFeedClient>();
-        var egMock   = new Mock<EventGridPublisherClient>();
+        var egMock = new Mock<EventGridPublisherClient>();
 
         feedMock.Setup(f => f.GetVehiclePositionsAsync("sydneytrains", It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new List<VehicleUpdate> { MakeVehicle("v001"), MakeVehicle("v002") });
@@ -76,7 +76,7 @@ public class PollerFunctionTests
     {
         // Arrange: both feeds return empty — nothing to publish
         var feedMock = new Mock<ITfNswFeedClient>();
-        var egMock   = new Mock<EventGridPublisherClient>();
+        var egMock = new Mock<EventGridPublisherClient>();
 
         feedMock.Setup(f => f.GetVehiclePositionsAsync("sydneytrains", It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new List<VehicleUpdate>());
@@ -99,7 +99,7 @@ public class PollerFunctionTests
     {
         // Arrange
         var feedMock = new Mock<ITfNswFeedClient>();
-        var egMock   = new Mock<EventGridPublisherClient>();
+        var egMock = new Mock<EventGridPublisherClient>();
 
         feedMock.Setup(f => f.GetVehiclePositionsAsync("sydneytrains", It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new List<VehicleUpdate>());
@@ -118,7 +118,7 @@ public class PollerFunctionTests
         egMock.Verify(e => e.SendEventsAsync(
             It.Is<IEnumerable<CloudEvent>>(evts =>
                 evts.Count() == 1 &&
-                evts.Single().Type   == ServiceAlertType &&
+                evts.Single().Type == ServiceAlertType &&
                 evts.Single().Source == EventSource),
             It.IsAny<CancellationToken>()), Times.Once);
     }

@@ -29,15 +29,15 @@ public class AlertsFunctionTests
 
     private static AlertDocument MakeAlert(string alertId = "ALERT-001") => new()
     {
-        Id              = alertId,
-        AlertId         = alertId,
-        RouteShortName  = "T1",
-        Severity        = "delay",
-        HeaderText      = "T1 Western Line delays",
+        Id = alertId,
+        AlertId = alertId,
+        RouteShortName = "T1",
+        Severity = "delay",
+        HeaderText = "T1 Western Line delays",
         DescriptionText = "8 min delays due to signal fault",
-        StartsAt        = DateTimeOffset.UtcNow.AddMinutes(-30),
-        EndsAt          = null,
-        ReceivedAt      = DateTimeOffset.UtcNow,
+        StartsAt = DateTimeOffset.UtcNow.AddMinutes(-30),
+        EndsAt = null,
+        ReceivedAt = DateTimeOffset.UtcNow,
     };
 
     // Wires the container mock to return a single-page iterator with the given docs.

@@ -1,0 +1,106 @@
+# Reusable workflow: publish the .NET 8 isolated-worker Function App to Azure.
+# Build → zip → deploy via az CLI (no Functions Core Tools needed on the runner)
+# → smoke check that the host came back up.
+
+name: func-publish
+
+# This workflow cannot run by itself.
+# only runs when another workflow calls it.
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: GitHub environment (gates OIDC subject + optional approvals)
+        type: string
+        required: true
+      functionAppName:
+        description: Target Function App name
+        type: string
+        required: true
+      resourceGroup:
+        description: Resource group containing the Function App
+        type: string
+        required: true
+      functionsProject:
+        description: Path to the Functions host project (csproj folder)
+        type: string
+        default: functions/SydneyPulse.Functions
+    # All three Azure OIDC secrets are required
+    # because this workflow always logs into Azure and deploys.
+    secrets:
+      AZURE_CLIENT_ID:
+        required: true
+      AZURE_TENANT_ID:
+        required: true
+      AZURE_SUBSCRIPTION_ID:
+        required: true
+
+permissions:
+  # write: allows OIDC token issuance for azure login to deploy function app
+  id-token: write
+  # read: allows checkout of the repo
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    # GitHub environment gates federated credential subject claim + optional approvals for that env.
+    environment: ${{ inputs.environment }}
+
+    steps:
+      # 1: Pulls code repo into the runner
+      - uses: actions/checkout@v4
+
+      # 2. Install .NET 8
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      # 3. Publish the Function App. ./publish-output folder contains deployable
+      # DLLs, host.json, function.json files, dependencies
+      # Clean output folder — avoids any stale binaries between runs on the same runner.
+      - name: dotnet publish
+        run: |
+          dotnet publish ${{ inputs.functionsProject }} \
+            --configuration Release \
+            --output ./publish-output
+
+      # 4. Zip the publish output
+      # Functions zip-deploy expects the contents of the publish folder at the zip root.
+      - name: Zip publish output
+        run: |
+          cd publish-output
+          zip -r ../function-app.zip .
+
+      # 5. Azure login (OIDC)
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # 6. Deploy the zip - Uploads the zip, Extracts it, Restarts the Function App host.
+      # Equivalent to `func azure functionapp publish` but driven by az CLI only.
+      - name: az functionapp zip-deploy
+        run: |
+          az functionapp deployment source config-zip \
+            --resource-group ${{ inputs.resourceGroup }} \
+            --name ${{ inputs.functionAppName }} \
+            --src function-app.zip
+
+      # 7. Smoke test
+      # checks the Function App’s state after deployment. Expected state: == Running
+      # Health gate — fails the workflow if the host didn't come back to Running.
+      - name: Smoke check (functionapp state)
+        run: |
+          STATE=$(az functionapp show \
+            --resource-group ${{ inputs.resourceGroup }} \
+            --name ${{ inputs.functionAppName }} \
+            --query state -o tsv)
+          echo "Function app state: $STATE"
+          if [ "$STATE" != "Running" ]; then
+            echo "::error::Function App is not Running after deploy"
+            exit 1
+          fi

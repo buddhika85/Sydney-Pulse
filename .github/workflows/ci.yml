@@ -1,0 +1,29 @@
+# CI workflow: runs on PRs to main (From Repo Feature Branch or Open Source Merge).
+# Does: Lint + test + Bicep what-if. No Azure mutations.
+# This Job is the PR merge gate.
+# So every PR into main must pass this CI before merge.
+# Doesn't fire on push to main branch — that's deploy-dev.yml's job
+
+name: ci
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  # write: allows OIDC token issuance for azure/login may run what‑if and log into Azure
+  id-token: write
+  # read: allows checkout of the repo
+  contents: read
+
+jobs:
+  # call dotnet-lint-test.yml
+  lint-test:
+    uses: ./.github/workflows/_dotnet-lint-test.yml
+
+    # what-if = true infra changes are visible during PR review
+    with:
+      runWhatIf: true
+
+    # pass all the Repo secrets to dotnet-lint-test.yml
+    secrets: inherit
