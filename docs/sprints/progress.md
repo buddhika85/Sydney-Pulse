@@ -859,8 +859,7 @@ expansion is its own sprint per `docs/sprints/sprint-bus-expansion.md`.
   the demo question of "where are the buses" before it gets asked)
 - Alerts panel as presentational right-rail (≥ 1024 px) / stacked below
   (mobile); shared filter via the `selectedRoute` signal
-- Stale-data freshness badge driven by `feedTimestamp` from the
-  `VehiclesResponse` envelope (SP1-09 decision A precedent)
+- Stale-data freshness badge driven by `latestEventTimestamp = max(feedTimestamp, observed SignalR vehicleUpdated.timestamp values)`; 60-second binary threshold; 5-second re-evaluation interval (SP1-09 decision A precedent + 2026-07-01 SP1-10 Phase 2 prep lock)
 - Zoom-on-alert-click deferred to SP4 polish
 
 ### Next session pick-up

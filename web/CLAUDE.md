@@ -37,34 +37,39 @@ src/
 
 ## SignalR integration
 
-The SignalR connection is exposed as Observables via a singleton
-`SignalRService`. Components subscribe to whichever stream they need:
+SignalR connections are exposed as Observables via a singleton
+`RealtimeService`. Two hubs (`vehicles`, `alerts`) per the SP1-09 decision B
+topology mirror. Hub + event name constants live in
+`services/signalr-events.constants.ts` (mirrors backend `FunctionConstants.cs`
+— drift here = silent dropped messages, Debug Story #20).
+Components subscribe to whichever stream they need:
 
 ```typescript
 @Injectable({ providedIn: 'root' })
-export class SignalRService {
-  private connection: HubConnection;
-  readonly vehicles$: Observable<VehicleUpdate>;
-  readonly alerts$: Observable<AlertPublished>;
+export class RealtimeService {
+  private readonly vehicleUpdates = new Subject<Vehicle>();
+  private readonly alertsReceived = new Subject<Alert>();
+  private vehiclesHub: HubConnection | null = null;
+  private alertsHub: HubConnection | null = null;
 
-  constructor(private http: HttpClient) {
-    this.vehicles$ = this.createStream('VehicleUpdated');
-    this.alerts$ = this.createStream('AlertPublished');
-  }
+  readonly vehicleUpdates$ = this.vehicleUpdates.asObservable();
+  readonly alertsReceived$ = this.alertsReceived.asObservable();
 
-  private createStream<T>(eventName: string): Observable<T> {
-    return new Observable<T>(subscriber => {
-      this.connection.on(eventName, (data: T) => subscriber.next(data));
-      return () => this.connection.off(eventName);
-    }).pipe(share());
-  }
+  // Idempotent. Builds both hubs, wires .on() before .start(), publishes
+  // refs only after both starts succeed (no half-connected state).
+  async connect(): Promise<void> { /* ... */ }
+
+  // Idempotent. allSettled so a stop() failure doesn't strand refs.
+  async disconnect(): Promise<void> { /* ... */ }
 }
 ```
 
 Components subscribe with `async` pipe or via `toSignal()`:
 
 ```typescript
-vehicles = toSignal(this.signalR.vehicles$, { initialValue: [] });
+// In a component:
+private readonly realtime = inject(RealtimeService);
+vehicleUpdates = toSignal(this.realtime.vehicleUpdates$, { initialValue: null });
 ```
 
 ## State management
@@ -114,8 +119,10 @@ When SP-21 is picked up the scope is:
 
 - Add a new route: create folder under `pages/`, scaffold standalone
   component, add lazy route in `app.routes.ts`
-- Add a new SignalR event: extend `SignalRService` with a new
-  `Observable<T>`, update `/docs/api.md`
+- Add a new SignalR event: add hub + event names to
+  `services/signalr-events.constants.ts` (mirror backend
+  `FunctionConstants.cs`), extend `RealtimeService` with a new
+  `Subject<T>` + `.asObservable()` pair, update `/docs/api.md`
 - Add a new API call: extend the relevant service in `services/`,
   type the response matching `/docs/api.md`
 

@@ -91,6 +91,15 @@ that path.
   Any change to the container TTL (ADR-0002) must update the prune
   threshold here in lockstep. Drift creates either flicker (prune
   threshold shorter than TTL) or ghosts (prune threshold longer).
+- Freshness-badge derivation downstream of this ADR (locked 2026-07-01,
+  SP1-10 Phase 2 prep): `latestEventTimestamp = max(feedTimestamp, all
+  observed SignalR vehicleUpdated.timestamp)` — the same `vehicle.timestamp`
+  field this ADR uses for prune. Binary `isStale` at 60-second threshold
+  (two missed Poller cycles); re-evaluated every 5 seconds by a separate
+  `setInterval` so the badge flips even when no event arrives. The badge
+  is the user-facing surface of this ADR's posture — "Live" when SignalR
+  is healthy, "Stale" within 60 seconds when the stream dies, rather than
+  the dashboard quietly pretending the data is fresh.
 - This ADR explicitly does **not** apply to the SP4 ops view or future
   analytics surfaces. Those operate on Data Lake archive (ADR-0012) and
   have different freshness semantics.
