@@ -1,0 +1,11 @@
+// alerts-panel.component.scss - minimal in v1. Tailwind utility classes on
+// the template handle spacing + colour; this file exists so styleUrl has a
+// slot for future overrides (e.g. custom scroll-bar chrome in SP4 polish).
+
+:host {
+  // Grow to fill the right-rail track set up by the parent grid.
+  // Without this the <section> collapses to its intrinsic content height
+  // and the empty-state row looks orphaned mid-viewport.
+  display: block;
+  height: 100%;
+}
