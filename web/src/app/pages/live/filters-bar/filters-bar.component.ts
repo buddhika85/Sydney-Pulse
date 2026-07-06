@@ -13,7 +13,12 @@
 // selectedRoute a single unambiguous absent state that flows cleanly into
 // the alerts-panel filter too.
 
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  input,
+  output,
+} from '@angular/core';
 
 @Component({
   selector: 'sp-filters-bar',
@@ -41,7 +46,13 @@ export class FiltersBarComponent {
    * - value === ""  -> routeChange.emit(null)
    * - value !== ""  -> routeChange.emit(value)
    */
-  onSelect(value: string): void {
-    throw new Error('SP1-10 Phase 3 - not implemented');
+  onSelect(selectedValue: string): void {
+    if (selectedValue === '') {
+      // no filter applied - show all routes
+      this.routeChange.emit(null);
+    } else {
+      // a filter applied
+      this.routeChange.emit(selectedValue);
+    }
   }
 }

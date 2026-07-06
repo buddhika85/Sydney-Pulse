@@ -14,7 +14,12 @@
 // helper file) - only this template consumes it, and moving it now would
 // be premature abstraction per the project no-abstraction-until-needed rule.
 
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  input,
+} from '@angular/core';
 
 import { Alert } from '../../../models';
 
@@ -43,21 +48,43 @@ export class AlertsPanelComponent {
    * - preserves input ordering (newest-first, parent guarantees this)
    */
   readonly visibleAlerts = computed<Alert[]>(() => {
-    throw new Error('SP1-10 Phase 3 - not implemented');
+    const alerts = this.alerts();
+    const selectedRoute = this.selectedRoute();
+
+    // no selection, so, no alert filtering
+    if (!selectedRoute) {
+      return alerts;
+    }
+
+    // filter by route selected
+    return alerts.filter((alert) => alert.routeShortName === selectedRoute);
   });
 
   /**
-   * Map an Alert severity string to a Tailwind class for the left border
-   * of each alert card. Central point so the design token stays in one
-   * place if the palette shifts before Sprint 1 close.
+   * Maps GTFS-Realtime Alert.Effect values (lowercased, no underscores)
+   * to a Tailwind border class. See docs/sp1-10-debug-stories.md #1
+   * for the taxonomy discovery.
    *
    * Acceptance criteria (SP1-10 Phase 3 impl target, ~5 min):
-   * - 'severe' / 'critical' -> a red-tone border class
-   * - 'warning'             -> an amber-tone border class
-   * - anything else         -> a neutral / info-tone border class
-   * - case-insensitive input (TfNSW mixes casing across feeds)
+   * - noservice / significantdelays / reducedservice / stopmoved -> red border
+   * - modifiedservice / detour                                    -> amber border
+   * - additionalservice / unknowneffect / othereffect / noeffect  -> gray (default)
+   * - anything unknown -> gray (default)
+   * - case-insensitive input (backend already lowercases; belt+braces here)
    */
   severityClass(alert: Alert): string {
-    throw new Error('SP1-10 Phase 3 - not implemented');
+    switch (alert.severity.toLowerCase()) {
+      case 'noservice':
+      case 'significantdelays':
+      case 'reducedservice':
+      case 'stopmoved':
+        return 'border-red-500';
+      case 'modifiedservice':
+      case 'detour':
+        return 'border-amber-500';
+      default:
+        // additionalservice, unknowneffect, othereffect, noeffect, anything new
+        return 'border-gray-300';
+    }
   }
 }

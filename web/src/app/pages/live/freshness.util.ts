@@ -22,7 +22,22 @@ export function computeLatestEventTimestamp(
   feedTs: string | null,
   streamTs: string | null,
 ): string | null {
-  throw new Error('SP1-10 Phase 3 - not implemented');
+  if (feedTs && streamTs) {
+    if (feedTs === streamTs) {
+      // To avoid conversions to date objects when equal
+      return feedTs;
+    } else {
+      return new Date(feedTs) > new Date(streamTs) ? feedTs : streamTs;
+    }
+  }
+
+  if (feedTs) {
+    return feedTs;
+  }
+  if (streamTs) {
+    return streamTs;
+  }
+  return null;
 }
 
 /**
@@ -40,5 +55,9 @@ export function isStale(
   now: number,
   thresholdMs = 60_000,
 ): boolean {
-  throw new Error('SP1-10 Phase 3 - not implemented');
+  if (!latestTs) {
+    return true;
+  }
+
+  return now - Date.parse(latestTs) > thresholdMs;
 }

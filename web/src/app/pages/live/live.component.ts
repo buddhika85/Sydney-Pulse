@@ -41,17 +41,13 @@ import { AlertsPanelComponent } from './alerts-panel/alerts-panel.component';
 import { FiltersBarComponent } from './filters-bar/filters-bar.component';
 import { computeLatestEventTimestamp, isStale } from './freshness.util';
 import { MarkerEntry, pruneStale, upsertMarker } from './vehicle-marker';
-
-// Sydney CBD, zoom 12 covers the metropolitan train network at a glance.
-const SYDNEY_CBD_LAT: number = -33.8688;
-const SYDNEY_CBD_LNG: number = 151.2093;
-const DEFAULT_ZOOM: number = 12;
-
-// ADR-0013: 5 min matches the Cosmos vehicles container TTL, so a vehicle
-// absent from the stream for that long is safe to drop from the map with
-// no re-hydrate call. Re-eval every 5s per SP1-09 decision A.
-const VEHICLE_MARKER_TTL_MS: number = 5 * 60_000;
-const FRESHNESS_RE_EVAL_INTERVAL_MS: number = 5_000;
+import {
+  DEFAULT_MAP_ZOOM,
+  FRESHNESS_RE_EVAL_INTERVAL_MS,
+  SYDNEY_CBD_LAT,
+  SYDNEY_CBD_LNG,
+  VEHICLE_MARKER_TTL_MS,
+} from '../../shared/design-tokens';
 
 @Component({
   selector: 'sp-live',
@@ -152,7 +148,7 @@ export class LiveComponent implements AfterViewInit, OnDestroy {
    *
    * Acceptance criteria:
    * - create L.map(el, { center: [SYDNEY_CBD_LAT, SYDNEY_CBD_LNG],
-   *   zoom: DEFAULT_ZOOM })
+   *   zoom: DEFAULT_MAP_ZOOM })
    * - add L.tileLayer OSM (https://tile.openstreetmap.org/{z}/{x}/{y}.png)
    *   with an attribution string
    * - store into this.map

@@ -17,6 +17,10 @@
 import * as L from 'leaflet';
 
 import { Vehicle } from '../../models';
+import {
+  MARKER_RADIUS_PX,
+  MARKER_STROKE_WEIGHT_PX,
+} from '../../shared/design-tokens';
 
 /**
  * Cache entry: the Leaflet marker + when we last saw an update for it.
@@ -45,11 +49,40 @@ export interface MarkerEntry {
  */
 export function upsertMarker(
   map: L.Map,
-  cache: Map<string, MarkerEntry>,
+  cache: Map<string, MarkerEntry>, // vehicle.vehicleId key, MarkerEntry value
   vehicle: Vehicle,
   now: number = Date.now(),
 ): L.CircleMarker {
-  throw new Error('SP1-10 Phase 3 - not implemented');
+  const tooltip = `${vehicle.routeShortName} · ${vehicle.vehicleId}`;
+  const routeColor = `#${vehicle.routeColor}`;
+  let vehicleCache: MarkerEntry | undefined = cache.get(vehicle.vehicleId);
+
+  if (vehicleCache === undefined) {
+    // cache miss - insert
+    vehicleCache = {
+      marker: new L.CircleMarker([vehicle.latitude, vehicle.longitude], {
+        radius: MARKER_RADIUS_PX,
+        color: routeColor,
+        weight: MARKER_STROKE_WEIGHT_PX,
+      }),
+      lastSeenAt: now,
+    };
+
+    vehicleCache.marker.bindTooltip(tooltip);
+    vehicleCache.marker.addTo(map);
+    cache.set(vehicle.vehicleId, vehicleCache);
+
+    return vehicleCache.marker;
+  }
+  // cache hit - update
+  vehicleCache.marker.setLatLng([vehicle.latitude, vehicle.longitude]);
+  vehicleCache.lastSeenAt = now;
+
+  // TfNSW changed route unexpectedly
+  vehicleCache.marker.bindTooltip(tooltip);
+  vehicleCache.marker.setStyle({ color: routeColor });
+
+  return vehicleCache.marker;
 }
 
 /**
@@ -71,5 +104,13 @@ export function pruneStale(
   ttlMs: number,
   now: number = Date.now(),
 ): number {
-  throw new Error('SP1-10 Phase 3 - not implemented');
+  let prunedEntries = 0;
+  cache.forEach((entry, key) => {
+    if (now - entry.lastSeenAt > ttlMs) {
+      map.removeLayer(entry.marker);
+      cache.delete(key);
+      ++prunedEntries;
+    }
+  });
+  return prunedEntries;
 }
