@@ -73,7 +73,7 @@ export class AlertsPanelComponent {
    * - case-insensitive input (backend already lowercases; belt+braces here)
    */
   severityClass(alert: Alert): string {
-    switch (alert.severity.toLowerCase()) {
+    switch (alert.severity?.toLowerCase()) {
       case 'noservice':
       case 'significantdelays':
       case 'reducedservice':

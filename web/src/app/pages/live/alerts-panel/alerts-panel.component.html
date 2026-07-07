@@ -11,7 +11,7 @@
   @if (visibleAlerts().length === 0) {
     <p class="text-sm text-gray-500 italic">No active alerts.</p>
   } @else {
-    @for (alert of visibleAlerts(); track alert.id) {
+    @for (alert of visibleAlerts(); track alert.alertId || $index) {
       <article
         class="border-l-4 bg-white p-2 rounded shadow-sm"
         [class]="severityClass(alert)"

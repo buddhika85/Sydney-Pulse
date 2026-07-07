@@ -130,10 +130,14 @@ export class RealtimeService {
    * `hubName` typed as SignalRHubName so typos fail compile, not runtime.
    */
   private buildConnection(hubName: SignalRHubName): HubConnection {
-    const negotiateUrl = `${environment.apiBaseUrl}/negotiate?hub=${hubName}`;
-    return new HubConnectionBuilder()
-      .withUrl(negotiateUrl)
-      .withAutomaticReconnect()
-      .build();
+    return (
+      new HubConnectionBuilder()
+        // https://..../api/negotiate?hub=vehicles&negotiateVersion=1
+        .withUrl(`${environment.apiBaseUrl}?hub=${hubName}`, {
+          withCredentials: false,
+        })
+        .withAutomaticReconnect()
+        .build()
+    );
   }
 }

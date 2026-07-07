@@ -33,6 +33,8 @@ import {
 } from '@angular/core';
 import * as L from 'leaflet';
 
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+
 import { Alert, Vehicle } from '../../models';
 import { AlertsService } from '../../services/alerts.service';
 import { RealtimeService } from '../../services/realtime.service';
@@ -48,6 +50,7 @@ import {
   SYDNEY_CBD_LNG,
   VEHICLE_MARKER_TTL_MS,
 } from '../../shared/design-tokens';
+import { firstValueFrom } from 'rxjs';
 
 @Component({
   selector: 'sp-live',
@@ -114,17 +117,18 @@ export class LiveComponent implements AfterViewInit, OnDestroy {
    * Lifecycle entry. Sequence matters: init the map before we upsert
    * markers, load the initial snapshot before we connect the stream
    * (ADR-0013), start the freshness timer only after both.
-   *
-   * Acceptance criteria (SP1-10 Phase 3 impl target, ~15 min):
-   * - mapEl() defined (viewChild resolved) - guard, else throw
-   * - initMap(mapEl().nativeElement)
-   * - await loadInitialVehicles()
-   * - await loadInitialAlerts()
-   * - await startRealtime()
-   * - startFreshnessTimer()
    */
   async ngAfterViewInit(): Promise<void> {
-    throw new Error('SP1-10 Phase 3 - not implemented');
+    const mapDomElement = this.mapEl();
+    if (!mapDomElement)
+      throw new Error('mapEl viewChild did not resolve by ngAfterViewInit');
+    this.initMap(mapDomElement.nativeElement);
+
+    // LEARN: load vehicles + alerts in parallel
+    await Promise.all([this.loadInitialVehicles(), this.loadInitialAlerts()]);
+
+    await this.startRealtime();
+    this.startFreshnessTimer();
   }
 
   /**
@@ -132,123 +136,161 @@ export class LiveComponent implements AfterViewInit, OnDestroy {
    * DOM + tile requests, the interval keeps a reference alive, and
    * RealtimeService.disconnect() releases the two SignalR Free SKU
    * connection slots (cap 20).
-   *
-   * Acceptance criteria (SP1-10 Phase 3 impl target, ~10 min):
-   * - clearInterval(freshnessIntervalId) if defined
-   * - map?.remove(); map = null
-   * - markers.clear()
-   * - void realtime.disconnect() (fire-and-forget; disconnect is idempotent)
    */
   ngOnDestroy(): void {
-    throw new Error('SP1-10 Phase 3 - not implemented');
+    if (this.freshnessIntervalId) clearInterval(this.freshnessIntervalId); // 5 second freshness interval stops
+    this.map?.remove();
+    this.map = null;
+    this.markers.clear();
+    this.realtime.disconnect();
   }
 
   /**
-   * SP1-10 Phase 3 impl target, ~20 min.
-   *
-   * Acceptance criteria:
-   * - create L.map(el, { center: [SYDNEY_CBD_LAT, SYDNEY_CBD_LNG],
-   *   zoom: DEFAULT_MAP_ZOOM })
-   * - add L.tileLayer OSM (https://tile.openstreetmap.org/{z}/{x}/{y}.png)
-   *   with an attribution string
-   * - store into this.map
-   * - CSS for the tiles is already loaded globally via styles.scss
-   *   (@import "leaflet/dist/leaflet.css") - do NOT re-import here
+   * Creates the Leaflet map on the DOM mount point and adds the OSM tile
+   * layer. Runs once from ngAfterViewInit; the map handle is then owned
+   * by this component's lifecycle until ngOnDestroy tears it down
    */
   private initMap(el: HTMLElement): void {
-    throw new Error('SP1-10 Phase 3 - not implemented');
+    this.map = L.map(el, {
+      center: [SYDNEY_CBD_LAT, SYDNEY_CBD_LNG],
+      zoom: DEFAULT_MAP_ZOOM,
+    });
+
+    // LEARN: {z}=zoom, {x}/{y}=tile column/row - Leaflet fills them from the viewport
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors',
+    }).addTo(this.map);
   }
 
   /**
-   * SP1-10 Phase 3 impl target, ~15 min.
-   *
-   * Acceptance criteria:
-   * - firstValueFrom(vehiclesService.getVehicles())
-   * - set feedTimestamp(response.feedTimestamp)
-   * - set vehicles(response.vehicles)
-   * - upsertMarker for each vehicle so the initial snapshot is on the map
-   *   before the stream lands (ADR-0013 initial-snapshot-then-stream)
+   * Seeds the map + vehicles signal + feedTimestamp from a one-shot HTTP
+   * fetch. Runs before startRealtime() so the map is populated the moment
+   * SignalR starts pushing updates (ADR-0013 initial-snapshot-then-stream).
    */
   private async loadInitialVehicles(): Promise<void> {
-    throw new Error('SP1-10 Phase 3 - not implemented');
+    const vehicleEnvelope = await firstValueFrom(
+      this.vehiclesService.getVehicles(),
+    );
+    this.feedTimestamp.set(vehicleEnvelope.feedTimestamp);
+
+    // filter out vehicles missing position before setting signal + plotting
+    const vehiclesWithPositions = vehicleEnvelope.vehicles.filter(
+      (vehicle) => vehicle.longitude != null && vehicle.latitude != null,
+    );
+    this.vehicles.set(vehiclesWithPositions);
+    vehiclesWithPositions.forEach((vehicle) =>
+      upsertMarker(this.map!, this.markers, vehicle),
+    );
   }
 
   /**
-   * SP1-10 Phase 3 impl target, ~10 min.
-   *
-   * Acceptance criteria:
-   * - firstValueFrom(alertsService.getAlerts())
-   * - set alerts(response) - envelope is already dropped at service boundary
+   * Seeds the alerts signal from a one-shot HTTP fetch. Runs before the
+   * SignalR alerts stream connects so the panel isn't empty during the
+   * negotiate handshake.
    */
   private async loadInitialAlerts(): Promise<void> {
-    throw new Error('SP1-10 Phase 3 - not implemented');
+    // LEARN: firstValueFrom()
+    // turns an Observable into a Promise
+    // waits for the first value
+    // auto-unsubscribes - unlike subscribe which requires manual unsubscribes
+    const alerts = await firstValueFrom(this.alertsService.getAlerts());
+    this.alerts.set(alerts);
   }
 
   /**
-   * SP1-10 Phase 3 impl target, ~10 min.
-   *
-   * Acceptance criteria:
-   * - await realtime.connect() (idempotent; safe if already connected)
-   * - wireVehicleStream()
-   * - wireAlertStream()
-   * - order matters: connect BEFORE wiring so a failure short-circuits
-   *   the subscriptions and we don't strand handlers pointing at a
-   *   half-open service
+   * Connects RealtimeService then wires both SignalR streams. Sits after
+   * the initial HTTP fetches (ADR-0013 initial-snapshot-then-stream) and
+   * before the freshness timer, which needs the streams live to have a
+   * meaningful latestStreamTs to track.
    */
   private async startRealtime(): Promise<void> {
-    throw new Error('SP1-10 Phase 3 - not implemented');
+    await this.realtime.connect();
+    this.wireVehicleStream();
+    this.wireAlertStream();
   }
 
   /**
-   * SP1-10 Phase 3 impl target, ~15 min.
-   *
-   * Acceptance criteria:
-   * - subscribe to realtime.vehicleUpdates$ via takeUntilDestroyed(destroyRef)
-   * - on each Vehicle:
-   *     upsertMarker(this.map!, this.markers, vehicle)
-   *     update vehicles() signal (upsert by vehicleId - replace or append)
-   *     update latestStreamTs() if vehicle.timestamp > current latestStreamTs
-   * - map non-null is a precondition (wireVehicleStream runs after initMap)
+   * Forwards each SignalR vehicle push into three places: the map (via
+   * upsertMarker), the vehicles signal (upsert by vehicleId), and the
+   * latestStreamTs signal (rolling max for freshness). Subscription
+   * auto-cleans via takeUntilDestroyed - no manual unsubscribe needed.
    */
   private wireVehicleStream(): void {
-    throw new Error('SP1-10 Phase 3 - not implemented');
+    this.realtime.vehicleUpdates$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((vehicleUpdate: Vehicle) => {
+        // Skip vehicles missing position - backend emits undefined lat/lng for
+        // vehicles that haven't reported a Position message yet.
+        if (vehicleUpdate.latitude == null || vehicleUpdate.longitude == null) {
+          return;
+        }
+
+        // 1 upsert vehicle Marker to map
+        upsertMarker(this.map!, this.markers, vehicleUpdate);
+
+        // 2 update vehicles() signal
+        this.vehicles.update((current) => {
+          const idx = current.findIndex(
+            (vehicle) => vehicle.vehicleId === vehicleUpdate.vehicleId,
+          );
+          if (idx === -1) {
+            // insert
+            return [...current, vehicleUpdate];
+          }
+          // update
+          const copy = [...current];
+          copy[idx] = vehicleUpdate;
+          return copy;
+        });
+
+        // 3 update latestStreamTs()
+        const latestTs = this.latestStreamTs();
+        if (
+          !latestTs ||
+          Date.parse(vehicleUpdate.timestamp) > Date.parse(latestTs)
+        ) {
+          this.latestStreamTs.set(vehicleUpdate.timestamp);
+        }
+      });
   }
 
   /**
-   * SP1-10 Phase 3 impl target, ~10 min.
-   *
-   * Acceptance criteria:
-   * - subscribe to realtime.alertsReceived$ via takeUntilDestroyed(destroyRef)
-   * - on each Alert: prepend into alerts() signal so newest is index 0
-   *   (AlertsPanelComponent preserves that order)
+   * Forwards each SignalR alert push into the alerts signal, prepended
+   * so newest sits at index 0. AlertsPanelComponent trusts that ordering
+   * downstream. Subscription auto-cleans via takeUntilDestroyed.
    */
   private wireAlertStream(): void {
-    throw new Error('SP1-10 Phase 3 - not implemented');
+    this.realtime.alertsReceived$
+      .pipe(takeUntilDestroyed(this.destroyRef)) // Ang 16+ - no need for ngOnDestroy, when the component is destroyed, the subscription is automatically cleaned up
+      .subscribe((alert: Alert) => {
+        this.alerts.update((current) => [alert, ...current]);
+      });
   }
 
   /**
-   * SP1-10 Phase 3 impl target, ~10 min.
-   *
-   * Acceptance criteria:
-   * - setInterval every FRESHNESS_RE_EVAL_INTERVAL_MS
-   * - on tick: freshnessNow.set(Date.now()) - drives the isStale computed
-   * - on the same tick: if map is set, pruneStale(map, markers,
-   *   VEHICLE_MARKER_TTL_MS) - one interval, two jobs (both on the same
-   *   cadence per SP1-09 decision A)
-   * - store handle in this.freshnessIntervalId for teardown
+   * Starts the single 5s interval that (a) bumps freshnessNow so the
+   * isStale computed re-evaluates, and (b) prunes stale markers whose
+   * lastSeenAt has exceeded VEHICLE_MARKER_TTL_MS. One timer, two jobs,
+   * same cadence (SP1-09 decision A).
    */
   private startFreshnessTimer(): void {
-    throw new Error('SP1-10 Phase 3 - not implemented');
+    // LEARN: executes setInterval every 5 seconds
+    // store the timer handler in freshnessIntervalId for ngOnDestroy to stop the timer
+    this.freshnessIntervalId = setInterval(() => {
+      // Set the freshnessNow signal to now, so the isStale computed re-evaluates
+      this.freshnessNow.set(Date.now());
+
+      if (this.map) {
+        // LEARN: Remove any vehicle from map whose lastSeenAt is older than ttlMs.
+        pruneStale(this.map, this.markers, VEHICLE_MARKER_TTL_MS, Date.now());
+      }
+    }, FRESHNESS_RE_EVAL_INTERVAL_MS);
   }
 
   /**
    * Handler bound to FiltersBarComponent's routeChange output.
-   *
-   * Acceptance criteria (SP1-10 Phase 3 impl target, ~5 min):
-   * - selectedRoute.set(route) - trivial, but kept as a method (not an
-   *   inline arrow in the template) so parent template stays readable
    */
   onRouteChange(route: string | null): void {
-    throw new Error('SP1-10 Phase 3 - not implemented');
+    this.selectedRoute.set(route);
   }
 }
