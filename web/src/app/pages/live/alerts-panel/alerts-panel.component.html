@@ -1,0 +1,35 @@
+<!-- alerts-panel.component.html - route-scoped alerts list.
+     Empty state ("No active alerts") is deliberate: an empty rail with no
+     text reads as "still loading" during a demo. Cards are dense on purpose
+     - the map is the primary visual; alerts sit alongside as a scannable
+     text feed. -->
+<section class="flex flex-col gap-2 p-3 overflow-y-auto">
+  <h2 class="text-sm font-semibold text-gray-800 uppercase tracking-wide">
+    {{ headerLabel() }}
+  </h2>
+
+  @if (visibleAlerts().length === 0) {
+    <p class="text-sm text-gray-500 italic">No active alerts.</p>
+  } @else {
+    <!--same alert Id can exist for multiple route short names-->
+    @for (
+      alert of visibleAlerts();
+      track (alert.alertId || $index) + "-" + alert.routeShortName
+    ) {
+      <article
+        class="border-l-4 bg-white p-2 rounded shadow-sm"
+        [class]="severityClass(alert)"
+      >
+        <div class="flex items-center gap-2 text-xs text-gray-600">
+          <span class="font-mono">{{ alert.routeShortName }}</span>
+          <span>·</span>
+          <span>{{ alert.severity }}</span>
+        </div>
+        <h3 class="text-sm font-semibold text-gray-900">
+          {{ alert.headerText }}
+        </h3>
+        <p class="text-xs text-gray-700">{{ alert.descriptionText }}</p>
+      </article>
+    }
+  }
+</section>

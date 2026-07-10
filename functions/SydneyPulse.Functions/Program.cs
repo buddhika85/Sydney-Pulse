@@ -3,6 +3,8 @@
 // Isolated-worker host startup. Registers DI services and configures the
 // Functions middleware pipeline.
 
+using System.Text.Json;
+using Azure.Core.Serialization;
 using Azure.Identity;
 using Azure.Messaging.EventGrid;
 using Azure.Storage.Blobs;
@@ -75,6 +77,18 @@ var host = new HostBuilder()
                         PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase,
                     },
                 });
+        });
+
+        // Worker-wide JSON serializer -> camelCase on all output bindings (SignalR,
+        // future bindings). Matches the on-the-wire contract already used by the
+        // HTTP API and Cosmos serializer. Fixes silent PascalCase drift on the
+        // SignalR alertReceived / vehicleUpdated payloads (Debug Story #7).
+        services.Configure<WorkerOptions>(options =>
+        {
+            options.Serializer = new JsonObjectSerializer(new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            });
         });
 
         // Bind Archive config section (DataLakeAccountName sourced from app setting

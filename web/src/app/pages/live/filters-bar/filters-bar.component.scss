@@ -1,0 +1,10 @@
+// filters-bar.component.scss - intentionally minimal in v1.
+// Tailwind utilities on the template handle layout + styling. This file
+// exists so the component keeps a styleUrl slot for future overrides
+// without a template edit later.
+
+:host {
+  // keeps the dropdown inline in the header row instead of a block-level
+  // default that would push the freshness badge onto a new line.
+  display: inline-flex;
+}

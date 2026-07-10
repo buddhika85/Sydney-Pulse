@@ -1,0 +1,44 @@
+// route-chips.component.scss - minimal chip styling.
+// Layout comes from Tailwind on the template. This file carries the two
+// pieces Tailwind can't do cleanly with utilities alone: the shared chip
+// base (border-radius, padding, transition) and the "All" chip neutral
+// palette. Route-specific colours are inline style bindings on the
+// template so the palette stays data-driven, not hardcoded here.
+
+:host {
+  // keep the strip inline in the header row so it doesn't push freshness
+  // badge onto a new line - mirrors filters-bar.component.scss decision.
+  display: inline-flex;
+}
+
+.chip {
+  // base chip shape - shared by both "All" and route chips
+  border-width: 1.5px;
+  border-style: solid;
+  border-radius: 9999px; // pill
+  padding: 0.25rem 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+
+  &:focus-visible {
+    // keyboard focus ring - overrides browser default which some UAs hide
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
+  }
+}
+
+.chip-all {
+  // "All" chip has no route colour - neutral gray palette so it visually
+  // separates from the coloured route chips without competing with them.
+  border-color: #9ca3af;
+  color: #374151;
+  background-color: #ffffff;
+
+  &.chip--active {
+    background-color: #374151;
+    color: #ffffff;
+    border-color: #374151;
+  }
+}

@@ -1,0 +1,51 @@
+<!-- route-chips.component.html - wrap-flow chip strip for route filtering.
+     "All" chip sits first (dedicated reset, no click-again-to-clear).
+     Active state = coloured fill + adaptive text; inactive = white fill +
+     coloured border + coloured text. Chip is a <button> so keyboard focus
+     and aria-pressed come free from the platform.
+
+     CHANGE SPEC (SP1-10 usability pass - chip hover counts):
+     Every chip gained a native browser tooltip via [attr.title]. Chose
+     the platform title= attribute over a custom CSS tooltip so keyboard
+     focus + screen-reader announce + the ~500ms hover delay all come
+     for free (delay is a feature - prevents flicker when the pointer
+     drags across the strip). Format: "N vehicles, M alerts" - route
+     name is already the chip label, so the tooltip only carries the
+     new signal. Aggregate tooltip on "All" reads from the two totals
+     inputs added on the class side. -->
+<div class="flex flex-wrap gap-2 items-center">
+  <!-- All-routes chip - neutral gray, always first, always visible.
+       Active when selectedRoute() is null. Tooltip summarises the
+       whole feed so users get a strip-level "how busy is it?" without
+       hovering each chip. -->
+  <button
+    type="button"
+    class="chip chip-all"
+    [class.chip--active]="selectedRoute() === null"
+    [attr.aria-pressed]="selectedRoute() === null"
+    [attr.title]="totalVehicleCount() + ' vehicles, ' + totalAlertCount() + ' alerts'"
+    (click)="onChipClick(null)"
+  >
+    All
+  </button>
+
+  <!-- One chip per distinct route from the vehicle feed. Colour bindings
+       flip between "active fill" and "inactive outline" based on match.
+       Per-route tooltip carries this route's own vehicle + alert count
+       so hovering answers "is my line busy?" without a click. -->
+  @for (route of routes(); track route.name) {
+    <button
+      type="button"
+      class="chip"
+      [class.chip--active]="selectedRoute() === route.name"
+      [attr.aria-pressed]="selectedRoute() === route.name"
+      [attr.title]="route.vehicleCount + ' vehicles, ' + route.alertCount + ' alerts'"
+      [style.background-color]="selectedRoute() === route.name ? route.color : '#ffffff'"
+      [style.color]="selectedRoute() === route.name ? textFor(route.color) : route.color"
+      [style.border-color]="route.color"
+      (click)="onChipClick(route.name)"
+    >
+      {{ route.name }}
+    </button>
+  }
+</div>

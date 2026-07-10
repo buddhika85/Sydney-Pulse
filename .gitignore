@@ -570,6 +570,12 @@ docs/*-primer.md
 # bugs hit during sprint work. Same privacy rationale as interview-prep.md.
 docs/*-debug-stories.md
 
+# Debug-story evidence screenshots — image assets embedded in the private
+# debug-story markdown files above. Follow the story doc's privacy stance;
+# promote individual images out of this pattern when publishing (e.g.
+# LinkedIn / portfolio highlights).
+docs/images/*-story-*.png
+
 # Test results / coverage (cross-language)
 TestResults/
 coverage/

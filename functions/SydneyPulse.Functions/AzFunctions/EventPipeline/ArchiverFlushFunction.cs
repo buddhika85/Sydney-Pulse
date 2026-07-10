@@ -168,7 +168,7 @@ public class ArchiverFlushFunction(
     // any of the Function's instance dependencies.
     internal static IReadOnlyList<ArchiveEvent> DedupeByEventId(
         IEnumerable<ArchiveEvent> events) =>
-        [..events
+        [.. events
             .GroupBy(e => e.EventId)
             .Select(g => g.First())];
 

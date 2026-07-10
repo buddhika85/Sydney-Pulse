@@ -1,0 +1,10 @@
+<!-- filters-bar.component.html - passthrough to the chip strip.
+     Binds parent inputs to child inputs and forwards the chip's
+     routeChange output straight to the parent output. -->
+<sp-route-chips
+  [routes]="routes()"
+  [selectedRoute]="selectedRoute()"
+  [totalVehicleCount]="totalVehicleCount()"
+  [totalAlertCount]="totalAlertCount()"
+  (routeChange)="routeChange.emit($event)"
+/>

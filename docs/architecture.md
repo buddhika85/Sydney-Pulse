@@ -151,7 +151,9 @@ token. The negotiate endpoint is anonymous (no user identity tracked).
 Four routes (ADR-0007 added the operations view):
 
 - `/` — Landing page (static content)
-- `/live` — Commuter dashboard with Leaflet map and SignalR live updates
+- `/live` — Commuter dashboard with Leaflet map (raw integration, ADR-0014)
+  and SignalR live updates (event-stream trusted, no periodic refetch,
+  ADR-0013)
 - `/analytics` — Reliability heatmaps and historical analysis
 - `/ops` — SLO dashboard, distributed traces, recent deployments
 

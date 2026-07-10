@@ -5,4 +5,10 @@
 export const environment = {
   production: true,
   apiBaseUrl: 'https://sydney-pulse-func-prod.azurewebsites.net/api',
+
+  // debugging
+  debugging: {
+    enableSignalRRealtime: true,
+    enableFreshnessTimer: true,
+  },
 };

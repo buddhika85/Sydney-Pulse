@@ -28,7 +28,7 @@ dashboard, tagged `v0.1.0`.
 | SP1-09 | Angular scaffolding (deeper)      | ✅     | 2026-06-20  | 2026-06-24  | `fcb4466` (PR #9 squash-merged) |
 | SP1-14 | Code review + interview-prep quiz (always-on) | 🔄     | 2026-06-01  | —           | —                   |
 | SP1-12 | GitHub Actions CI/CD              | ✅     | 2026-06-25  | 2026-06-29  | `6256c39` (PR #10 squash-merged) |
-| SP1-10 | Live dashboard                    | ⬜     | —           | —           | —                   |
+| SP1-10 | Live dashboard                    | 🔄     | 2026-06-30  | —           | ADR-0013, ADR-0014  |
 | SP1-11 | Landing page                      | ⬜     | —           | —           | —                   |
 | SP1-13 | Sprint wrap → v0.1.0              | ⬜     | —           | —           | —                   |
 
@@ -821,7 +821,58 @@ working manual recipe.
   added now via Settings → Branches → main, since `lint-test / lint-test`
   is a stable check name. Pending until Sprint 2 hardening.
 
-## SP1-10 / SP1-11 / SP1-13
+## SP1-10 — Live dashboard 🔄
+
+Started 2026-06-30. Jira: SP-10. Phase 1 (Plan) complete. Phase 2 (Scaffold)
+queued for Sat 4 Jul per `2026 July\Plan.xlsx` calendar block
+(Sat 4 → Tue 7 Jul, 4-day weekend-night block).
+
+### Planning session — 2026-06-30
+
+Walked through SP1-10 spec + Angular shell from SP1-09 + captured HTTP API
+fixtures. Locked 9 design decisions covering marker upsert, filter strategy,
+icon choice, tile/center, ghost-marker handling, reconnect, shared filter
+signal, component split, and zoom-on-alert deferral. Q2 (mode filter)
+collapsed — backend is `sydneytrains`-only by SP1-16 deliberate scope; multi-mode
+expansion is its own sprint per `docs/sprints/sprint-bus-expansion.md`.
+
+### ADRs landed today
+
+- **ADR-0013** — Trust the SignalR stream on the live dashboard; client-side
+  TTL prune (5 min, aligned to Cosmos `vehicles` container TTL) replaces a
+  periodic-refetch hedge. Architectural posture — the dashboard does not
+  paper over SignalR with HTTP polling.
+- **ADR-0014** — Raw Leaflet with Angular lifecycle; no `ngx-leaflet`
+  wrapper. Formalizes the SP1-09 decision (previously private in memory)
+  for the public record. Ties the choice to the SP-20 tech-debt cluster
+  cleared in-sprint via commit `dae300a`.
+
+### Scope locked for v1
+
+- Leaflet map with `L.circleMarker` markers, upsert keyed by `vehicleId`
+- SignalR initial-snapshot-then-stream (no periodic refetch — ADR-0013)
+- Single `selectedRoute` signal shared between map + alerts panel
+- Route filter dropdown sourced from distinct `routeShortName` values in
+  the loaded vehicle stream (not from `/api/routes` — that catalogue
+  contains ~200 entries, most empty)
+- Static "Sydney Trains" pill in header (explicit scope marker — answers
+  the demo question of "where are the buses" before it gets asked)
+- Alerts panel as presentational right-rail (≥ 1024 px) / stacked below
+  (mobile); shared filter via the `selectedRoute` signal
+- Stale-data freshness badge driven by `latestEventTimestamp = max(feedTimestamp, observed SignalR vehicleUpdated.timestamp values)`; 60-second binary threshold; 5-second re-evaluation interval (SP1-09 decision A precedent + 2026-07-01 SP1-10 Phase 2 prep lock)
+- Zoom-on-alert-click deferred to SP4 polish
+
+### Next session pick-up
+
+Phase 2 — Scaffold per CLAUDE.md TDD workflow. Six new files:
+`live.component.html`, `live.component.scss`, `vehicle-marker.ts`,
+`freshness.util.ts`, `alerts-panel.component.ts` (+ html/scss),
+`filters-bar.component.ts` (+ html/scss). Pre-scaffold verification:
+confirm `leaflet` + `@types/leaflet` are in `web/package.json`
+(SP1-09 was expected to add — needs check before any import lines).
+Phase 3 method loop follows.
+
+## SP1-11 / SP1-13
 
 Not started. Refer to `sprint-1.md` for scope and per-item description.
 
@@ -939,23 +990,28 @@ When an item is blocked:
 1. Flip to ⚠️ with a note in "Risks / open items" describing the blocker
    and what unblocks it.
 
-## Next session handoff (2026-06-29 — SP1-12 shipped)
+## Next session handoff (2026-06-30 — SP1-10 Phase 1 plan locked)
 
-**SP1-12 is done.** PR #10 squash-merged to `main` as `6256c39` on
-2026-06-29. Local main in sync with origin. See **SP1-12 — GitHub Actions
-CI/CD ✅** section above for full state.
+**SP1-10 Phase 1 (Plan) complete on 2026-06-30.** Two ADRs landed:
+**ADR-0013** (trust the event stream — no periodic refetch) and
+**ADR-0014** (raw Leaflet with Angular lifecycle). Phase 2 (Scaffold)
+starts Sat 4 Jul per `2026 July\Plan.xlsx` calendar block.
 
 ### Quick state snapshot
 
-- On `main` at `6256c39`. Working tree clean.
+- On `main` at `6256c39` (SP1-12 squash). Today's planning artefacts —
+  ADR-0013, ADR-0014, `architecture.md` cross-reference, and this
+  `progress.md` update — pending commit on a `feat/sp1-10-live-dashboard`
+  branch (preferred) or as a housekeeping commit on `main`.
 - Tests: **64 backend passing**, `ng build` clean, bicep build clean.
   Frontend unit tests deferred to SP-21.
 - **Live CI/CD pipeline.** Every push to `main` auto-deploys the full
   stack (Bicep + Function App + cross-RG Service Bus topic) to
   `sydney-pulse-rg-dev` via OIDC federated identity. ~5 minutes
   end-to-end dispatch → deployed.
-- **Next sprint item: SP1-10 — Live dashboard.** Revised Sprint 1
-  order: SP1-16 ✅ → SP1-09 ✅ → SP1-12 ✅ → **SP1-10** → SP1-11 → SP1-13.
+- **Next phase: SP1-10 Phase 2 — Scaffold.** Sat 4 Jul. See the
+  "SP1-10 — Live dashboard 🔄" section above for the locked scope
+  and the six files to scaffold.
 
 ### Where we are (cumulative since SP1-08)
 
@@ -987,18 +1043,18 @@ CI/CD ✅** section above for full state.
 1. Follow session start protocol per `CLAUDE.md` — read this file,
    then `sprint-1.md`, then glob `docs/**/*.md`. Also read
    `C:\BUDDHIKA\2026 July\CLAUDE.md` per the auto-read memory.
-2. `git status` (clean) + `git log -5 --oneline` to confirm `6256c39`
-   is HEAD on `main`.
-3. **Start SP1-10 — Live dashboard** per `sprint-1.md` row 10. Leaflet
-   integration + RxJS streams + SignalR live updates + alerts panel
-   + filters. Per the day-by-day plan at
-   `C:\BUDDHIKA\2026 July\Plan.xlsx`, Sprint days for SP1-10 are
-   Sat 4 / Sun 5 / Mon 6 / Tue 7 Jul (weekend nights + first weekdays
-   of Week 2). 4-day block.
-4. Pre-kickoff: review the Angular shell scaffolded in SP1-09 + the
-   captured HTTP API fixtures at
-   `functions/SydneyPulse.Tests/Fixtures/*-2026-06-17.json` — those
-   drive the Leaflet marker shape.
+2. `git status` + `git log -5 --oneline` — confirm the planning
+   artefacts (ADR-0013, ADR-0014, architecture/progress updates) are
+   either committed on `feat/sp1-10-live-dashboard` or staged.
+3. **Start SP1-10 Phase 2 — Scaffold** per the locked plan above.
+   Six new files; read the "SP1-10 — Live dashboard 🔄" section for
+   the file list, scope, and ADR pointers.
+4. Pre-scaffold verification: confirm `leaflet` + `@types/leaflet`
+   are present in `web/package.json`. If missing, add them before
+   any scaffolded import line.
+5. Per the day-by-day plan at `C:\BUDDHIKA\2026 July\Plan.xlsx`,
+   SP1-10 build days are Sat 4 / Sun 5 / Mon 6 / Tue 7 Jul (weekend
+   nights + first weekdays of Week 2). 4-day block.
 
 ### Sprint 1 deferrals (logged to backlog)
 

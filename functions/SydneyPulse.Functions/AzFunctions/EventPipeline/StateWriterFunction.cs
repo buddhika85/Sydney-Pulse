@@ -103,7 +103,12 @@ public class StateWriterFunction(
         // so the wire contract is independent of storage refactors.
         return new SignalRMessageAction(FunctionConstants.VehicleUpdatedSignalREvent)
         {
-            Arguments = [vehicleUpdate]
+            // Broadcast the persisted Cosmos document to SignalR - matches the
+            // AlerterFunction pattern and keeps the wire contract identical to
+            // the HTTP /api/vehicles response shape (frontend Vehicle.ts).
+            // A future VehicleWireDto refactor (Sprint 2 tech debt) would let us
+            // decouple wire from storage cleanly if the shapes ever need to diverge.
+            Arguments = [vehicleDocument]
         };
     }
 

@@ -89,17 +89,34 @@ public class ParquetArchiveWriterTests
     private static readonly string[] ExpectedFieldNames =
     [
         // Identity & discrimination (3)
-        "eventId", "eventType", "eventVersion",
+        "eventId",
+        "eventType",
+        "eventVersion",
         // Three timestamps (3)
-        "sourceTimestamp", "publishedAt", "archivedAt",
+        "sourceTimestamp",
+        "publishedAt",
+        "archivedAt",
         // Routing key (1)
         "routeShortName",
         // VehicleUpdate-only fields (11)
-        "vehicleId", "tripId", "routeId", "routeLongName", "routeColor", "mode",
-        "latitude", "longitude", "bearing", "speedKmh", "occupancyStatus",
+        "vehicleId",
+        "tripId",
+        "routeId",
+        "routeLongName",
+        "routeColor",
+        "mode",
+        "latitude",
+        "longitude",
+        "bearing",
+        "speedKmh",
+        "occupancyStatus",
         // ServiceAlert-only fields (6)
-        "alertId", "severity", "headerText", "descriptionText",
-        "startsAt", "endsAt"
+        "alertId",
+        "severity",
+        "headerText",
+        "descriptionText",
+        "startsAt",
+        "endsAt"
     ];
 
     // Pin the exact set of column names. Exact-set comparison catches both
