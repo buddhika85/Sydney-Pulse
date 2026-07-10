@@ -29,7 +29,7 @@ dashboard, tagged `v0.1.0`.
 | SP1-14 | Code review + interview-prep quiz (always-on) | 🔄     | 2026-06-01  | —           | —                   |
 | SP1-12 | GitHub Actions CI/CD              | ✅     | 2026-06-25  | 2026-06-29  | `6256c39` (PR #10 squash-merged) |
 | SP1-10 | Live dashboard                    | ✅     | 2026-06-30  | 2026-07-10  | `f10a434` (PR #11 squash-merged) |
-| SP1-11 | Landing page                      | ⬜     | —           | —           | —                   |
+| SP1-11 | Landing page                      | ✅     | 2026-07-10  | 2026-07-11  | `29dfccc` (PR #12 squash-merged) |
 | SP1-13 | Sprint wrap → v0.1.0              | ⬜     | —           | —           | —                   |
 
 ## SP1-01 — Repo + Azure bootstrap ✅
@@ -953,9 +953,45 @@ material in the project. Standout narrative angles:
   visual bug)
 - *"A written ADR is not enforcement"* (Story #8 ADR-based dedup)
 
-## SP1-11 / SP1-13
+## SP1-11 — Landing page ✅
 
-Not started. Refer to `sprint-1.md` for scope and per-item description.
+Started 2026-07-10. Closed 2026-07-11 via PR #12 (`29dfccc`). Jira: SP-11.
+~3 hours across two sessions.
+
+### What landed
+
+- **6-section landing page at `/`** — hero + CTA, 3-card feature strip,
+  hand-authored architecture SVG, tech stack chips, portfolio note, footer.
+  Standalone + OnPush per `web/CLAUDE.md`.
+- **Architecture SVG mirrors real ADR-0001 topology** — Service Bus
+  subscription-filter tier added between Event Grid and Alerter; StateWriter
+  and Alerter both dual-write via a "Persist + Broadcast" manifold pill so
+  the four converging writes render without crossing arrows. Colour palette
+  mirrors `docs/diagrams.md` legend.
+- **Tech stack chips lead with senior .NET/Azure signal** — .NET 8 + Azure
+  Functions + Managed Identity → data + messaging → App Insights → Bicep +
+  GitHub Actions + xUnit → Angular tail (14 chips total).
+- **Portfolio note owns the six-year prod experience explicitly** — "the
+  same event-driven pattern I've shipped in production for six years"
+  removes ambiguity between this project's lifetime and the pattern's lineage.
+- **Mobile-responsive tuning** — media query below the `sm` breakpoint bumps
+  SVG-internal font sizes so titles/captions stay legible at 375px viewport;
+  desktop rendering unchanged.
+
+### Testing
+
+- `ng build` clean; landing chunk 14.80 kB.
+- Manual walkthrough at desktop (1440px) and mobile (375px) — 6 sections
+  render, no horizontal overflow, external links open in new tabs with
+  `rel="noopener noreferrer"`.
+- Backend `dotnet test` — 64/64 passing (unchanged, no backend files touched).
+- Frontend unit tests remain deferred to SP-21.
+
+## SP1-13
+
+Not started. Owns the SWA-deploy workflow + v0.1.0 tag + README refresh +
+CV update + Loom demo + LinkedIn post. Effectively the sprint close.
+Refer to `sprint-1.md` for scope.
 
 ## Housekeeping — 2026-06-03 — AzFunctions folder restructure
 
@@ -1071,43 +1107,38 @@ When an item is blocked:
 1. Flip to ⚠️ with a note in "Risks / open items" describing the blocker
    and what unblocks it.
 
-## Next session handoff (2026-07-10 — SP1-10 shipped, SP1-11 + SP1-13 remaining)
+## Next session handoff (2026-07-11 — SP1-11 shipped, SP1-13 remaining)
 
-**SP1-10 closed 2026-07-10 via PR #11 (`f10a434`).** Live dashboard + chip
-refactor + 3-step usability pass + 4 debug story fixes all landed. Testing.xlsx
-17/17 Pass. Interview evidence cluster (12 ★ questions across #7/#8/#9/#10) is
-now the strongest single-sprint-item portfolio material.
+**SP1-11 closed 2026-07-11 via PR #12 (`29dfccc`).** Landing page at `/`
+with corrected architecture SVG (Service Bus tier added, "Persist + Broadcast"
+manifold pattern), tech-stack chips (leads with .NET 8 / Azure Functions /
+Managed Identity), portfolio note owning the six-year prod experience
+explicitly, and mobile-responsive tuning. ~3 hours across two sessions.
 
 ### Quick state snapshot
 
-- On `main` at `f10a434`. Feature branch `feat/sp1-10-live-dashboard` deleted
-  (local + remote).
+- On `main` at `29dfccc`. Feature branch `feat/sp1-11-landing-page` deleted
+  (local + remote via squash-merge).
 - Tests: **64 backend passing**, `ng build` clean, bicep build clean.
   Frontend unit tests remain deferred to SP-21.
-- **Live CI/CD pipeline.** Every push to `main` auto-deploys the backend
-  stack (Bicep + Function App + cross-RG Service Bus topic) to
-  `sydney-pulse-rg-dev` via OIDC federated identity. ~5 minutes end-to-end.
-  **SWA content deploy is NOT yet in the pipeline** — that's the first
-  task of SP1-13.
+- Live CI/CD pipeline unchanged from SP1-10 close (auto-deploys backend on
+  push to `main`; SWA content deploy still NOT wired — first task of SP1-13).
 
 ### What's still ahead in Sprint 1
 
-Two items remaining before v0.1.0 release:
+One item remaining before v0.1.0 release:
 
-- **SP1-11 — Minimal landing page** (~0.75 days). Hero, CTA, simple
-  architecture SVG. Portfolio content — nice to have, doesn't unblock
-  anything else.
-- **SP1-13 — Sprint wrap + portfolio refresh** (~1 day). Tag v0.1.0,
-  README with live URL + architecture, Loom demo, LinkedIn post, **CV
-  refresh with real Static Web App URL + measured perf numbers**. Depends
-  on live URL being available, which requires SWA deploy plumbing to
-  work.
+- **SP1-13 — Sprint wrap + portfolio refresh** (~1 day). SWA-deploy workflow
+  plumbing (first task, unblocks the live URL), tag v0.1.0, README with live
+  URL + architecture, Loom demo, LinkedIn post, **CV refresh with real Static
+  Web App URL + measured perf numbers**.
 
 ### Recommended next — SWA deploy plumbing FIRST
 
-The SWA deploy workflow was silently deferred from SP1-12 (CI/CD) —
-Bicep provisioned the SWA resource but no workflow pushes Angular
-content to it. To close Sprint 1's live URL deliverable, SP1-13 needs:
+Unchanged from previous handoff — SWA-deploy workflow was silently deferred
+from SP1-12 (CI/CD) and remains the load-bearing gate on the live URL.
+Bicep provisioned the SWA resource but no workflow pushes Angular content
+to it. SP1-13 needs:
 
 - New `_swa-publish.yml` reusable workflow (mirrors `_func-publish.yml`
   pattern) that runs `ng build --configuration production` and calls
@@ -1115,27 +1146,18 @@ content to it. To close Sprint 1's live URL deliverable, SP1-13 needs:
 - New job in `deploy-dev.yml` chained after `publish-app`
 - `AZURE_STATIC_WEB_APPS_API_TOKEN` GitHub Actions secret (from the dev
   SWA's "Manage deployment token" blade)
-- First deploy → capture live URL → wire into README, CV, LinkedIn post
-
-**Suggested order:**
-
-1. **SWA plumbing first** (as SP1-13's opening task) — unblocks the live URL
-2. **SP1-11 landing page** — can slot in with the live URL known, so
-   the landing page's internal links (`/api/*` CORS, deep links) work
-   correctly on first render
-3. **SP1-13 wrap tasks** — tag v0.1.0, README, Loom, LinkedIn, CV refresh
-
-Alternative: do SP1-11 in parallel — the landing page code doesn't need
-SWA deploy infra ready; it just needs to build clean.
+- First deploy → capture live URL → wire into README, landing page (already
+  routes `/` → `/live` CTA internally, no code change needed), CV, LinkedIn
+  post
 
 ### Where we are (cumulative)
 
 - Full event pipeline running end-to-end in dev: Poller → Event Grid →
   StateWriter / Alerter / (Archiver wired, smoke deferred to SP-19) →
   Cosmos + SignalR + HTTP API. All 5 backend paths smoke-verified.
-- Frontend live dashboard deployed to dev backend via workflow_dispatch
-  proven twice (Story #7 + Story #9 fixes). Local `ng serve` confirmed
-  against dev backend.
+- Frontend **live dashboard and public landing page both built.** Landing
+  page routes `/` → hero → `/live` CTA. Not yet live because SWA-deploy
+  isn't wired.
 - Bicep, App Insights sampling, Key Vault, Event Grid subscriptions,
   Data Lake lifecycle, CORS, main branch protection, OIDC federated
   identity — all as SP1-12 handoff (no changes this pass).
@@ -1146,12 +1168,12 @@ SWA deploy infra ready; it just needs to build clean.
    `sprint-1.md`, then glob `docs/**/*.md`. Also read
    `C:\BUDDHIKA\2026 July\CLAUDE.md` per the auto-read memory.
 2. `git status` + `git log -5 --oneline` — confirm working tree is clean
-   and on `main` at `f10a434` or later.
+   and on `main` at `29dfccc` or later.
 3. **Start SP1-13 with SWA deploy plumbing** — new `_swa-publish.yml`
    reusable workflow, wire into `deploy-dev.yml`, add GitHub Actions
    secret, first deploy to dev SWA, capture live URL.
-4. **OR** start SP1-11 landing page in parallel if you want variety of
-   work — the landing page component doesn't need the deploy infra.
+4. Then tag v0.1.0, README refresh, CV update (real URL + measured perf),
+   Loom demo, LinkedIn post.
 
 ### Sprint 1 deferrals (logged to backlog)
 
