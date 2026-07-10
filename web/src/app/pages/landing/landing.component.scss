@@ -1,0 +1,162 @@
+// landing.component.scss - component-scoped overrides for the inline
+// architecture SVG + its legend. Everything else on the page is
+// Tailwind classes (per web/CLAUDE.md); this file only holds what
+// Tailwind cannot express cleanly - namely SVG fills / strokes /
+// hover states on <rect> children and font styling on <text>.
+//
+// Colour palette mirrors docs/diagrams.md so the story reads
+// consistently across landing page + internal architecture doc.
+// Palette used both here and in the HTML legend swatches.
+
+// ---- SVG scaling ----
+
+// viewBox is the source of truth; setting width:100% + max-width
+// keeps the diagram crisp on desktop and fluid on mobile without
+// media queries. height:auto preserves the intrinsic ratio.
+.architecture-diagram svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+// ---- SVG node rectangles ----
+
+// White fill + coloured stroke = minimalist portfolio look; tinted
+// fills would fight the page-level slate-50 section background.
+.node rect {
+  fill: white;
+  stroke-width: 2;
+  transition: filter 0.2s ease;
+}
+
+// Subtle lift on hover - communicates "these are real components,
+// go read the docs" without being a distracting animation.
+.node:hover rect {
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+}
+
+// ---- SVG text ----
+
+// font-family: inherit picks up the page's Tailwind sans-serif stack
+// so the diagram matches the surrounding copy. SVG <text> does not
+// inherit CSS font by default in all engines - be explicit.
+.node__title {
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  fill: #0f172a; // slate-900
+}
+
+.node__caption {
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 400;
+  fill: #64748b; // slate-500
+}
+
+// ---- Per-tier stroke colours ----
+
+// External source - neutral slate; not part of our infrastructure.
+.node--external rect {
+  stroke: #475569;
+}
+
+// Ingest (blue) - matches arrow tier 1 -> tier 3.
+.node--ingest rect {
+  stroke: #0078d4;
+}
+
+// Event bus (teal) - matches fan-out arrows.
+.node--bus rect {
+  stroke: #00b294;
+}
+
+// Processing functions - dark slate. Deliberately neutral so the
+// tier-5 amber / red pop below.
+.node--process rect {
+  stroke: #334155;
+}
+
+// Durable state (amber) - matches Cosmos write arrows.
+.node--store rect {
+  stroke: #ff8c00;
+}
+
+// Real-time push (red) - matches SignalR broadcast arrows.
+.node--push rect {
+  stroke: #e74c3c;
+}
+
+// Client (green) - matches read-path arrow to Angular.
+.node--client rect {
+  stroke: #107c10;
+}
+
+// ---- Manifold (dual-output phase indicator) ----
+
+// Thin pill between the processing functions and Cosmos + SignalR.
+// Represents the dual-output-binding phase, not a distinct Azure
+// resource - warm-tint fill with no stroke keeps it visually secondary
+// to the real nodes. Yellow-50 sits well against the slate-50 section
+// background without pulling as warm as amber-50.
+.node--manifold rect {
+  fill: #fefce8; // yellow-50
+  stroke: none;
+}
+
+// Manifold caption - yellow-900 matches the pill hue and stays readable
+// without shouting; slightly tracked so the two words breathe.
+.node__manifold-label {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  fill: #713f12; // yellow-900
+  letter-spacing: 0.02em;
+}
+
+// ---- Legend under the diagram ----
+
+.architecture-diagram__legend {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem 1.5rem;
+  padding: 0;
+  list-style: none;
+  font-size: 0.75rem;
+  color: #64748b; // slate-500
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+}
+
+.legend-swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+// ---- Mobile SVG text sizes ----
+
+// Below the sm breakpoint the diagram scales down enough that base
+// font sizes render as ~6-7px displayed - illegible. Bump SVG-internal
+// font sizes on narrow viewports so text stays around 8-10px displayed
+// after the scale. Desktop rules above stay untouched.
+@media (max-width: 640px) {
+  .node__title {
+    font-size: 22px;
+  }
+  .node__caption {
+    font-size: 17px;
+  }
+  .node__manifold-label {
+    font-size: 18px;
+  }
+}
