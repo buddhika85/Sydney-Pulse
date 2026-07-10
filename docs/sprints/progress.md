@@ -28,7 +28,7 @@ dashboard, tagged `v0.1.0`.
 | SP1-09 | Angular scaffolding (deeper)      | ✅     | 2026-06-20  | 2026-06-24  | `fcb4466` (PR #9 squash-merged) |
 | SP1-14 | Code review + interview-prep quiz (always-on) | 🔄     | 2026-06-01  | —           | —                   |
 | SP1-12 | GitHub Actions CI/CD              | ✅     | 2026-06-25  | 2026-06-29  | `6256c39` (PR #10 squash-merged) |
-| SP1-10 | Live dashboard                    | 🔄     | 2026-06-30  | —           | ADR-0013, ADR-0014  |
+| SP1-10 | Live dashboard                    | ✅     | 2026-06-30  | 2026-07-10  | `f10a434` (PR #11 squash-merged) |
 | SP1-11 | Landing page                      | ⬜     | —           | —           | —                   |
 | SP1-13 | Sprint wrap → v0.1.0              | ⬜     | —           | —           | —                   |
 
@@ -821,56 +821,137 @@ working manual recipe.
   added now via Settings → Branches → main, since `lint-test / lint-test`
   is a stable check name. Pending until Sprint 2 hardening.
 
-## SP1-10 — Live dashboard 🔄
+## SP1-10 — Live dashboard ✅
 
-Started 2026-06-30. Jira: SP-10. Phase 1 (Plan) complete. Phase 2 (Scaffold)
-queued for Sat 4 Jul per `2026 July\Plan.xlsx` calendar block
-(Sat 4 → Tue 7 Jul, 4-day weekend-night block).
+Closed 2026-07-10 via PR #11 (`f10a434`). Jira: SP-10.
 
-### Planning session — 2026-06-30
+**Ambitious scope, ambitious delivery.** What started as a chip refactor plus
+a 3-step usability pass grew — during a two-day smoke-test marathon
+(2026-07-08 → 07-10) — into a Sprint 1 close-quality delivery: the dashboard
+shipped complete, **plus 4 senior-grade debug stories with ★ interview
+soundbites**. The documentation cluster (mechanical writeups + interview
+questions + 14 embedded screenshots + written ADR amendment) is arguably the
+strongest single-sprint-item portfolio evidence in the project so far.
 
-Walked through SP1-10 spec + Angular shell from SP1-09 + captured HTTP API
-fixtures. Locked 9 design decisions covering marker upsert, filter strategy,
-icon choice, tile/center, ghost-marker handling, reconnect, shared filter
-signal, component split, and zoom-on-alert deferral. Q2 (mode filter)
-collapsed — backend is `sydneytrains`-only by SP1-16 deliberate scope; multi-mode
-expansion is its own sprint per `docs/sprints/sprint-bus-expansion.md`.
-
-### ADRs landed today
+### ADRs landed during Phase 1 planning (2026-06-30)
 
 - **ADR-0013** — Trust the SignalR stream on the live dashboard; client-side
   TTL prune (5 min, aligned to Cosmos `vehicles` container TTL) replaces a
-  periodic-refetch hedge. Architectural posture — the dashboard does not
-  paper over SignalR with HTTP polling.
+  periodic-refetch hedge.
 - **ADR-0014** — Raw Leaflet with Angular lifecycle; no `ngx-leaflet`
-  wrapper. Formalizes the SP1-09 decision (previously private in memory)
-  for the public record. Ties the choice to the SP-20 tech-debt cluster
-  cleared in-sprint via commit `dae300a`.
+  wrapper. Formalizes the SP1-09 decision for the public record.
 
-### Scope locked for v1
+### Dashboard core (from original scope)
 
-- Leaflet map with `L.circleMarker` markers, upsert keyed by `vehicleId`
-- SignalR initial-snapshot-then-stream (no periodic refetch — ADR-0013)
-- Single `selectedRoute` signal shared between map + alerts panel
-- Route filter dropdown sourced from distinct `routeShortName` values in
-  the loaded vehicle stream (not from `/api/routes` — that catalogue
-  contains ~200 entries, most empty)
-- Static "Sydney Trains" pill in header (explicit scope marker — answers
-  the demo question of "where are the buses" before it gets asked)
-- Alerts panel as presentational right-rail (≥ 1024 px) / stacked below
-  (mobile); shared filter via the `selectedRoute` signal
-- Stale-data freshness badge driven by `latestEventTimestamp = max(feedTimestamp, observed SignalR vehicleUpdated.timestamp values)`; 60-second binary threshold; 5-second re-evaluation interval (SP1-09 decision A precedent + 2026-07-01 SP1-10 Phase 2 prep lock)
-- Zoom-on-alert-click deferred to SP4 polish
+- Leaflet map with `L.circleMarker` markers, upsert keyed by `vehicleId`,
+  5-min TTL client-side prune (ADR-0013).
+- SignalR initial-snapshot-then-stream, no periodic HTTP refetch.
+- Route filter chip strip refactored from `<select>` dropdown to
+  colour-coded chip buttons — filter + legend as one UI element.
+- Alerts panel as presentational right-rail with route-scoped filter.
+- Freshness pill driven by `max(feedTimestamp, latestStreamTs)` — 60s stale
+  threshold, 5s re-eval interval.
+- Frontend environment isolation flags (`enableSignalRRealtime`,
+  `enableFreshnessTimer`) added to support Phase A / B / C smoke isolation.
 
-### Next session pick-up
+### Chip usability pass (3 steps, layered feature)
 
-Phase 2 — Scaffold per CLAUDE.md TDD workflow. Six new files:
-`live.component.html`, `live.component.scss`, `vehicle-marker.ts`,
-`freshness.util.ts`, `alerts-panel.component.ts` (+ html/scss),
-`filters-bar.component.ts` (+ html/scss). Pre-scaffold verification:
-confirm `leaflet` + `@types/leaflet` are in `web/package.json`
-(SP1-09 was expected to add — needs check before any import lines).
-Phase 3 method loop follows.
+- **Step 1** — chip hover count tooltips: per-route `"N vehicles, M alerts"`
+  via native `[attr.title]`; "All" chip aggregate tooltip via pass-through
+  inputs (`totalVehicleCount`, `totalAlertCount`).
+- **Step 2** — mode chip filter-aware vehicle count: `SYDNEY TRAINS · N VEHICLES`
+  unfiltered / `X OF N VEHICLES` when a route chip is active. Middle-dot
+  separator.
+- **Step 3** — alerts panel filter-aware header count: `ACTIVE ALERTS (N)` /
+  `ACTIVE ALERTS (X OF N)`. Also a silent cleanup — `LiveComponent.filteredAlerts`
+  computed deleted; `AlertsPanelComponent.visibleAlerts` becomes sole owner
+  of the alerts filter (double-filter path removed).
+
+### 4 debug stories discovered + fixed during SP1-10 smoke testing
+
+- **Story #6** — `routeColor` double-hash silent visual bug in
+  `vehicle-marker.ts`. All markers rendering Leaflet default blue because
+  frontend prepended `#` to a value the backend already sent with `#`.
+  Contract-lock JSDoc on `Vehicle.routeColor` prevents recurrence.
+- **Story #7 ★** — SignalR camelCase drift. Worker-wide JSON serializer
+  configured in `Program.cs`. Previously the "camelCase on the wire"
+  contract was implemented in **4 places** (3 HTTP endpoints + Cosmos
+  client) but the SignalR output binding inherited the worker default
+  (PascalCase). Class-of-bug fix: central policy in one line. Deployed
+  via `workflow_dispatch` on the feature branch with a controlled 11-min
+  env-protection-rule window.
+- **Story #8 ★** — Alert stream unbounded growth. ADR-0010 explicitly
+  said the frontend owns dedup by `alertId`; `wireAlertStream` just
+  prepended without dedup — **a written ADR contract the code ignored
+  for weeks.** Fix: upsert-by-`alertId` with `receivedAt` comparison
+  matching the ADR-0010 wording. Signal-reference-equality lesson also
+  captured as a `LEARN:` comment in the code.
+- **Story #9 ★** — Freshness pill stuck stale. `StateWriterFunction`
+  broadcast the `VehicleUpdate` event shape instead of `VehicleDocument`
+  Cosmos-doc shape (unlike `AlerterFunction` which broadcasts
+  `AlertDocument`). Frontend `Vehicle.ts` was written for the doc shape,
+  so stream fields (`timestamp`, `id`, `updatedAt`) silently dropped —
+  freshness pipeline never advanced. Fix: broadcast `vehicleDocument`,
+  matching the alerts-hub pattern. Same class-of-bug as #7 but
+  DTO/shape convention rather than casing convention.
+- **Story #10 ★** — Cosmos cross-partition dupes. Same `alertId`
+  legitimately exists under multiple `routeShortName` partitions
+  (multi-route TfNSW alerts). **Unmasked by Story #7 fix** — before
+  that, PascalCase drift made `alert.alertId` undefined, so the `$index`
+  fallback in the `@for` track expression masked the collision. Bug
+  archaeology in real time. Fix: composite track key
+  `(alertId, routeShortName)` in the template + composite dedup
+  predicate in `wireAlertStream`. First-instinct Poller-side dedup was
+  proposed then rejected on architectural grounds — *the write layer's
+  job is to preserve source data; the presentation layer's job is to
+  make sense of it.*
+
+### Doc updates delivered
+
+- **ADR-0010 amendment** — composite dedup key clarification. Cosmos
+  uniqueness is per-partition, not global; frontend dedups by
+  `(alertId, routeShortName)`.
+- **`justify_sb_usage.md`** — interview soundbite refreshed to composite
+  key semantics.
+- **`docs/sp1-10-debug-stories.md`** — Stories #6, #7, #8, #9, #10 all
+  fully written with 14 embedded screenshots (gitignored under
+  `docs/images/*-story-*.png`).
+- **`docs/interview-prep.md`** — 12 ★ interview questions across the
+  debug-story cluster + 4 chip-refactor interview questions.
+
+### Testing
+
+- **`Testing/Testing.xlsx` — 17/17 rows Pass** (2026-07-10 final smoke).
+- Backend `dotnet test` — **64/64 tests passing**.
+- Frontend unit tests remain deferred to SP-21 per SP1-09 decision.
+
+### Deferrals + Sprint 2 tech debt captured
+
+- **Angular SWA deploy workflow** — deferred to SP1-13 (sprint wrap)
+  which owns the live URL deliverable. Needs new `_swa-publish.yml`
+  reusable workflow + job in `deploy-dev.yml` + `AZURE_STATIC_WEB_APPS_API_TOKEN`
+  GitHub Actions secret.
+- **`VehicleWireDto` refactor** — captured in `StateWriterFunction.cs`
+  code comment. Would decouple wire from storage cleanly if that
+  trade-off is ever worth pursuing honestly (Sprint 2 candidate).
+- **Bankstown line route catalogue gap** — BNK_1a / BNK_1c chip labels
+  fall back to raw TfNSW routeIds because the static route catalogue
+  doesn't have entries for them. Small, separate finding.
+
+### Interview evidence produced
+
+Debug story cluster is now the highest-density senior-grade interview
+material in the project. Standout narrative angles:
+
+- *"Consistency across analogous paths beats theoretical decoupling"*
+  (Story #9)
+- *"Data completeness > premature normalization at write layer"*
+  (Story #10)
+- *"5 consumers, 4 enforced, 1 silent bug"* (Story #7 class-of-bug)
+- *"A gate that never fires is an unproven gate"* (Story #7 DevOps)
+- *"Trust source data, not intermediary formatters"* (Story #6 silent
+  visual bug)
+- *"A written ADR is not enforcement"* (Story #8 ADR-based dedup)
 
 ## SP1-11 / SP1-13
 
@@ -990,93 +1071,114 @@ When an item is blocked:
 1. Flip to ⚠️ with a note in "Risks / open items" describing the blocker
    and what unblocks it.
 
-## Next session handoff (2026-06-30 — SP1-10 Phase 1 plan locked)
+## Next session handoff (2026-07-10 — SP1-10 shipped, SP1-11 + SP1-13 remaining)
 
-**SP1-10 Phase 1 (Plan) complete on 2026-06-30.** Two ADRs landed:
-**ADR-0013** (trust the event stream — no periodic refetch) and
-**ADR-0014** (raw Leaflet with Angular lifecycle). Phase 2 (Scaffold)
-starts Sat 4 Jul per `2026 July\Plan.xlsx` calendar block.
+**SP1-10 closed 2026-07-10 via PR #11 (`f10a434`).** Live dashboard + chip
+refactor + 3-step usability pass + 4 debug story fixes all landed. Testing.xlsx
+17/17 Pass. Interview evidence cluster (12 ★ questions across #7/#8/#9/#10) is
+now the strongest single-sprint-item portfolio material.
 
 ### Quick state snapshot
 
-- On `main` at `6256c39` (SP1-12 squash). Today's planning artefacts —
-  ADR-0013, ADR-0014, `architecture.md` cross-reference, and this
-  `progress.md` update — pending commit on a `feat/sp1-10-live-dashboard`
-  branch (preferred) or as a housekeeping commit on `main`.
+- On `main` at `f10a434`. Feature branch `feat/sp1-10-live-dashboard` deleted
+  (local + remote).
 - Tests: **64 backend passing**, `ng build` clean, bicep build clean.
-  Frontend unit tests deferred to SP-21.
-- **Live CI/CD pipeline.** Every push to `main` auto-deploys the full
+  Frontend unit tests remain deferred to SP-21.
+- **Live CI/CD pipeline.** Every push to `main` auto-deploys the backend
   stack (Bicep + Function App + cross-RG Service Bus topic) to
-  `sydney-pulse-rg-dev` via OIDC federated identity. ~5 minutes
-  end-to-end dispatch → deployed.
-- **Next phase: SP1-10 Phase 2 — Scaffold.** Sat 4 Jul. See the
-  "SP1-10 — Live dashboard 🔄" section above for the locked scope
-  and the six files to scaffold.
+  `sydney-pulse-rg-dev` via OIDC federated identity. ~5 minutes end-to-end.
+  **SWA content deploy is NOT yet in the pipeline** — that's the first
+  task of SP1-13.
 
-### Where we are (cumulative since SP1-08)
+### What's still ahead in Sprint 1
+
+Two items remaining before v0.1.0 release:
+
+- **SP1-11 — Minimal landing page** (~0.75 days). Hero, CTA, simple
+  architecture SVG. Portfolio content — nice to have, doesn't unblock
+  anything else.
+- **SP1-13 — Sprint wrap + portfolio refresh** (~1 day). Tag v0.1.0,
+  README with live URL + architecture, Loom demo, LinkedIn post, **CV
+  refresh with real Static Web App URL + measured perf numbers**. Depends
+  on live URL being available, which requires SWA deploy plumbing to
+  work.
+
+### Recommended next — SWA deploy plumbing FIRST
+
+The SWA deploy workflow was silently deferred from SP1-12 (CI/CD) —
+Bicep provisioned the SWA resource but no workflow pushes Angular
+content to it. To close Sprint 1's live URL deliverable, SP1-13 needs:
+
+- New `_swa-publish.yml` reusable workflow (mirrors `_func-publish.yml`
+  pattern) that runs `ng build --configuration production` and calls
+  `Azure/static-web-apps-deploy@v1`
+- New job in `deploy-dev.yml` chained after `publish-app`
+- `AZURE_STATIC_WEB_APPS_API_TOKEN` GitHub Actions secret (from the dev
+  SWA's "Manage deployment token" blade)
+- First deploy → capture live URL → wire into README, CV, LinkedIn post
+
+**Suggested order:**
+
+1. **SWA plumbing first** (as SP1-13's opening task) — unblocks the live URL
+2. **SP1-11 landing page** — can slot in with the live URL known, so
+   the landing page's internal links (`/api/*` CORS, deep links) work
+   correctly on first render
+3. **SP1-13 wrap tasks** — tag v0.1.0, README, Loom, LinkedIn, CV refresh
+
+Alternative: do SP1-11 in parallel — the landing page code doesn't need
+SWA deploy infra ready; it just needs to build clean.
+
+### Where we are (cumulative)
 
 - Full event pipeline running end-to-end in dev: Poller → Event Grid →
-  StateWriter / Alerter / (Archiver wired but smoke deferred to SP-19)
-  → Cosmos + SignalR + HTTP API. `spike-deployed.html` confirms SignalR
-  end-to-end.
-- Bicep deployed to `sydney-pulse-rg-dev` — all resources healthy and
-  smoke-verified. **Now redeployed via CI/CD (SP1-12).**
-- App Insights daily cap: 1 GB/day. Sampling: fixed 5% in `host.json`.
-- Key Vault secrets seeded.
-- Event Grid `state-writer` + `archiver` webhook subscriptions wired
-  to real Function App hostname (no longer placeholders).
-- Data Lake `archive` + `pending` containers provisioned + lifecycle
-  policy (Hot → Cool 30d → Cold 90d).
-- CORS on dev Function App: `http://localhost:5500` (spike-deployed.html)
-  + `http://localhost:4200` (Angular `ng serve`, added in SP1-09).
-- `main` branch protection enabled: PR required, force push blocked.
-  `lint-test / lint-test` available as a required check (Sprint 2 hardening).
-- **OIDC federated identity** to Azure: `sp-github-actions-dev` app reg
-  with 3 federated credentials + Contributor + UAA on both
-  `sydney-pulse-rg-dev` and `DevPulseRG`. `dev` environment restricted
-  to `main`-only deploys.
-- `Cosmos__AccountEndpoint` and `ServiceBus__fullyQualifiedNamespace`
-  need to be in `local.settings.json` to run Functions locally.
+  StateWriter / Alerter / (Archiver wired, smoke deferred to SP-19) →
+  Cosmos + SignalR + HTTP API. All 5 backend paths smoke-verified.
+- Frontend live dashboard deployed to dev backend via workflow_dispatch
+  proven twice (Story #7 + Story #9 fixes). Local `ng serve` confirmed
+  against dev backend.
+- Bicep, App Insights sampling, Key Vault, Event Grid subscriptions,
+  Data Lake lifecycle, CORS, main branch protection, OIDC federated
+  identity — all as SP1-12 handoff (no changes this pass).
 
 ### Resume sequence (next session)
 
-1. Follow session start protocol per `CLAUDE.md` — read this file,
-   then `sprint-1.md`, then glob `docs/**/*.md`. Also read
+1. Follow session start protocol per `CLAUDE.md` — read this file, then
+   `sprint-1.md`, then glob `docs/**/*.md`. Also read
    `C:\BUDDHIKA\2026 July\CLAUDE.md` per the auto-read memory.
-2. `git status` + `git log -5 --oneline` — confirm the planning
-   artefacts (ADR-0013, ADR-0014, architecture/progress updates) are
-   either committed on `feat/sp1-10-live-dashboard` or staged.
-3. **Start SP1-10 Phase 2 — Scaffold** per the locked plan above.
-   Six new files; read the "SP1-10 — Live dashboard 🔄" section for
-   the file list, scope, and ADR pointers.
-4. Pre-scaffold verification: confirm `leaflet` + `@types/leaflet`
-   are present in `web/package.json`. If missing, add them before
-   any scaffolded import line.
-5. Per the day-by-day plan at `C:\BUDDHIKA\2026 July\Plan.xlsx`,
-   SP1-10 build days are Sat 4 / Sun 5 / Mon 6 / Tue 7 Jul (weekend
-   nights + first weekdays of Week 2). 4-day block.
+2. `git status` + `git log -5 --oneline` — confirm working tree is clean
+   and on `main` at `f10a434` or later.
+3. **Start SP1-13 with SWA deploy plumbing** — new `_swa-publish.yml`
+   reusable workflow, wire into `deploy-dev.yml`, add GitHub Actions
+   secret, first deploy to dev SWA, capture live URL.
+4. **OR** start SP1-11 landing page in parallel if you want variety of
+   work — the landing page component doesn't need the deploy infra.
 
 ### Sprint 1 deferrals (logged to backlog)
 
 - **Frontend unit tests → [SP-21](https://gsoft85512.atlassian.net/browse/SP-21).**
-  Decided 2026-06-23 during SP1-09. Drafted a first failing
-  `RealtimeService` spec to force the `Promise.all` vs `Promise.allSettled`
-  design decision in `disconnect()`, then deferred the whole frontend test
-  layer to keep Sprint 1 focused on shipping the live URL. Spec file
-  removed; `app.component.spec.ts` (Angular CLI auto-scaffold) retained so
-  `ng test` infrastructure is intact for SP-21 to build on. Rationale:
-  target roles are .NET-senior with Angular secondary; backend already at
-  55 tests; the `disconnect()` design question is captured in SP-21's
-  description and revisited as the story's first test.
+  Decided 2026-06-23 during SP1-09. Rationale: target roles are
+  .NET-senior with Angular secondary; backend already at 64 tests; the
+  `disconnect()` design question is captured in SP-21's description as
+  the story's first test.
+- **`VehicleWireDto` refactor → Sprint 2.** Captured in
+  `StateWriterFunction.cs` code comment. Would decouple wire from storage
+  cleanly if that trade-off is ever worth pursuing honestly. Currently
+  both hubs broadcast the Cosmos doc shape — consistent, honest, but
+  couples wire contract to storage.
+- **Bankstown line route catalogue gap.** BNK_1a / BNK_1c chip labels
+  fall back to raw TfNSW routeIds because the static route catalogue
+  doesn't have entries for them. Small, separate finding surfaced during
+  Story #10 investigation.
 
 ### Standing operating rules
 
 - User runs all Azure mutations. Claude provides instructions and
   read-only verification only.
+- **Developer handles git + PR workflow.** Claude reminds Socratically,
+  no `git` or `gh` mutations from Claude.
+- Feature branches + PR for all sprint items.
 - One file at a time. Stop after each step and wait for explicit approval.
-- Review pass before pushing: walk through each file, commit developer edits.
 - Claude cannot read/write `**/local.settings.json` (deny rule).
 - Windows / PowerShell — single-line commands only.
 - Code comments convention active on all source files Claude writes.
-- Feature branches + PR for all sprint items from SP1-05 onwards.
 - No magic strings for Azure infrastructure names — use `FunctionConstants`.
