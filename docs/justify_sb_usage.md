@@ -33,8 +33,13 @@ Vehicles skip SB on purpose: high volume (~3500 ev / 30 s), drops tolerable
 2. **Volume per route is low** — ~5–10 alerts/day/route. Sub-second
    ordering between two updates for the same route almost never happens.
 3. **Frontend handles out-of-order arrival** — each alert has `alertId`
-   (unique) + `updatedAt` (timestamp). Newer `updatedAt` wins; older
+   + `receivedAt` (timestamp). Newer `receivedAt` wins; older
    discarded. Same pattern handles SignalR reconnection replays.
+   **Dedup key is composite `(alertId, routeShortName)`** — not
+   `alertId` alone. Cosmos uniqueness is per-partition-key, and a
+   multi-route TfNSW alert legitimately lives in multiple Cosmos
+   partitions (see ADR-0010 amendment 2026-07-09 + SP1-10 debug
+   stories #8 and #10 for the discovery narrative).
 
 ## How SB *would* guarantee ordering (if enabled)
 
@@ -70,9 +75,13 @@ acceptable for vehicles (would throttle the live dashboard).
 > ordering. The big three: dead-letter queue, retry control via
 > max-delivery-count and lock+complete, and backpressure when Cosmos
 > throttles. We deliberately skipped sessions — ADR-0010 — because alert
-> volume per route is low and the frontend deduplicates by `alertId`
-> plus `updatedAt`. Sessions are one Bicep property away if a future
-> regulatory ordering requirement comes in."*
+> volume per route is low and the frontend deduplicates by the composite
+> key `(alertId, routeShortName)` plus `receivedAt`. Composite key
+> because Cosmos uniqueness is per-partition, and a multi-route TfNSW
+> alert lives legitimately in multiple Cosmos partitions — we surfaced
+> that during SP1-10 smoke as debug stories #8 and #10. Sessions are
+> one Bicep property away if a future regulatory ordering requirement
+> comes in."*
 
 ## Related
 

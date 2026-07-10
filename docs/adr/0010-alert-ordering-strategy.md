@@ -123,3 +123,60 @@ by:
    subscription's message transformation
 
 This would be an ADR-0010 amendment, not a wholesale rewrite.
+
+## Amendment (2026-07-09) — Composite dedup key
+
+**Trigger:** SP1-10 UI smoke test surfaced two related bugs — Debug
+Stories #8 and #10 in `docs/sp1-10-debug-stories.md`. Details there.
+
+**Correction to the original wording above.** Sections *"Reasoning"*
+(item 3) and *"What we explicitly accept"* both state that the
+frontend deduplicates by `alertId`. That wording implicitly assumes
+`alertId` is globally unique across the alerts container. **It is
+not.**
+
+**Why the original assumption was wrong.** TfNSW GTFS-Realtime sends
+alerts that affect multiple routes as **separate entities** — one
+entity per informed route — but each carries the same `entity.Id`
+(surfaced as `alertId` on the Cosmos document). The Poller correctly
+emits one `ServiceAlert` per entity; the Alerter upserts each into
+Cosmos; the container is partitioned by `routeShortName` per
+ADR-0002. **Result:** a legitimate multi-route disruption lands as N
+separate Cosmos documents sharing the same `alertId` field but living
+in N different partitions. `SELECT *` returns all of them.
+
+**Corrected dedup contract.** The frontend deduplicates by the
+**composite key `(alertId, routeShortName)`** — the tuple that
+matches Cosmos's actual per-partition-key uniqueness. Same spirit as
+the original ADR (frontend owns dedup, at-least-once acceptable in
+the pipeline); only the mechanism is refined:
+
+- **Replace** original wording *"the frontend uses the higher
+  `updatedAt` and discards the older"* → *"the frontend uses the
+  higher `updatedAt` and discards the older, keyed on
+  `(alertId, routeShortName)`"*
+- **Replace** original wording *"the frontend deduplicates by
+  `alertId`"* → *"the frontend deduplicates by
+  `(alertId, routeShortName)`"*
+
+**Consequence — presentation-layer responsibility.** A multi-route
+alert now surfaces as N distinct entries in the frontend collection,
+one per affected route. This preserves per-route filtering fidelity
+(a T3 filter shows the T3 copy). In the "All" view, users see the
+same alert card repeated with different route badges — acceptable for
+Sprint 1 (route badge makes the repetition informative), Sprint 2
+polish candidate is to aggregate identical `alertId`s in "All" view
+under one card with combined route badge.
+
+**Why we did NOT normalize at the write layer.** First-instinct fix
+was a Poller-side dedup picking a "canonical" route. Rejected on
+architectural grounds: the whole point of `routeShortName`
+partitioning per ADR-0002 is that alerts are per-route queryable;
+squashing at write-time would mean a user filtering by T3 never sees
+an alert TfNSW says affects T3. **The write layer's job is to
+preserve source data; the presentation layer's job is to make sense
+of it.**
+
+**Companion doc update.** `docs/justify_sb_usage.md` also carries a
+soundbite about frontend dedup — refreshed in the same PR as this
+amendment to match the composite-key wording.
