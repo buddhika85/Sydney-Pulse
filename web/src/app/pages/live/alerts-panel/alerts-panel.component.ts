@@ -61,6 +61,34 @@ export class AlertsPanelComponent {
   });
 
   /**
+   * Filter-aware header label. Answers "how many alerts are showing
+   * right now, and how does that compare to the total?" for the
+   * ACTIVE ALERTS header of this panel.
+   *
+   * Acceptance criteria:
+   * - When `selectedRoute()` is null: return `"Active alerts (N)"`
+   *   where N = `alerts().length` (e.g. `"Active alerts (20)"`)
+   * - When `selectedRoute()` is set: return `"Active alerts (X of Y)"`
+   *   where X = `visibleAlerts().length` and Y = `alerts().length`
+   *   (e.g. `"Active alerts (3 of 20)"`)
+   * - No pluralisation guard - `"Active alerts (1 of 1)"` is acceptable
+   *   at this sprint (matches Design Call 1 in the SP1-10 usability
+   *   pass plan; same call as vehicleCountLabel on LiveComponent)
+   * - Read `alerts()`, `visibleAlerts()`, and `selectedRoute()` so
+   *   change detection re-fires on any of them
+   */
+  readonly headerLabel = computed<string>(() => {
+    const totalAlertCount = this.alerts().length;
+    if (!this.selectedRoute()) {
+      // no selected route
+      return `Active alerts (${totalAlertCount})`;
+    }
+
+    // a route selected
+    return `Active alerts (${this.visibleAlerts().length} of ${totalAlertCount})`;
+  });
+
+  /**
    * Maps GTFS-Realtime Alert.Effect values (lowercased, no underscores)
    * to a Tailwind border class. See docs/sp1-10-debug-stories.md #1
    * for the taxonomy discovery.

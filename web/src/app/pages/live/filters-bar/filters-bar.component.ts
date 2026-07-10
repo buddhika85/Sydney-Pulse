@@ -1,13 +1,13 @@
-// filters-bar.component.ts - route filter dropdown for the live dashboard.
+// filters-bar.component.ts - filter bar container for the live dashboard.
 //
 // Presentational (web/CLAUDE.md convention): inputs in, outputs out, no
-// service injection. Parent LiveComponent owns state; this component owns
-// only the <select> element and its change event.
+// service injection. Composes RouteChipsComponent today; Sprint 2 adds
+// mode / agency / service-type widgets here beside the chip strip.
 //
-// SP1-10 Phase 1 lock: options source from distinct routeShortName values
-// in the LOADED vehicle stream, not from /api/routes - the static route
-// catalogue carries ~200 entries with most empty. Parent computes the
-// distinct sorted set and passes it here.
+// SP1-10 Phase 1 lock: route options source from distinct routeShortName
+// values in the LOADED vehicle stream, not from /api/routes - the static
+// route catalogue carries ~200 entries with most empty. Parent computes
+// the distinct sorted set (with colours) and passes it here.
 //
 // "All routes" selection is represented as null (not "" or "all"), giving
 // selectedRoute a single unambiguous absent state that flows cleanly into
@@ -20,16 +20,24 @@ import {
   output,
 } from '@angular/core';
 
+import {
+  RouteChipOption,
+  RouteChipsComponent,
+} from '../route-chips/route-chips.component';
+
 @Component({
   selector: 'sp-filters-bar',
   standalone: true,
   templateUrl: './filters-bar.component.html',
   styleUrl: './filters-bar.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [RouteChipsComponent],
 })
 export class FiltersBarComponent {
-  // distinct sorted routeShortName list, computed upstream in LiveComponent
-  readonly routes = input<string[]>([]);
+  // distinct sorted route list (name + colour), computed upstream in
+  // LiveComponent. Colour rides alongside name so the chip child can
+  // style each button without re-scanning the vehicle feed.
+  readonly routes = input<RouteChipOption[]>([]);
 
   // null = "All routes" - single absent state, no "" vs null ambiguity
   readonly selectedRoute = input<string | null>(null);
@@ -38,21 +46,13 @@ export class FiltersBarComponent {
   readonly routeChange = output<string | null>();
 
   /**
-   * <select> change handler. Normalises the DOM value ("" for the
-   * All-routes option) to null before emitting so the parent signal
-   * holds one absent-state only.
-   *
-   * Acceptance criteria (SP1-10 Phase 3 impl target, ~5 min):
-   * - value === ""  -> routeChange.emit(null)
-   * - value !== ""  -> routeChange.emit(value)
+   * CHANGE SPEC (SP1-10 usability pass - chip hover counts):
+   * Pass-throughs to RouteChipsComponent's aggregate "All" chip tooltip.
+   * FiltersBarComponent doesn't consume them - kept dumb so LiveComponent
+   * stays single source of truth for count semantics.
+   * Defaults to 0 for graceful first-paint before the vehicle feed
+   * lands.
    */
-  onSelect(selectedValue: string): void {
-    if (selectedValue === '') {
-      // no filter applied - show all routes
-      this.routeChange.emit(null);
-    } else {
-      // a filter applied
-      this.routeChange.emit(selectedValue);
-    }
-  }
+  readonly totalVehicleCount = input<number>(0);
+  readonly totalAlertCount = input<number>(0);
 }

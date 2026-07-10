@@ -1,18 +1,10 @@
-<!-- filters-bar.component.html - route filter dropdown. Template ref #sel
-     keeps the (change) handler typed against HTMLSelectElement, avoiding
-     the $any($event.target) escape hatch. All-routes option value is ""
-     and is normalised to null inside onSelect() before emit. -->
-<label class="flex items-center gap-2 text-sm">
-  <span class="text-gray-700">Route</span>
-  <select
-    #sel
-    class="border border-gray-300 rounded px-2 py-1 bg-white"
-    [value]="selectedRoute() ?? ''"
-    (change)="onSelect(sel.value)"
-  >
-    <option value="">All routes</option>
-    @for (route of routes(); track route) {
-      <option [value]="route">{{ route }}</option>
-    }
-  </select>
-</label>
+<!-- filters-bar.component.html - passthrough to the chip strip.
+     Binds parent inputs to child inputs and forwards the chip's
+     routeChange output straight to the parent output. -->
+<sp-route-chips
+  [routes]="routes()"
+  [selectedRoute]="selectedRoute()"
+  [totalVehicleCount]="totalVehicleCount()"
+  [totalAlertCount]="totalAlertCount()"
+  (routeChange)="routeChange.emit($event)"
+/>

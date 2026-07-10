@@ -14,6 +14,13 @@ export interface Vehicle {
   speedKmh?: number;
   routeId: string;
   routeLongName: string;
+  /**
+   * Full CSS hex colour incl. leading `#` (e.g. `"#0098CD"`). Consumed
+   * directly as a Leaflet marker `color` and as chip fill / border in
+   * RouteChipsComponent - callers must NOT prepend another `#` (surfaced
+   * as a silent visual bug during SP1-10 smoke testing where `##XXXXXX`
+   * fell back to Leaflet's default blue).
+   */
   routeColor: string;
   mode: string;
   occupancyStatus?: string;

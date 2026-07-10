@@ -6,28 +6,26 @@
        before it gets asked (Phase 1 scope marker) -->
 <div class="live-shell">
   <header class="live-header">
-    <span class="live-scope-pill">Sydney Trains</span>
+    <span class="live-scope-pill"
+      >Sydney Trains · {{ vehicleCountLabel() }}</span
+    >
 
     <sp-filters-bar
       [routes]="routeOptions()"
       [selectedRoute]="selectedRoute()"
+      [totalVehicleCount]="vehicles().length"
+      [totalAlertCount]="alerts().length"
       (routeChange)="onRouteChange($event)"
     />
 
-    <span
-      class="live-freshness"
-      [class.live-freshness--stale]="isStale()"
-    >
-      {{ isStale() ? 'Stale' : 'Live' }}
+    <span class="live-freshness" [class.live-freshness--stale]="isStale()">
+      {{ isStale() ? "Stale" : "Live" }}
     </span>
   </header>
 
   <div #mapEl class="live-map"></div>
 
   <aside class="live-alerts">
-    <sp-alerts-panel
-      [alerts]="filteredAlerts()"
-      [selectedRoute]="selectedRoute()"
-    />
+    <sp-alerts-panel [alerts]="alerts()" [selectedRoute]="selectedRoute()" />
   </aside>
 </div>

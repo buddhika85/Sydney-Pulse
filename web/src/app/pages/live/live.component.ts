@@ -27,6 +27,7 @@ import {
   ElementRef,
   OnDestroy,
   computed,
+  effect,
   inject,
   signal,
   viewChild,
@@ -51,6 +52,9 @@ import {
   VEHICLE_MARKER_TTL_MS,
 } from '../../shared/design-tokens';
 import { firstValueFrom } from 'rxjs';
+import { environment } from '../../../environments/environment';
+
+import { RouteChipOption } from './route-chips/route-chips.component';
 
 @Component({
   selector: 'sp-live',
@@ -66,6 +70,22 @@ export class LiveComponent implements AfterViewInit, OnDestroy {
   private readonly vehiclesService = inject(VehiclesService);
   private readonly alertsService = inject(AlertsService);
   private readonly destroyRef = inject(DestroyRef);
+
+  /**
+   * Wires the route-filter effect. Re-applies map marker visibility
+   * whenever `selectedRoute` changes (user clicks a chip) OR `vehicles`
+   * changes (SignalR push adds/updates a vehicle). One place keeps both
+   * filter-toggle and new-arrival paths in sync.
+   *
+   */
+  constructor() {
+    effect(() => {
+      // read both signals to establish dependencies for re-runs
+      this.selectedRoute();
+      this.vehicles();
+      this.applyRouteFilterToMap();
+    });
+  }
 
   // Leaflet mount point - resolved in ngAfterViewInit, not the constructor.
   readonly mapEl = viewChild<ElementRef<HTMLDivElement>>('mapEl');
@@ -94,18 +114,118 @@ export class LiveComponent implements AfterViewInit, OnDestroy {
     return isStale(latest, this.freshnessNow());
   });
 
-  // distinct sorted routeShortName list - sourced from vehicles, NOT
-  // /api/routes (Phase 1 lock: the static catalogue is ~200 mostly-empty)
-  readonly routeOptions = computed<string[]>(() => {
-    const set = new Set(this.vehicles().map((v) => v.routeShortName));
-    return [...set].sort();
+  /**
+   * Distinct route list for the filter chip strip - one entry per
+   * routeShortName seen in the current vehicles snapshot. Sourced from
+   * the vehicle feed, NOT /api/routes (Phase 1 lock: the static catalogue
+   * carries ~200 entries with most empty).
+   *
+   * CHANGE SPEC (SP1-10 chip refactor):
+   * - Previous shape: `computed<string[]>` returning just the sorted
+   *   names. Chip UI needs colour too, so the shape changes to
+   *   `computed<RouteChipOption[]>` (`{ name, color }` per entry).
+   * - Import: add `RouteChipOption` from `./route-chips/route-chips.component`
+   *   at the top of this file alongside the existing component imports.
+   * - Dedup rule: use a `Map<name, color>` and set-if-absent - first-seen
+   *   colour wins. Matches the invariant "one route -> one colour"
+   *   guaranteed by the backend feed. If TfNSW ever ships colour drift
+   *   mid-session the first observation is chosen deterministically.
+   * - Sort rule: alphabetically by name via `String.localeCompare` so
+   *   `"T10"` sorts naturally next to `"T9"` if that ever appears
+   *   (default `<` comparator sorts "T10" before "T2").
+   *
+   * - Downstream consumers: FiltersBarComponent input type flips from
+   *   `string[]` to `RouteChipOption[]` in step 4. The template binding
+   *   `[routes]="routeOptions()"` in live.component.html stays unchanged.
+   *
+   * CHANGE SPEC (SP1-10 usability pass - chip hover counts):
+   * - `RouteChipOption` gained `vehicleCount` + `alertCount` fields so
+   *   each chip can render a hover tooltip. This computed now needs to
+   *   populate both per route.
+   * - Vehicle count: tally per `routeShortName` in the same iteration
+   *   that builds the colour map - one loop over `this.vehicles()`.
+   * - Alert count: separate loop over `this.alerts()`. Alerts and
+   *   vehicles are independent arrays with the same partition key.
+   *   Routes with alerts but no active vehicles remain out of scope
+   *   (known deferral - see stories memory file); they simply won't
+   *   appear as chips this sprint.
+   * - Sort order unchanged: alphabetical by name via `localeCompare`.
+   * - Return shape wired below as `{ name, color, vehicleCount, alertCount }`.
+   *   Placeholders (0) are in place so the build stays green while the
+   *   counting logic is written - replace before shipping.
+   */
+  readonly routeOptions = computed<RouteChipOption[]>(() => {
+    // LEARN: iterate vehicles → first-seen routeShortName wins its colour
+    // → convert entries to { name, color }[] → sort by name via localeCompare.
+    // one route -> one colour
+    const routeInfoByShortNameMap = new Map<
+      string,
+      { color: string; vehicleCount: number; alertCount: number }
+    >();
+
+    // assign colour and count vehicles on each route
+    this.vehicles().forEach((vehicle) => {
+      const existingRouteInfo = routeInfoByShortNameMap.get(
+        vehicle.routeShortName,
+      );
+      if (!existingRouteInfo) {
+        routeInfoByShortNameMap.set(vehicle.routeShortName, {
+          color: vehicle.routeColor,
+          vehicleCount: 1,
+          alertCount: 0,
+        });
+      } else {
+        routeInfoByShortNameMap.set(vehicle.routeShortName, {
+          ...existingRouteInfo,
+          vehicleCount: existingRouteInfo.vehicleCount + 1,
+        });
+      }
+    });
+
+    // count alerts per route
+    this.alerts().forEach((alert) => {
+      const existingRouteInfo = routeInfoByShortNameMap.get(
+        alert.routeShortName,
+      );
+      if (existingRouteInfo)
+        routeInfoByShortNameMap.set(alert.routeShortName, {
+          ...existingRouteInfo,
+          alertCount: existingRouteInfo.alertCount + 1,
+        });
+    });
+
+    return [...routeInfoByShortNameMap.entries()]
+      .map(([name, { color, vehicleCount, alertCount }]) => ({
+        name,
+        color,
+        vehicleCount,
+        alertCount,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
   });
 
-  readonly filteredAlerts = computed<Alert[]>(() => {
-    const route = this.selectedRoute();
-    return route
-      ? this.alerts().filter((a) => a.routeShortName === route)
-      : this.alerts();
+  /**
+   * Filter-aware label for the mode chip in the header. Answers "how
+   * many trains are on screen right now?" at a glance, adjusting the
+   * phrasing based on whether a route filter is active.
+   * - No pluralisation guard - `"1 of 1 vehicles"` is acceptable at
+   *   this sprint (Design Call 1 in the SP1-10 usability pass plan)
+   * - Read both `selectedRoute()` and `vehicles()` inside the computed
+   *   so change detection re-fires on either
+   */
+  readonly vehicleCountLabel = computed<string>(() => {
+    const selectedRoute = this.selectedRoute();
+    const vehicles = this.vehicles();
+    if (!selectedRoute) {
+      // no selection - total count
+      return `${vehicles.length} vehicles`;
+    }
+
+    // selection exists
+    const routeVehicleCount = vehicles.filter(
+      (vehicle) => vehicle.routeShortName === selectedRoute,
+    ).length;
+    return `${routeVehicleCount} of ${vehicles.length} vehicles`;
   });
 
   // ---- imperative handles (owned by lifecycle, not signalised) ----
@@ -127,8 +247,12 @@ export class LiveComponent implements AfterViewInit, OnDestroy {
     // LEARN: load vehicles + alerts in parallel
     await Promise.all([this.loadInitialVehicles(), this.loadInitialAlerts()]);
 
-    await this.startRealtime();
-    this.startFreshnessTimer();
+    if (environment.debugging.enableSignalRRealtime) {
+      await this.startRealtime();
+    }
+    if (environment.debugging.enableFreshnessTimer) {
+      this.startFreshnessTimer();
+    }
   }
 
   /**
@@ -263,7 +387,38 @@ export class LiveComponent implements AfterViewInit, OnDestroy {
     this.realtime.alertsReceived$
       .pipe(takeUntilDestroyed(this.destroyRef)) // Ang 16+ - no need for ngOnDestroy, when the component is destroyed, the subscription is automatically cleaned up
       .subscribe((alert: Alert) => {
-        this.alerts.update((current) => [alert, ...current]);
+        this.alerts.update((currentAlertList) => {
+          // different alerts can have same alert Id but with different route short names
+          // means - a TfNSW multi route alert
+          const alertIndex = currentAlertList.findIndex(
+            (a) =>
+              a.alertId === alert.alertId &&
+              a.routeShortName === alert.routeShortName,
+          );
+          if (alertIndex === -1) {
+            // never seen this alert before - new alert
+            // insert - new alert to top (newest-first)
+            return [alert, ...currentAlertList];
+          }
+
+          // Existing (alertId, routeShortName) - ADR-0010 dedup contract:
+          // Also handles SignalR reconnection replay per ADR-0010.
+          const existingVersionOfAlert = currentAlertList[alertIndex];
+          // keep the alert with the higher receivedAt (latest broadcast wins).
+          if (
+            Date.parse(alert.receivedAt) <=
+            Date.parse(existingVersionOfAlert.receivedAt)
+          ) {
+            // incoming alert already exists or older - so, ignoring/discarding incoming alert
+            return currentAlertList;
+          }
+
+          // incoming alert is newer - upsert needed - TfNSW updated an existing alert
+          // LEARN: in-place mutation is not detected by Angular Signals, they need ref change, So, get a copy (force a ref change) and update the copy so that Angular Signal can detect the change
+          const copy = [...currentAlertList];
+          copy[alertIndex] = alert; // replace in place
+          return copy;
+        });
       });
   }
 
@@ -285,6 +440,56 @@ export class LiveComponent implements AfterViewInit, OnDestroy {
         pruneStale(this.map, this.markers, VEHICLE_MARKER_TTL_MS, Date.now());
       }
     }, FRESHNESS_RE_EVAL_INTERVAL_MS);
+  }
+
+  /**
+   * Iterate the marker cache and toggle each marker's map membership
+   * based on the current `selectedRoute`. Called from the constructor
+   * effect on any change to `selectedRoute` or `vehicles`.
+   *
+   * Design note: separates visibility (this method) from cache lifecycle
+   * (upsertMarker / pruneStale). Filter changes never delete cache
+   * entries - only add/remove from the map layer - so switching filters
+   * back and forth doesn't re-hydrate markers, only re-shows them.
+   *
+   * Acceptance criteria:
+   * - Read `this.selectedRoute()` once into a local `selected`.
+   * - Guard: if `this.map` is null (effect fires before ngAfterViewInit
+   *   completes the map init), return early.
+   * - Build a lookup Map<vehicleId, routeShortName> by iterating
+   *   `this.vehicles()` once. Cheap - <100 entries at Sprint 1 scope.
+   * - Iterate `this.markers`. For each `[vehicleId, entry]`:
+   *     * Look up the route name via the lookup Map. Skip the entry if
+   *       missing (defensive - marker without a matching vehicle should
+   *       not happen but silently ignoring keeps the loop robust).
+   *     * shouldShow = `selected === null || route === selected`.
+   *     * If shouldShow AND `!map.hasLayer(entry.marker)` -> `addTo(map)`.
+   *     * Else if !shouldShow AND `map.hasLayer(entry.marker)` -> `removeLayer(entry.marker)`.
+   * - Must be idempotent: calling twice with the same state is a no-op
+   *   because of the hasLayer guards.
+   * - Do NOT delete entries from `this.markers` - visibility only.
+   *   TTL prune (via startFreshnessTimer) is the sole cache-eviction path.
+   */
+  private applyRouteFilterToMap(): void {
+    const selectedRoute = this.selectedRoute();
+    if (!this.map) return;
+    const map = this.map; // const capture narrows into closures
+    const vehicleOnRouteMap = new Map<string, string>(); // vehicleId => routeShortName
+    this.vehicles().forEach((vehicle) =>
+      vehicleOnRouteMap.set(vehicle.vehicleId, vehicle.routeShortName),
+    );
+    this.markers.forEach((entry: MarkerEntry, vehicleId: string) => {
+      const routeOfVehicle = vehicleOnRouteMap.get(vehicleId);
+      if (routeOfVehicle) {
+        const shouldShow =
+          selectedRoute === null || routeOfVehicle === selectedRoute;
+        if (shouldShow && !map.hasLayer(entry.marker)) {
+          entry.marker.addTo(map);
+        } else if (!shouldShow && map.hasLayer(entry.marker)) {
+          this.map!.removeLayer(entry.marker);
+        }
+      }
+    });
   }
 
   /**

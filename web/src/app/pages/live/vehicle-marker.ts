@@ -18,6 +18,7 @@ import * as L from 'leaflet';
 
 import { Vehicle } from '../../models';
 import {
+  MARKER_FILL_OPACITY,
   MARKER_RADIUS_PX,
   MARKER_STROKE_WEIGHT_PX,
 } from '../../shared/design-tokens';
@@ -37,13 +38,15 @@ export interface MarkerEntry {
  * a second call with the same id must reuse the existing marker,
  * never leak a second one on top.
  *
- * Acceptance criteria (SP1-10 Phase 3 impl target, ~25 min):
- * - cache miss  -> create L.circleMarker([lat,lng], { radius: 6,
- *                  color: '#'+vehicle.routeColor, weight: 1 }),
- *                  bind tooltip `${routeShortName} · ${vehicleId}`,
- *                  addTo(map), cache { marker, lastSeenAt: now }
- * - cache hit   -> setLatLng([lat,lng]), refresh tooltip content,
- *                  update lastSeenAt = now, DO NOT remove/re-add
+ * CHANGE SPEC (SP1-10 marker visibility pass):
+ * Add two options to the CircleMarker created on cache miss:
+ *   fillColor: routeColor,
+ *   fillOpacity: MARKER_FILL_OPACITY,
+ * ...and on cache hit, extend the existing setStyle call to include
+ * both new keys as well (so a mid-stream route/color drift updates the
+ * fill too, not just the border). Import MARKER_FILL_OPACITY from the
+ * design-tokens module alongside the existing two constants.
+ *
  * - returns the marker (new or existing) so the caller can chain
  *   listeners in later sprints (e.g. click-to-details in SP4)
  */
@@ -54,7 +57,7 @@ export function upsertMarker(
   now: number = Date.now(),
 ): L.CircleMarker {
   const tooltip = `${vehicle.routeShortName} · ${vehicle.vehicleId}`;
-  const routeColor = `#${vehicle.routeColor}`;
+  const routeColor = vehicle.routeColor;
   let vehicleCache: MarkerEntry | undefined = cache.get(vehicle.vehicleId);
 
   if (vehicleCache === undefined) {
@@ -64,6 +67,8 @@ export function upsertMarker(
         radius: MARKER_RADIUS_PX,
         color: routeColor,
         weight: MARKER_STROKE_WEIGHT_PX,
+        fillColor: routeColor,
+        fillOpacity: MARKER_FILL_OPACITY,
       }),
       lastSeenAt: now,
     };
@@ -80,7 +85,7 @@ export function upsertMarker(
 
   // TfNSW changed route unexpectedly
   vehicleCache.marker.bindTooltip(tooltip);
-  vehicleCache.marker.setStyle({ color: routeColor });
+  vehicleCache.marker.setStyle({ color: routeColor, fillColor: routeColor });
 
   return vehicleCache.marker;
 }

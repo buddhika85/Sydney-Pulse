@@ -14,8 +14,16 @@
 // so a reader doesn't have to trace to the type.
 
 // ---- vehicle marker geometry (vehicle-marker.ts) ----
-export const MARKER_RADIUS_PX = 6;
+
+export const MARKER_RADIUS_PX = 8;
 export const MARKER_STROKE_WEIGHT_PX = 1;
+
+// Fill opacity for vehicle markers - added SP1-10 marker visibility pass.
+// 0.7 keeps the OSM tile visible underneath (map context stays legible)
+// while making the marker itself pop against similar-hued backgrounds.
+// Route colour supplies both fill and border, so raising opacity does
+// not change the palette signal - only its weight on the map.
+export const MARKER_FILL_OPACITY = 0.7;
 
 // ---- freshness + prune timing (live.component.ts) ----
 
