@@ -1,2 +1,330 @@
-<!-- Placeholder shell - SP1-11 replaces with hero + CTA + architecture SVG. -->
-<h1 class="text-2xl font-bold p-4">Sydney Pulse — Landing</h1>
+<!-- landing.component.html - portfolio-first public landing at "/".
+     Structure: hero + feature strip + architecture SVG + tech stack +
+     portfolio note + footer. Tailwind carries layout / spacing /
+     typography; the sibling .scss handles SVG node fills + hover states.
+     Every external link uses rel="noopener noreferrer" so the new tab
+     cannot access window.opener (browser security 101). -->
+<div class="min-h-screen bg-white text-slate-900">
+  <!-- ============================================================
+       Section 1 - Hero. Version pill + title + tagline A + sub-line +
+       primary CTA to /live + secondary link to GitHub. Gradient sets
+       the "portfolio piece, not toy" tone above the fold.
+       ============================================================ -->
+  <section class="border-b border-slate-200 bg-gradient-to-b from-slate-50 to-white">
+    <div class="mx-auto max-w-4xl px-6 py-16 text-center sm:py-24">
+      <!-- Version + sprint label - honest scoping signal. -->
+      <span class="inline-block rounded-full bg-slate-900 px-3 py-1 font-mono text-xs font-medium text-white">
+        {{ version }} · Sprint 1
+      </span>
+
+      <h1 class="mt-6 text-5xl font-bold tracking-tight sm:text-6xl">Sydney Pulse</h1>
+
+      <!-- Tagline A - locked in the planning step. -->
+      <p class="mt-6 text-2xl text-slate-700">
+        Real-time disruption intelligence for Sydney public transport.
+      </p>
+
+      <p class="mx-auto mt-4 max-w-2xl text-base text-slate-600">
+        A real-time, event-driven Azure portfolio project. TfNSW GTFS-RT is polled, fanned out
+        through Event Grid + Service Bus, persisted to Cosmos DB, and pushed to the browser via
+        SignalR &mdash; deployed via Bicep and GitHub Actions.
+      </p>
+
+      <!-- Actions - primary CTA takes the recruiter straight to the
+           product surface; RouterLink keeps it a client-side nav. -->
+      <div class="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
+        <a
+          [routerLink]="dashboardRoute"
+          class="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-6 py-3 text-base font-medium text-white shadow-sm transition hover:bg-slate-700"
+        >
+          View Live Dashboard
+          <span aria-hidden="true">&rarr;</span>
+        </a>
+        <a
+          [href]="repoUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-6 py-3 text-base font-medium text-slate-900 transition hover:bg-slate-100"
+        >
+          View on GitHub
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       Section 2 - Feature strip. Three cards frame what the recruiter
+       will see when they click the primary CTA (managed expectations
+       -> no bounce from confused users landing on the map).
+       ============================================================ -->
+  <section class="border-b border-slate-200">
+    <div class="mx-auto max-w-5xl px-6 py-12">
+      <div class="grid gap-6 sm:grid-cols-3">
+        <div class="rounded-lg border border-slate-200 p-6">
+          <h3 class="text-lg font-semibold">Live vehicles</h3>
+          <p class="mt-2 text-sm text-slate-600">
+            Poller pulls TfNSW GTFS-RT every 30 seconds. Markers move on the map as vehicles
+            report their positions.
+          </p>
+        </div>
+        <div class="rounded-lg border border-slate-200 p-6">
+          <h3 class="text-lg font-semibold">Real-time alerts</h3>
+          <p class="mt-2 text-sm text-slate-600">
+            Service alerts stream in via Service Bus and SignalR &mdash; no polling. The alerts
+            panel updates as TfNSW publishes.
+          </p>
+        </div>
+        <div class="rounded-lg border border-slate-200 p-6">
+          <h3 class="text-lg font-semibold">Route filters</h3>
+          <p class="mt-2 text-sm text-slate-600">
+            Chip strip filters vehicles and alerts by line (T1, T2, T3...). Hovering a chip
+            shows per-line vehicle and alert counts.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       Section 3 - Architecture SVG. Hand-authored 5-tier vertical
+       flow so the story tells itself: TfNSW -> Poller -> Event Grid ->
+       fan-out to StateWriter / Alerter -> Cosmos / SignalR -> Angular.
+       Colours mirror docs/diagrams.md legend so the story stays
+       consistent across landing page + architecture doc.
+       viewBox is the source of truth for scaling - width:100% in SCSS
+       makes it responsive without media queries.
+       ============================================================ -->
+  <section class="border-b border-slate-200 bg-slate-50">
+    <div class="mx-auto max-w-4xl px-6 py-16">
+      <div class="text-center">
+        <h2 class="text-3xl font-bold tracking-tight">How it works</h2>
+        <p class="mt-3 text-base text-slate-600">
+          Event-driven pipeline built on managed Azure services. Every arrow is a real message,
+          every box is a running Function or resource.
+        </p>
+      </div>
+
+      <div class="architecture-diagram mt-10">
+        <svg
+          viewBox="0 0 720 920"
+          xmlns="http://www.w3.org/2000/svg"
+          role="img"
+          aria-label="Sydney Pulse architecture. TfNSW GTFS-RT is polled every 30 seconds, published to Event Grid, fanned out as VehicleUpdate events to the State Writer Function and as ServiceAlert events to a Service Bus topic that feeds the Alerter Function. Both functions use dual output bindings to persist to Cosmos DB and broadcast to SignalR. HTTP reads from Cosmos plus SignalR WebSocket push deliver to the Angular Live Dashboard."
+        >
+          <title>Sydney Pulse event-driven architecture</title>
+          <desc>Pipeline tiers: ingest, event bus, Service Bus subscription filter, dual-output processing, persist and broadcast manifold, storage and real-time push, presentation.</desc>
+
+          <!-- Arrow-head markers, one per legend colour so the arrow tip
+               matches its line without needing per-arrow duplication. -->
+          <defs>
+            <marker id="ah-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#0078D4" />
+            </marker>
+            <marker id="ah-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#00B294" />
+            </marker>
+            <marker id="ah-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#FF8C00" />
+            </marker>
+            <marker id="ah-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#E74C3C" />
+            </marker>
+            <marker id="ah-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#107C10" />
+            </marker>
+          </defs>
+
+          <!-- Tier 1 - external data source -->
+          <g class="node node--external">
+            <rect x="260" y="20" width="200" height="60" rx="8" />
+            <text x="360" y="46" text-anchor="middle" class="node__title">TfNSW GTFS-RT API</text>
+            <text x="360" y="64" text-anchor="middle" class="node__caption">external open data</text>
+          </g>
+
+          <line x1="360" y1="80" x2="360" y2="138" stroke="#0078D4" stroke-width="2" marker-end="url(#ah-blue)" />
+
+          <!-- Tier 2 - ingest -->
+          <g class="node node--ingest">
+            <rect x="260" y="140" width="200" height="60" rx="8" />
+            <text x="360" y="166" text-anchor="middle" class="node__title">Poller Function</text>
+            <text x="360" y="184" text-anchor="middle" class="node__caption">timer &middot; 30s</text>
+          </g>
+
+          <line x1="360" y1="200" x2="360" y2="258" stroke="#0078D4" stroke-width="2" marker-end="url(#ah-blue)" />
+
+          <!-- Tier 3 - event bus (wider box signals fan-out capacity) -->
+          <g class="node node--bus">
+            <rect x="190" y="260" width="340" height="60" rx="8" />
+            <text x="360" y="286" text-anchor="middle" class="node__title">Event Grid</text>
+            <text x="360" y="304" text-anchor="middle" class="node__caption">fan-out &middot; CloudEvents</text>
+          </g>
+
+          <!-- Fan-out arrows - left carries VehicleUpdate.v1 to StateWriter;
+               right carries ServiceAlert.v1 to the Service Bus subscription. -->
+          <line x1="280" y1="320" x2="160" y2="378" stroke="#00B294" stroke-width="2" marker-end="url(#ah-teal)" />
+          <line x1="440" y1="320" x2="560" y2="378" stroke="#00B294" stroke-width="2" marker-end="url(#ah-teal)" />
+
+          <!-- Tier 4a - processing (left) - dual-write function. -->
+          <g class="node node--process">
+            <rect x="60" y="380" width="200" height="60" rx="8" />
+            <text x="160" y="406" text-anchor="middle" class="node__title">State Writer</text>
+            <text x="160" y="424" text-anchor="middle" class="node__caption">upsert + broadcast</text>
+          </g>
+
+          <!-- Tier 4b - Service Bus Topic (right). Subscription filter on
+               ServiceAlert.v1 is the ADR-0001 messaging pattern. -->
+          <g class="node node--bus">
+            <rect x="460" y="380" width="200" height="60" rx="8" />
+            <text x="560" y="406" text-anchor="middle" class="node__title">Service Bus Topic</text>
+            <text x="560" y="424" text-anchor="middle" class="node__caption">alerts subscription filter</text>
+          </g>
+
+          <!-- Service Bus -> Alerter (subscription pull, teal). -->
+          <line x1="560" y1="440" x2="560" y2="498" stroke="#00B294" stroke-width="2" marker-end="url(#ah-teal)" />
+
+          <!-- Tier 5 - Alerter (right, below Service Bus) - dual-write. -->
+          <g class="node node--process">
+            <rect x="460" y="500" width="200" height="60" rx="8" />
+            <text x="560" y="526" text-anchor="middle" class="node__title">Alerter</text>
+            <text x="560" y="544" text-anchor="middle" class="node__caption">upsert + broadcast</text>
+          </g>
+
+          <!-- StateWriter and Alerter both fan into the "Persist +
+               Broadcast" manifold - one amber arrow each. This mirrors
+               the Azure Function dual-output-binding pattern: each
+               function upserts to Cosmos and broadcasts to SignalR in
+               a single invocation. The manifold visualisation avoids
+               diagonal crossings that a direct four-arrow drawing
+               would require. -->
+          <line x1="160" y1="440" x2="160" y2="598" stroke="#FF8C00" stroke-width="2" marker-end="url(#ah-amber)" />
+          <line x1="560" y1="560" x2="560" y2="598" stroke="#FF8C00" stroke-width="2" marker-end="url(#ah-amber)" />
+
+          <!-- Tier 6 - dual-output manifold. Thin pill signals "phase",
+               not a distinct Azure resource. Amber-tinted background
+               with a small caption keeps it visually secondary. -->
+          <g class="node node--manifold">
+            <rect x="100" y="600" width="520" height="28" rx="14" />
+            <text x="360" y="619" text-anchor="middle" class="node__manifold-label">Persist &middot; Broadcast</text>
+          </g>
+
+          <!-- Manifold emits down to Cosmos (amber write) and SignalR
+               (red real-time push). Two arrows, both straight down,
+               no crossings. -->
+          <line x1="200" y1="628" x2="200" y2="678" stroke="#FF8C00" stroke-width="2" marker-end="url(#ah-amber)" />
+          <line x1="520" y1="628" x2="520" y2="678" stroke="#E74C3C" stroke-width="2" marker-end="url(#ah-red)" />
+
+          <!-- Tier 7a - durable state -->
+          <g class="node node--store">
+            <rect x="60" y="680" width="280" height="60" rx="8" />
+            <text x="200" y="706" text-anchor="middle" class="node__title">Cosmos DB</text>
+            <text x="200" y="724" text-anchor="middle" class="node__caption">serverless &middot; pk routeShortName</text>
+          </g>
+
+          <!-- Tier 7b - real-time push -->
+          <g class="node node--push">
+            <rect x="380" y="680" width="280" height="60" rx="8" />
+            <text x="520" y="706" text-anchor="middle" class="node__title">SignalR</text>
+            <text x="520" y="724" text-anchor="middle" class="node__caption">Free &middot; vehicles + alerts hubs</text>
+          </g>
+
+          <!-- Cosmos -> Angular via HTTP API (green read), SignalR -> Angular via WebSocket (red push). -->
+          <line x1="200" y1="740" x2="300" y2="838" stroke="#107C10" stroke-width="2" marker-end="url(#ah-green)" />
+          <line x1="520" y1="740" x2="420" y2="838" stroke="#E74C3C" stroke-width="2" marker-end="url(#ah-red)" />
+
+          <!-- Presentation tier -->
+          <g class="node node--client">
+            <rect x="190" y="840" width="340" height="60" rx="8" />
+            <text x="360" y="866" text-anchor="middle" class="node__title">Angular Live Dashboard</text>
+            <text x="360" y="884" text-anchor="middle" class="node__caption">Static Web App &middot; Leaflet</text>
+          </g>
+        </svg>
+
+        <!-- Legend - mirrors docs/diagrams.md colour code so a reader
+             who has seen the internal doc gets consistent semantics. -->
+        <ul class="architecture-diagram__legend">
+          <li><span class="legend-swatch" style="background:#0078D4"></span>Ingest</li>
+          <li><span class="legend-swatch" style="background:#00B294"></span>Fan-out</li>
+          <li><span class="legend-swatch" style="background:#FF8C00"></span>Write</li>
+          <li><span class="legend-swatch" style="background:#E74C3C"></span>Real-time push</li>
+          <li><span class="legend-swatch" style="background:#107C10"></span>Read</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       Section 4 - Tech stack strip. Recruiter keyword scan. Ordered
+       in the component (.NET / Azure first) so the list stays
+       declarative here.
+       ============================================================ -->
+  <section class="border-b border-slate-200">
+    <div class="mx-auto max-w-4xl px-6 py-12 text-center">
+      <h2 class="text-sm font-semibold uppercase tracking-widest text-slate-500">Built with</h2>
+      <ul class="mt-6 flex flex-wrap justify-center gap-2">
+        @for (tech of techStack; track tech) {
+          <li class="rounded-full border border-slate-300 bg-white px-3 py-1 text-sm text-slate-700">
+            {{ tech }}
+          </li>
+        }
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       Section 5 - Portfolio note. Subtle by decision - one paragraph,
+       no photo, no dedicated "About" heading. LinkedIn slug is the
+       load-bearing link for the July 2026 job-hunt window.
+       ============================================================ -->
+  <section class="border-b border-slate-200 bg-slate-50">
+    <div class="mx-auto max-w-3xl px-6 py-10 text-center">
+      <p class="text-sm text-slate-600">
+        Sydney Pulse is a portfolio project by
+        <a
+          [href]="linkedInUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="font-medium text-slate-900 underline decoration-slate-300 underline-offset-2 hover:decoration-slate-900"
+        >Buddhika Gunasekera</a>.
+        Every architectural decision is documented as an ADR; the pipeline uses the same
+        event-driven pattern I&rsquo;ve shipped in production for six years.
+        Source on
+        <a
+          [href]="repoUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="font-medium text-slate-900 underline decoration-slate-300 underline-offset-2 hover:decoration-slate-900"
+        >GitHub</a>.
+      </p>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       Section 6 - Footer. Data attribution first (respects TfNSW open
+       data licence), then meta row with repo + version + copyright.
+       ============================================================ -->
+  <footer class="bg-white">
+    <div class="mx-auto max-w-4xl px-6 py-8 text-center text-xs text-slate-500">
+      <p>
+        Powered by
+        <a
+          href="https://opendata.transport.nsw.gov.au/"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="underline decoration-slate-300 underline-offset-2 hover:decoration-slate-900"
+        >Transport for NSW open data</a>.
+      </p>
+      <p class="mt-2">
+        <a
+          [href]="repoUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="underline decoration-slate-300 underline-offset-2 hover:decoration-slate-900"
+        >GitHub</a>
+        <span aria-hidden="true" class="mx-2">&middot;</span>
+        <span class="font-mono">{{ version }}</span>
+        <span aria-hidden="true" class="mx-2">&middot;</span>
+        <span>&copy; 2026 Buddhika Gunasekera</span>
+      </p>
+    </div>
+  </footer>
+</div>
