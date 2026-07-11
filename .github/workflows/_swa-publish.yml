@@ -1,0 +1,128 @@
+# Reusable workflow: publish the Angular app to Azure Static Web Apps.
+# ng build (production) -> Azure/static-web-apps-deploy@v1 -> smoke check
+# that the default hostname serves 200.
+#
+# Mirrors the shape of _func-publish.yml (OIDC login + publish + smoke)
+# but uses the SWA deployment token instead of az CLI zip-deploy, because
+# the static-web-apps-deploy action is the only supported publish path.
+
+name: swa-publish
+
+# Cannot run by itself — only invoked from deploy-dev.yml via `uses:`.
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: GitHub environment (gates OIDC subject + optional approvals)
+        type: string
+        required: true
+      swaName:
+        description: Target Static Web App resource name (used only for smoke check via az CLI)
+        type: string
+        required: true
+      resourceGroup:
+        description: Resource group containing the Static Web App
+        type: string
+        required: true
+      webProject:
+        description: Path to the Angular app root (contains angular.json)
+        type: string
+        default: web
+      # Angular 20 `application` builder writes to dist/<project>/browser.
+      # This is relative to `webProject`, not the repo root.
+      outputLocation:
+        description: Build output folder relative to webProject
+        type: string
+        default: dist/web/browser
+    secrets:
+      # SWA-specific deploy token from the resource's "Manage deployment token" blade.
+      # OIDC not supported by static-web-apps-deploy@v1 for content publish.
+      AZURE_STATIC_WEB_APPS_API_TOKEN:
+        required: true
+      # OIDC secrets — only needed by the post-deploy smoke check (az CLI).
+      AZURE_CLIENT_ID:
+        required: true
+      AZURE_TENANT_ID:
+        required: true
+      AZURE_SUBSCRIPTION_ID:
+        required: true
+
+permissions:
+  # write: OIDC token issuance for the az login used in the smoke step
+  id-token: write
+  # read: allows checkout of the repo
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    # GitHub environment gates federated credential subject claim + optional approvals for that env.
+    environment: ${{ inputs.environment }}
+
+    steps:
+      # 1. Pulls code repo into the runner.
+      - uses: actions/checkout@v5
+
+      # 2. Install Node 22 (Angular 20 requires >=20.19 or >=22.12; 22 is current LTS
+      #    and matches the developer's local env). Cache npm using the lockfile as the key.
+      - name: Setup Node 22
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: ${{ inputs.webProject }}/package-lock.json
+
+      # 3. Install exact dependency versions from the lockfile — ci (not install) fails if lockfile is out of sync, avoiding 'works on my machine' drift
+      - name: npm ci
+        working-directory: ${{ inputs.webProject }}
+        run: npm ci
+
+      # 4. Production build — outputHashing=all, source maps off, budgets enforced.
+      - name: ng build (production)
+        working-directory: ${{ inputs.webProject }}
+        run: npx ng build --configuration production
+
+      # 5. Publish to SWA. skip_app_build=true because we already built above —
+      #    we don't want Oryx (the action's default builder) to rebuild.
+      #    action=upload means "deploy this build"; close_pull_request_number
+      #    is unset because we only call this on push to main.
+      - name: Azure Static Web Apps deploy
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          action: upload
+          app_location: ${{ inputs.webProject }}
+          output_location: ${{ inputs.outputLocation }}
+          skip_app_build: true # we already build in the previous step
+          skip_api_build: true # Do NOT try to build or deploy any Azure Functions inside this repo.
+
+      # 6. Azure login (OIDC) — used only by the smoke check below.
+      - name: Azure login (OIDC)
+        uses: azure/login@v3
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # 7. Smoke test — resolve the SWA default hostname from the resource,
+      #    then curl it. SWA CDN edge takes a few seconds to propagate, so
+      #    retry up to 6 times with 10s backoff before failing the workflow.
+      - name: Smoke check (SWA default hostname serves 200)
+        run: |
+          HOSTNAME=$(az staticwebapp show \
+            --resource-group ${{ inputs.resourceGroup }} \
+            --name ${{ inputs.swaName }} \
+            --query defaultHostname -o tsv)
+          echo "SWA default hostname: $HOSTNAME"
+          URL="https://$HOSTNAME/"
+          for i in 1 2 3 4 5 6; do
+            CODE=$(curl -s -o /dev/null -w "%{http_code}" "$URL")
+            echo "Attempt $i: HTTP $CODE"
+            if [ "$CODE" = "200" ]; then
+              echo "::notice::Live URL: $URL"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::SWA did not return 200 within retry window"
+          exit 1
