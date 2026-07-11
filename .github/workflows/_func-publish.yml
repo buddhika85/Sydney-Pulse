@@ -49,11 +49,11 @@ jobs:
 
     steps:
       # 1: Pulls code repo into the runner
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # 2. Install .NET 8
       - name: Setup .NET 8
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 8.0.x
 
@@ -75,7 +75,7 @@ jobs:
 
       # 5. Azure login (OIDC)
       - name: Azure login (OIDC)
-        uses: azure/login@v2
+        uses: azure/login@v3
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
