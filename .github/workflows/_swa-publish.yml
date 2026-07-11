@@ -84,17 +84,23 @@ jobs:
 
       # 5. Publish to SWA. skip_app_build=true because we already built above —
       #    we don't want Oryx (the action's default builder) to rebuild.
-      #    action=upload means "deploy this build"; close_pull_request_number
-      #    is unset because we only call this on push to main.
+      #
+      #    Gotcha: when skip_app_build=true, the action uploads app_location
+      #    DIRECTLY and IGNORES output_location. So app_location must point
+      #    at the built folder, not the source root. Concatenating
+      #    webProject + outputLocation gives the correct artifact path
+      #    (e.g. web/dist/web/browser).
+      #
+      #    No api_location is set — the action only builds/deploys an API
+      #    when that input is present. Our Functions live in a separate
+      #    Function App, not colocated with SWA, so we leave it unset.
       - name: Azure Static Web Apps deploy
         uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
           action: upload
-          app_location: ${{ inputs.webProject }}
-          output_location: ${{ inputs.outputLocation }}
-          skip_app_build: true # we already build in the previous step
-          skip_api_build: true # Do NOT try to build or deploy any Azure Functions inside this repo.
+          app_location: ${{ inputs.webProject }}/${{ inputs.outputLocation }}
+          skip_app_build: true
 
       # 6. Azure login (OIDC) — used only by the smoke check below.
       - name: Azure login (OIDC)
