@@ -52,9 +52,14 @@ resource signalR 'Microsoft.SignalRService/signalR@2023-02-01' = {
       }
     ]
     cors: {
-      // Allow SWA origin and local dev origins.
-      // Tighten to the specific SWA hostname post-deployment if needed.
-      allowedOrigins: ['*']
+      // Tightened per-environment: dev SWA + localhost:4200 for ng serve.
+      // Uses the local `swa` resource ref (same module) since this module
+      // creates the SWA and produces its hostname output — a param-based
+      // wire would be circular (module can't consume its own output).
+      allowedOrigins: [
+        'http://localhost:4200'
+        'https://${swa.properties.defaultHostname}'
+      ]
     }
     // Upstream settings not configured — Serverless mode uses the Function
     // App's negotiate + output binding pattern instead.

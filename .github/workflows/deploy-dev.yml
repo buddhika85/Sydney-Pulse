@@ -30,6 +30,9 @@ permissions:
   # read: allows checkout of the repo
   contents: read
 
+# first run lint-test, if that succeeds run deploy-infra, if that succeeds, run publish-app (Azure Functions App backend) & publish-web (Angular Frontend) parallel
+# lint-test → deploy-infra ─┬→ publish-app
+#                           └→ publish-web
 jobs:
   # Re-run the same gate the PR ran, against the merge commit. what-if=false (already ran on PR).
   lint-test:
@@ -57,5 +60,18 @@ jobs:
     with:
       environment: dev
       functionAppName: sydney-pulse-func-dev
+      resourceGroup: sydney-pulse-rg-dev
+    secrets: inherit
+
+  # Runs in parallel with publish-app — SWA content deploy is independent of
+  # the Function App, and the landing page (/) doesn't call the API. Saves ~1 min
+  # per deploy vs chaining after publish-app.
+  publish-web:
+    # runs only after infra deploy succeeds.
+    needs: deploy-infra
+    uses: ./.github/workflows/_swa-publish.yml
+    with:
+      environment: dev
+      swaName: sydney-pulse-swa-dev
       resourceGroup: sydney-pulse-rg-dev
     secrets: inherit

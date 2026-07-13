@@ -163,7 +163,8 @@ module compute 'modules/compute.bicep' = {
     serviceBusFqdn:            '${existingServiceBusNamespaceName}.servicebus.windows.net'
     eventGridTopicEndpoint:    messaging.outputs.eventGridTopicEndpoint
     dataLakeStorageAccountName: names.dataLake
-    tags:                      tags    
+    tags:                      tags  
+    webAppOrigin:              'https://${frontend.outputs.swaDefaultHostname}'  
   }
   dependsOn: [security]
 }

@@ -47,6 +47,9 @@ param dataLakeStorageAccountName string
 @description('Resource tags.')
 param tags object
 
+@description('Public origin of the SWA that calls this Function App. Wired from frontend.outputs.swaDefaultHostname in main.bicep so a re-provisioned SWA does not silently break CORS.')
+param webAppOrigin string
+
 
 
 // ── Helper: Key Vault reference constructor ───────────────────────────────────
@@ -94,9 +97,14 @@ resource funcApp 'Microsoft.Web/sites@2023-01-01' = {
       ftpsState: 'Disabled'
       minTlsVersion: '1.2'
       cors: {
-        // SWA origin will be tightened per-environment after deployment.
-        // '*' is acceptable during dev to unblock local spike.html testing.
-        allowedOrigins: ['*']
+        // Tightened per-environment: dev SWA + localhost:4200 for ng serve.
+        // webAppOrigin is wired from frontend.outputs.swaDefaultHostname in
+        // main.bicep so an SWA re-provision (which regenerates the hostname
+        // slug) doesn't silently break CORS.
+        allowedOrigins: [
+          'http://localhost:4200'
+          webAppOrigin
+        ]
       }
       appSettings: [
         // ── Runtime ──────────────────────────────────────────────────────────

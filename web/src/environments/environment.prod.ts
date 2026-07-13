@@ -4,7 +4,17 @@
 
 export const environment = {
   production: true,
-  apiBaseUrl: 'https://sydney-pulse-func-prod.azurewebsites.net/api',
+
+  // Production build target for Sprint 1 (single-environment portfolio scope).
+  // apiBaseUrl deliberately points at sydney-pulse-func-dev — no prod
+  // Function App is provisioned yet (Sprint 2 will introduce the real prod
+  // resource group + slot swap). Update this URL when prod SWA + prod
+  // Function App go live.
+  apiBaseUrl: 'https://sydney-pulse-func-dev.azurewebsites.net/api',
+
+  features: {
+    pulseMarkers: true,
+  },
 
   // debugging
   debugging: {

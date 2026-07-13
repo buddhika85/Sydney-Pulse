@@ -43,13 +43,21 @@ import { VehiclesService } from '../../services/vehicles.service';
 import { AlertsPanelComponent } from './alerts-panel/alerts-panel.component';
 import { FiltersBarComponent } from './filters-bar/filters-bar.component';
 import { computeLatestEventTimestamp, isStale } from './freshness.util';
-import { MarkerEntry, pruneStale, upsertMarker } from './vehicle-marker';
+import {
+  MarkerEntry,
+  pruneStale,
+  pulseMarker,
+  upsertMarker,
+} from './vehicle-marker';
 import {
   DEFAULT_MAP_ZOOM,
   FRESHNESS_RE_EVAL_INTERVAL_MS,
+  MARKER_RADIUS_PX,
   SYDNEY_CBD_LAT,
   SYDNEY_CBD_LNG,
   VEHICLE_MARKER_TTL_MS,
+  MARKER_PULSE_PEAK_SCALE,
+  MARKER_PULSE_DURATION_MS,
 } from '../../shared/design-tokens';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -350,7 +358,16 @@ export class LiveComponent implements AfterViewInit, OnDestroy {
         }
 
         // 1 upsert vehicle Marker to map
-        upsertMarker(this.map!, this.markers, vehicleUpdate);
+        const marker = upsertMarker(this.map!, this.markers, vehicleUpdate);
+        // animate marker movement
+        if (environment.features.pulseMarkers) {
+          pulseMarker(
+            marker,
+            MARKER_RADIUS_PX,
+            MARKER_PULSE_PEAK_SCALE,
+            MARKER_PULSE_DURATION_MS,
+          );
+        }
 
         // 2 update vehicles() signal
         this.vehicles.update((current) => {
