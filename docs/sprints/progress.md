@@ -987,11 +987,68 @@ Started 2026-07-10. Closed 2026-07-11 via PR #12 (`29dfccc`). Jira: SP-11.
 - Backend `dotnet test` — 64/64 passing (unchanged, no backend files touched).
 - Frontend unit tests remain deferred to SP-21.
 
-## SP1-13
+## SP1-13 — PR merged 2026-07-14 via #13 (`a9634ef`), wrap tasks remaining
 
-Not started. Owns the SWA-deploy workflow + v0.1.0 tag + README refresh +
-CV update + Loom demo + LinkedIn post. Effectively the sprint close.
-Refer to `sprint-1.md` for scope.
+**Code portion shipped in PR #13** (squash-merged, 8 commits → single).
+Sprint 1 is now live at
+https://proud-grass-020b12300.7.azurestaticapps.net/.
+
+### What landed in PR #13
+
+- `_swa-publish.yml` reusable workflow — mirrors `_func-publish.yml`
+  shape; runs `ng build --configuration production` then
+  `Azure/static-web-apps-deploy@v1`. Wired into `deploy-dev.yml` as
+  a `publish-web` job parallel to `publish-app` (both fan out from
+  `deploy-infra` — saves ~1 min per deploy).
+- Node 24 runtime bumps — `actions/checkout` v4→v5,
+  `actions/setup-dotnet` v4→v5, `actions/setup-node` v4→v5,
+  `azure/login` v2→v3 across all four reusable workflows. Clears the
+  Node.js 20 deprecation warning on every run.
+- SWA `skip_app_build` semantics fix — when true, the action treats
+  `app_location` as the artifact folder (not source) and IGNORES
+  `output_location`. Fix concatenates `webProject + outputLocation`
+  into `app_location`. Debug story write-up pending on `main`.
+- `environment.prod.ts` API URL — was pointing at
+  `sydney-pulse-func-prod` (never provisioned; Sprint 2 concern).
+  Repointed at `sydney-pulse-func-dev` with an intent comment.
+- **Pulse animation on vehicle markers** — feature-flagged via
+  `environment.features.pulseMarkers`. CircleMarker radius scales
+  100→130→100 over 450 ms per SignalR update via a triangle wave in
+  `requestAnimationFrame`. Handles tracked in module-level `WeakMap`
+  so `pruneStale`-removed markers self-clean. Bulk-snapshot path
+  deliberately does NOT pulse (100+ markers at page load = visual
+  noise, not signal).
+- Mobile `/live` layout fix — pre-existing SP1-10 bug: 3 grid areas
+  declared but only 2 rows, alerts panel auto-sized off text content,
+  map's `1fr` collapsed to 0 at 375 px viewport. Fixed with explicit
+  3-row template + mobile media queries (map `min-height: 50vh`,
+  alerts `max-height: 40vh` scrollable). Caught during pulse testing,
+  fixed in a distinct commit so pulse stayed independently revertable.
+- SPA route fallback — `web/public/staticwebapp.config.json` with
+  `navigationFallback` so direct URL entry (`.../live`) resolves via
+  Angular Router instead of hitting an SWA 404.
+- CORS tightening — `compute.bicep` + `frontend.bicep` moved from
+  `allowedOrigins: ['*']` to specific origins (dev SWA + `localhost:4200`).
+  SWA hostname wired via `frontend.outputs.swaDefaultHostname` into a
+  new `webAppOrigin` param on `compute.bicep`, so an SWA re-provision
+  doesn't silently break CORS. SignalR uses the local
+  `swa.properties.defaultHostname` reference (same-module — avoids
+  the circular "consume own output" problem).
+
+### Wrap tasks still open (before `v0.1.0` tag + Jira Done)
+
+1. Debug story #21 write-up (SWA `skip_app_build` gotcha) — ~20 min
+2. README refresh — architecture SVG + live URL + 4-job pipeline diagram + how-to-run — ~30 min
+3. Tag `v0.1.0` on `main` — ~5 min, after #1 + #2
+4. Evidence page (`docs/evidence.md`) — 8 curated screenshots — ~90 min
+5. CV surgical pass — swap placeholder URL for real one; add measured p99
+   from App Insights / Cosmos / SignalR — ~45 min
+6. Loom demo recording during Sydney peak (8–9 am or 5–6 pm AEST) — ~60 min
+7. LinkedIn post — needs Loom URL — ~30 min
+8. Flip this row to ✅ + Jira SP-13 → Done (with approval) — ~10 min
+
+Total remaining: ~5 hours across 8 tasks; some schedule-blocked (Loom
+needs Sydney peak), some depend on App Insights data pull (CV perf numbers).
 
 ## Housekeeping — 2026-06-03 — AzFunctions folder restructure
 
@@ -1107,90 +1164,75 @@ When an item is blocked:
 1. Flip to ⚠️ with a note in "Risks / open items" describing the blocker
    and what unblocks it.
 
-## Next session handoff (2026-07-11 — SP1-11 shipped, SP1-13 remaining)
+## Next session handoff (2026-07-14 — SP1-13 PR merged, wrap tasks remaining)
 
-**SP1-11 closed 2026-07-11 via PR #12 (`29dfccc`).** Landing page at `/`
-with corrected architecture SVG (Service Bus tier added, "Persist + Broadcast"
-manifold pattern), tech-stack chips (leads with .NET 8 / Azure Functions /
-Managed Identity), portfolio note owning the six-year prod experience
-explicitly, and mobile-responsive tuning. ~3 hours across two sessions.
+**SP1-13 PR merged 2026-07-14 as #13 (`a9634ef`).** Sprint 1 is now live at
+https://proud-grass-020b12300.7.azurestaticapps.net/. Code portion of
+SP1-13 is done; the 8-task wrap list under the SP1-13 section above
+remains before `v0.1.0` tag + Jira Done.
 
 ### Quick state snapshot
 
-- On `main` at `29dfccc`. Feature branch `feat/sp1-11-landing-page` deleted
-  (local + remote via squash-merge).
-- Tests: **64 backend passing**, `ng build` clean, bicep build clean.
+- On `main` at `a9634ef`. Both feature branches deleted locally + remotely
+  via squash-merge: `feat/sp1-11-landing-page`, `feat/sp1-13-sprint-wrap`.
+- Live URL healthy: landing page (`/`) renders with architecture SVG,
+  `/live` dashboard shows real vehicles + alerts, pulse animation visible
+  on SignalR updates, mobile viewport usable, direct URL entry resolves
+  via SPA fallback, CORS locked to specific origins.
+- Tests: **64 backend passing**, `ng build` clean, `bicep build` clean.
   Frontend unit tests remain deferred to SP-21.
-- Live CI/CD pipeline unchanged from SP1-10 close (auto-deploys backend on
-  push to `main`; SWA content deploy still NOT wired — first task of SP1-13).
+- CI/CD pipeline: 4 jobs (`lint-test` → `deploy-infra` → `publish-app`
+  + `publish-web` in parallel). All Node 24, zero deprecation warnings.
 
-### What's still ahead in Sprint 1
+### What's still ahead in SP1-13 (before Sprint 1 close)
 
-One item remaining before v0.1.0 release:
+See the "SP1-13" section above for the 8-task wrap list with time
+estimates. Recommended next-session order — chunks by activity type:
 
-- **SP1-13 — Sprint wrap + portfolio refresh** (~1 day). SWA-deploy workflow
-  plumbing (first task, unblocks the live URL), tag v0.1.0, README with live
-  URL + architecture, Loom demo, LinkedIn post, **CV refresh with real Static
-  Web App URL + measured perf numbers**.
+**Chunk A — solo desk work (~2 h)**
+1. Debug story #21 write-up (SWA `skip_app_build` gotcha)
+2. README refresh (architecture + live URL + how-to-run)
+3. Tag `v0.1.0` on `main`
 
-### Recommended next — SWA deploy plumbing FIRST
-
-Unchanged from previous handoff — SWA-deploy workflow was silently deferred
-from SP1-12 (CI/CD) and remains the load-bearing gate on the live URL.
-Bicep provisioned the SWA resource but no workflow pushes Angular content
-to it. SP1-13 needs:
-
-- New `_swa-publish.yml` reusable workflow (mirrors `_func-publish.yml`
-  pattern) that runs `ng build --configuration production` and calls
-  `Azure/static-web-apps-deploy@v1`
-- New job in `deploy-dev.yml` chained after `publish-app`
-- `AZURE_STATIC_WEB_APPS_API_TOKEN` GitHub Actions secret (from the dev
-  SWA's "Manage deployment token" blade)
-- First deploy → capture live URL → wire into README, landing page (already
-  routes `/` → `/live` CTA internally, no code change needed), CV, LinkedIn
-  post
-
-### Where we are (cumulative)
-
-- Full event pipeline running end-to-end in dev: Poller → Event Grid →
-  StateWriter / Alerter / (Archiver wired, smoke deferred to SP-19) →
-  Cosmos + SignalR + HTTP API. All 5 backend paths smoke-verified.
-- Frontend **live dashboard and public landing page both built.** Landing
-  page routes `/` → hero → `/live` CTA. Not yet live because SWA-deploy
-  isn't wired.
-- Bicep, App Insights sampling, Key Vault, Event Grid subscriptions,
-  Data Lake lifecycle, CORS, main branch protection, OIDC federated
-  identity — all as SP1-12 handoff (no changes this pass).
+**Chunk B — schedule-blocked + polish (~3 h across days)**
+4. Loom recording during Sydney peak
+5. Evidence page (8 shots incl. pulse mid-animation)
+6. CV surgical pass (needs App Insights p99 pulled first)
+7. LinkedIn post (needs Loom URL)
+8. Flip SP1-13 row to ✅ + Jira SP-13 → Done
 
 ### Resume sequence (next session)
 
 1. Follow session start protocol per `CLAUDE.md` — read this file, then
    `sprint-1.md`, then glob `docs/**/*.md`. Also read
    `C:\BUDDHIKA\2026 July\CLAUDE.md` per the auto-read memory.
-2. `git status` + `git log -5 --oneline` — confirm working tree is clean
-   and on `main` at `29dfccc` or later.
-3. **Start SP1-13 with SWA deploy plumbing** — new `_swa-publish.yml`
-   reusable workflow, wire into `deploy-dev.yml`, add GitHub Actions
-   secret, first deploy to dev SWA, capture live URL.
-4. Then tag v0.1.0, README refresh, CV update (real URL + measured perf),
-   Loom demo, LinkedIn post.
+2. `git status` + `git log -5 --oneline` — confirm working tree clean
+   and on `main` at `a9634ef` or later.
+3. Ask user which SP1-13 wrap task to tackle first — Chunk A items are
+   good "keep going" wins; Chunk B needs scheduling or data prep.
 
 ### Sprint 1 deferrals (logged to backlog)
 
 - **Frontend unit tests → [SP-21](https://gsoft85512.atlassian.net/browse/SP-21).**
-  Decided 2026-06-23 during SP1-09. Rationale: target roles are
-  .NET-senior with Angular secondary; backend already at 64 tests; the
-  `disconnect()` design question is captured in SP-21's description as
-  the story's first test.
+  Decided 2026-06-23 during SP1-09. Target roles are .NET-senior with
+  Angular secondary; backend already at 64 tests; the `disconnect()`
+  design question is captured in SP-21's description as the story's
+  first test.
 - **`VehicleWireDto` refactor → Sprint 2.** Captured in
-  `StateWriterFunction.cs` code comment. Would decouple wire from storage
-  cleanly if that trade-off is ever worth pursuing honestly. Currently
-  both hubs broadcast the Cosmos doc shape — consistent, honest, but
-  couples wire contract to storage.
+  `StateWriterFunction.cs` code comment. Would decouple wire from
+  storage cleanly if that trade-off is ever worth pursuing honestly.
+  Both hubs currently broadcast the Cosmos doc shape — consistent,
+  honest, but couples wire contract to storage.
 - **Bankstown line route catalogue gap.** BNK_1a / BNK_1c chip labels
   fall back to raw TfNSW routeIds because the static route catalogue
-  doesn't have entries for them. Small, separate finding surfaced during
-  Story #10 investigation.
+  doesn't have entries for them. Surfaced during Story #10.
+- **Freshness-ring liveness indicator → Sprint 2**
+  (memory `project_sp2_freshness_ring_deferred.md`). Deferred from
+  SP1-13 pulse-animation scope split; ops-inspector value, not demo
+  value, so it pairs with demo mode in SP2.
+- **Demo mode (fixture-based Poller replay) → Sprint 2 headline**
+  (memory `project_sp2_demo_mode_headline.md`). Unblocks off-peak
+  interview demos; already fully specified in `docs/modes.md`.
 
 ### Standing operating rules
 
