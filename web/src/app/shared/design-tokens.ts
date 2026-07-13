@@ -25,6 +25,12 @@ export const MARKER_STROKE_WEIGHT_PX = 1;
 // not change the palette signal - only its weight on the map.
 export const MARKER_FILL_OPACITY = 0.7;
 
+// ---- vehicle marker pulse animation (vehicle-marker.ts) ----
+
+// Pulse markers increase radius 130% for 450 ms and comes back to 100%
+export const MARKER_PULSE_PEAK_SCALE = 1.3;
+export const MARKER_PULSE_DURATION_MS = 450;
+
 // ---- freshness + prune timing (live.component.ts) ----
 
 // Re-eval cadence for both the freshness computed and pruneStale; one

@@ -12,6 +12,10 @@ export const environment = {
   // Function App go live.
   apiBaseUrl: 'https://sydney-pulse-func-dev.azurewebsites.net/api',
 
+  features: {
+    pulseMarkers: true,
+  },
+
   // debugging
   debugging: {
     enableSignalRRealtime: true,

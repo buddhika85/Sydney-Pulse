@@ -20,7 +20,11 @@
 .live-shell {
   display: grid;
   height: 100%;
-  grid-template-rows: auto 1fr;
+  // Explicit 3 rows so the alerts row is declared, not implicit.
+  // The map's 1fr shares real estate with header (auto) and alerts (auto);
+  // per-child media queries floor the map and cap alerts at mobile so
+  // the 1fr doesn't collapse to 0 when alerts content is long.
+  grid-template-rows: auto 1fr auto;
   grid-template-columns: 1fr;
   grid-template-areas:
     "header"
@@ -81,12 +85,26 @@
   // intrinsic height (0) and the map appears blank. Overriding to 0
   // lets 1fr resolve to the real available space.
   min-height: 0;
+
+  @media (max-width: 1023px) {
+    // Floor the map at half the viewport on mobile so the alerts row
+    // (auto-sized to its long text content) can't squeeze 1fr to 0.
+    // Paired with the alerts max-height cap below.
+    min-height: 50vh;
+  }
 }
 
 .live-alerts {
   grid-area: alerts;
   overflow: hidden;
   border-top: 1px solid #e5e7eb;
+
+  @media (max-width: 1023px) {
+    // Cap the alerts panel at 40vh on mobile so it doesn't push the map
+    // out of the viewport. Internal scroll handles overflow.
+    max-height: 40vh;
+    overflow-y: auto;
+  }
 
   @media (min-width: 1024px) {
     border-top: none;

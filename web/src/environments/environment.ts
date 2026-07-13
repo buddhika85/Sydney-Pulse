@@ -10,6 +10,10 @@ export const environment = {
   // No trailing slash - service callers concatenate `/vehicles`, `/alerts`, etc.
   apiBaseUrl: 'https://sydney-pulse-func-dev.azurewebsites.net/api',
 
+  features: {
+    pulseMarkers: true,
+  },
+
   // debugging
   debugging: {
     enableSignalRRealtime: true,
