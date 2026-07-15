@@ -1164,52 +1164,85 @@ When an item is blocked:
 1. Flip to ⚠️ with a note in "Risks / open items" describing the blocker
    and what unblocks it.
 
-## Next session handoff (2026-07-14 — SP1-13 PR merged, wrap tasks remaining)
+## Next session handoff (2026-07-14 close — v0.1.0 tagged + released, evidence scaffold pending images)
 
-**SP1-13 PR merged 2026-07-14 as #13 (`a9634ef`).** Sprint 1 is now live at
-https://proud-grass-020b12300.7.azurestaticapps.net/. Code portion of
-SP1-13 is done; the 8-task wrap list under the SP1-13 section above
-remains before `v0.1.0` tag + Jira Done.
+**Second SP1-13 session today (2026-07-14) shipped 4 more wrap tasks
+after the PR merge earlier the same day.** Sprint 1 is now `v0.1.0` on
+GitHub, README is portfolio-facing, debug story #1 is written, and the
+evidence page is scaffolded and waiting for image capture.
 
 ### Quick state snapshot
 
-- On `main` at `a9634ef`. Both feature branches deleted locally + remotely
-  via squash-merge: `feat/sp1-11-landing-page`, `feat/sp1-13-sprint-wrap`.
-- Live URL healthy: landing page (`/`) renders with architecture SVG,
-  `/live` dashboard shows real vehicles + alerts, pulse animation visible
-  on SignalR updates, mobile viewport usable, direct URL entry resolves
-  via SPA fallback, CORS locked to specific origins.
+- On `main` at `051dd12` (README refresh commit tip).
+  `docs/evidence.md` is uncommitted (skeleton with placeholder image
+  paths; do not commit until all 8 images are captured — GitHub
+  renders missing images as broken icons).
+- Both SP1-11 and SP1-13 feature branches deleted locally + remotely.
+- **Tag `v0.1.0` exists** on `051dd12`, pushed to origin. GitHub
+  Release published via web UI with full markdown notes — visible on
+  the repo homepage sidebar as "Latest release".
+- Live URL healthy: landing (`/`) + dashboard (`/live`) + pulse
+  animation + mobile viewport + direct URL entry all working; CORS
+  locked to specific origins via Bicep-wired `webAppOrigin` on
+  `compute.bicep`.
 - Tests: **64 backend passing**, `ng build` clean, `bicep build` clean.
   Frontend unit tests remain deferred to SP-21.
 - CI/CD pipeline: 4 jobs (`lint-test` → `deploy-infra` → `publish-app`
   + `publish-web` in parallel). All Node 24, zero deprecation warnings.
+- Debug story written locally at `docs/sp1-13-debug-stories.md` #1
+  (SWA `skip_app_build` semantics flip). Gitignored per convention.
+  ★ featured status: **left un-★** — user decided during session.
+
+### Wrap tasks shipped this session (2026-07-14)
+
+- Housekeeping: progress.md handoff refreshed (this file, previous
+  version) + stale mid-flight memory deleted
+- Debug story #1 written (`docs/sp1-13-debug-stories.md`)
+- README rewritten as portfolio-facing landing (inline Mermaid
+  architecture, CI/CD section, ADR cross-references, sprint roadmap)
+- Tag `v0.1.0` created + pushed
+- GitHub Release published via web UI ("v0.1.0 — Sprint 1: live URL
+  + demo polish")
+- Evidence page scaffold at `docs/evidence.md` (8 sections, captions,
+  Portal paths, capture cheatsheet)
 
 ### What's still ahead in SP1-13 (before Sprint 1 close)
 
-See the "SP1-13" section above for the 8-task wrap list with time
-estimates. Recommended next-session order — chunks by activity type:
+**Evidence + polish (~3 h across days):**
 
-**Chunk A — solo desk work (~2 h)**
-1. Debug story #21 write-up (SWA `skip_app_build` gotcha)
-2. README refresh (architecture + live URL + how-to-run)
-3. Tag `v0.1.0` on `main`
-
-**Chunk B — schedule-blocked + polish (~3 h across days)**
-4. Loom recording during Sydney peak
-5. Evidence page (8 shots incl. pulse mid-animation)
-6. CV surgical pass (needs App Insights p99 pulled first)
-7. LinkedIn post (needs Loom URL)
-8. Flip SP1-13 row to ✅ + Jira SP-13 → Done
+1. **Evidence page image capture** (~65 min in 3 batches per the
+   cheatsheet inside `docs/evidence.md`):
+   - Batch A (Azure Portal, ~30 min): shots 1, 5, 6, 8 —
+     resource group, Cosmos, App Insights, Key Vault RBAC
+   - Batch B (GitHub UI, ~15 min): shots 2, 3 — deploy-dev run, PR #13
+   - Batch C (local + browser, ~20 min): shots 4, 7 — `dotnet test`
+     terminal, live dashboard mid-pulse (shot 7 needs Sydney peak:
+     8–9am or 5–6pm AEST)
+2. **CV surgical pass** (~45 min) — swap placeholder
+   `sydney-pulse-web-prod.azurestaticapps.net` for real live URL;
+   replace TfNSW-quota proxies with measured p99 numbers from App
+   Insights / Cosmos / SignalR diagnostics. Needs ~15 min data pull
+   from Portal first. See memory `project_sp1_close_cv_followups`.
+3. **Loom demo recording** (~60 min) — schedule for Sydney peak
+   (8–9am or 5–6pm AEST) for dense vehicle traffic + visible pulses.
+   Narrate the pipeline as camera pans (Poller cadence, EG fan-out,
+   pulse animation, alerts panel).
+4. **LinkedIn post** (~30 min) — needs Loom URL to embed.
+5. **Progress.md flip row to ✅** + **Jira SP-13 → Done**
+   (with user approval, per memory `feedback_jira_approval`).
 
 ### Resume sequence (next session)
 
 1. Follow session start protocol per `CLAUDE.md` — read this file, then
    `sprint-1.md`, then glob `docs/**/*.md`. Also read
    `C:\BUDDHIKA\2026 July\CLAUDE.md` per the auto-read memory.
-2. `git status` + `git log -5 --oneline` — confirm working tree clean
-   and on `main` at `a9634ef` or later.
-3. Ask user which SP1-13 wrap task to tackle first — Chunk A items are
-   good "keep going" wins; Chunk B needs scheduling or data prep.
+2. `git status` + `git log -3 --oneline` — expect on `main` at
+   `051dd12` or later; expect `docs/evidence.md` as an untracked file
+   (the scaffold from last session).
+3. Ask user which remaining task to tackle first. Evidence page image
+   capture is likely the next natural step — screenshot capture is
+   solo-work, doesn't need Sydney peak (except shot 7 which is
+   deferrable within the batch).
 
 ### Sprint 1 deferrals (logged to backlog)
 

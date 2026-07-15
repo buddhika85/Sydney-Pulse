@@ -576,6 +576,11 @@ docs/*-debug-stories.md
 # LinkedIn / portfolio highlights).
 docs/images/*-story-*.png
 
+# App Insights metric-pull scratch screenshots (source for CV numbers).
+# Contain account email in top-right chrome; internal only, never
+# committed. Numbers get promoted to CV bullets, screenshots stay local.
+docs/images/app-insights-metrics/
+
 # Test results / coverage (cross-language)
 TestResults/
 coverage/
