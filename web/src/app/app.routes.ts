@@ -18,6 +18,16 @@ export const routes: Routes = [
       import('./pages/live/live.component').then((m) => m.LiveComponent),
   },
   {
+    // Portfolio evidence walkthrough — Loom demo + 8 curated shots
+    // covering IaC, CI/CD, tests, Cosmos, App Insights, live map,
+    // and Managed Identity RBAC. Added SP1-13 (evidence page extension).
+    path: 'evidence',
+    loadComponent: () =>
+      import('./pages/evidence/evidence.component').then(
+        (m) => m.EvidenceComponent,
+      ),
+  },
+  {
     path: 'analytics',
     loadComponent: () =>
       import('./pages/analytics/analytics.component').then(

@@ -14,6 +14,11 @@ export const environment = {
     pulseMarkers: true,
   },
 
+  // Loom video ID for the evidence page walkthrough. Empty string
+  // renders the "coming soon" placeholder card; setting a real ID
+  // (e.g. 'abc123def') swaps in the embedded iframe on next deploy.
+  loomVideoId: '',
+
   // debugging
   debugging: {
     enableSignalRRealtime: true,

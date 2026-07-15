@@ -1,0 +1,138 @@
+<!-- evidence.component.html - portfolio evidence walkthrough.
+     Layout: hero header → Loom video block (or placeholder) → 8
+     evidence sections rendered from `sections[]` → footer CTA.
+     Tailwind for layout; component SCSS handles image sizing +
+     section rhythm. Responsive down to mobile viewport. -->
+<article class="evidence-page">
+  <!-- ── Hero header ─────────────────────────────────────────── -->
+  <header class="evidence-hero">
+    <h1 class="text-3xl md:text-4xl font-bold text-gray-900">
+      Evidence — Sydney Pulse Sprint 1
+    </h1>
+    <p class="evidence-hero__meta">
+      <span class="evidence-hero__tag">{{ releaseTag }}</span>
+      <span aria-hidden="true">·</span>
+      <span>Released {{ releaseDate }}</span>
+      <span aria-hidden="true">·</span>
+      <a [href]="liveUrl" target="_blank" rel="noopener noreferrer">Live URL</a>
+      <span aria-hidden="true">·</span>
+      <a [href]="repoUrl" target="_blank" rel="noopener noreferrer">Repo</a>
+    </p>
+    <p class="evidence-hero__intro">
+      Curated proof-walkthrough of what shipped: infrastructure-as-code,
+      CI/CD pipeline, live pipeline observability, real-time dashboard,
+      and Managed Identity security posture. Every image is a real
+      screenshot from the deployed system — no mocks, no diagrams.
+    </p>
+  </header>
+
+  <!-- ── Loom demo video (or placeholder) ─────────────────────── -->
+  <section class="evidence-video" aria-labelledby="video-heading">
+    <h2 id="video-heading" class="evidence-video__heading">
+      Full pipeline walkthrough
+    </h2>
+    @if (hasLoomVideo) {
+      <!-- Loom iframe embed - loaded lazily so the initial page render
+           does not block on the video iframe fetch. -->
+      <div class="evidence-video__frame">
+        <iframe
+          [src]="loomEmbedUrl"
+          title="Sydney Pulse pipeline walkthrough - Loom video"
+          frameborder="0"
+          allowfullscreen
+          loading="lazy"
+        ></iframe>
+      </div>
+    } @else {
+      <!-- Placeholder card - shown while the Loom demo is being
+           recorded. Swaps to the iframe automatically once
+           environment.loomVideoId is set + prod redeploy fires. -->
+      <div class="evidence-video__placeholder">
+        <p class="evidence-video__placeholder-title">
+          Video walkthrough coming soon.
+        </p>
+        <p class="evidence-video__placeholder-body">
+          A 1-minute narrated walkthrough of the pipeline (poll → event
+          → persist → broadcast → render) will land here.
+          Meanwhile, see the
+          <a [routerLink]="liveDashboardRoute">live dashboard</a>
+          for the real thing.
+        </p>
+      </div>
+    }
+  </section>
+
+  <!-- ── Eight evidence sections ─────────────────────────────── -->
+  <div class="evidence-sections">
+    @for (section of sections; track section.number) {
+      <section
+        class="evidence-section"
+        [attr.aria-labelledby]="'section-' + section.number + '-title'"
+      >
+        <header class="evidence-section__header">
+          <span class="evidence-section__number">{{ section.number }}</span>
+          <h2
+            [id]="'section-' + section.number + '-title'"
+            class="evidence-section__title"
+          >
+            {{ section.title }}
+          </h2>
+        </header>
+
+        <p class="evidence-section__claim">{{ section.claim }}</p>
+
+        <div
+          class="evidence-section__images"
+          [class.evidence-section__images--multi]="section.images.length > 1"
+        >
+          @for (img of section.images; track img.src) {
+            <figure class="evidence-figure">
+              <!-- Click image to open full-size in a new tab.
+                   Same-file src on the anchor (browser opens the PNG
+                   directly, native zoom). rel="noopener noreferrer"
+                   is standard hygiene for external-target links. -->
+              <a
+                [href]="img.src"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Open full-size in a new tab"
+                class="evidence-figure__link"
+              >
+                <img
+                  [src]="img.src"
+                  [alt]="img.alt"
+                  loading="lazy"
+                  decoding="async"
+                />
+              </a>
+              @if (img.label) {
+                <figcaption class="evidence-figure__caption">
+                  {{ img.label }}
+                </figcaption>
+              }
+            </figure>
+          }
+        </div>
+
+        <p class="evidence-section__why">
+          <span class="evidence-section__why-label">Why it matters —</span>
+          {{ section.whyItMatters }}
+        </p>
+      </section>
+    }
+  </div>
+
+  <!-- ── Footer CTA ──────────────────────────────────────────── -->
+  <footer class="evidence-footer">
+    <p>
+      See the live system:
+      <a [routerLink]="liveDashboardRoute" class="evidence-footer__cta">
+        Live Dashboard →
+      </a>
+    </p>
+    <p class="evidence-footer__meta">
+      Source code + full docs on
+      <a [href]="repoUrl" target="_blank" rel="noopener noreferrer">GitHub</a>.
+    </p>
+  </footer>
+</article>
