@@ -69,13 +69,23 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
-      # Fail fast on whitespace/style before burning the build and before Unit tests run
-      - name: dotnet format --verify-no-changes
-        run: dotnet format ${{ inputs.solution }} --verify-no-changes
+      # Restores NuGet packages FIRST so downstream steps use --no-restore
+      # and don't each trigger their own implicit restore. Retry loop hardens
+      # against transient NuGet.org network flakes (~1-3% failure rate observed).
+      - name: dotnet restore (with retry on transient NuGet flakes)
+        run: |
+          for i in 1 2 3; do
+            dotnet restore ${{ inputs.solution }} && exit 0
+            echo "restore attempt $i failed, retrying in 10s..."
+            sleep 10
+          done
+          echo "::error::dotnet restore failed after 3 attempts"
+          exit 1
 
-      # Restores NuGet packages
-      - name: dotnet restore
-        run: dotnet restore ${{ inputs.solution }}
+      # Fail fast on whitespace/style before burning the build + tests.
+      # --no-restore skips format's implicit restore (already done above).
+      - name: dotnet format --verify-no-changes
+        run: dotnet format ${{ inputs.solution }} --verify-no-changes --no-restore
 
       # Builds the solution in Release mode
       - name: dotnet build
