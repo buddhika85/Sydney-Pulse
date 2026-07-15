@@ -3,8 +3,8 @@
 Real-time disruption intelligence for Sydney public transport.
 Event-driven Azure architecture built on TfNSW open data.
 
-**Live:** https://proud-grass-020b12300.7.azurestaticapps.net/
-**Status:** `v0.1.0` — Sprint 1 close (2026-07-14). Next: [Sprint 2 →](docs/sprints/sprint-2.md)
+**Live:** https://proud-grass-020b12300.7.azurestaticapps.net/ · [dashboard](https://proud-grass-020b12300.7.azurestaticapps.net/live) · [evidence walkthrough](https://proud-grass-020b12300.7.azurestaticapps.net/evidence)
+**Status:** `v0.1.1` — Sprint 1 close + evidence page (2026-07-15). Next: [Sprint 2 →](docs/sprints/sprint-2.md)
 
 ---
 
@@ -126,6 +126,7 @@ if you don't need to iterate on Function code.
 
 ## Documentation
 
+- **Evidence walkthrough** — [/evidence](https://proud-grass-020b12300.7.azurestaticapps.net/evidence) (live) · [docs/evidence.md](docs/evidence.md) (source)
 - **Architecture** — [architecture.md](docs/architecture.md) · [diagrams.md](docs/diagrams.md)
 - **API contracts** — [api.md](docs/api.md) (HTTP + SignalR)
 - **Decisions** — [ADRs](docs/adr/) (14 records)
@@ -147,8 +148,9 @@ if you don't need to iterate on Function code.
 
 ## Sprint roadmap
 
-- **Sprint 1 (`v0.1.0`)** — full event pipeline in dev, live public
-  URL, SignalR-driven dashboard with pulse animation. **Shipped.**
+- **Sprint 1 (`v0.1.0` + `v0.1.1`)** — full event pipeline in dev, live public
+  URL, SignalR-driven dashboard with pulse animation, in-app evidence
+  walkthrough at `/evidence`. **Shipped.**
 - **Sprint 2** — production slot swap, freshness-ring liveness
   indicator, `demo` mode (fixture-based Poller replay) for off-peak
   interviews.
