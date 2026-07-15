@@ -6,6 +6,8 @@ Event-driven Azure architecture built on TfNSW open data.
 **Live:** https://proud-grass-020b12300.7.azurestaticapps.net/ · [dashboard](https://proud-grass-020b12300.7.azurestaticapps.net/live) · [evidence walkthrough](https://proud-grass-020b12300.7.azurestaticapps.net/evidence)
 **Status:** `v0.1.1` — Sprint 1 close + evidence page (2026-07-15). Next: [Sprint 2 →](docs/sprints/sprint-2.md)
 
+[![Sydney Pulse live dashboard — real-time Sydney Trains vehicles across the network, alerts panel populated, live SignalR stream](docs/images/evidence-07a-live-dashboard-full.png)](docs/images/evidence-07a-live-dashboard-full.png)
+
 ---
 
 ## What it does
@@ -81,6 +83,8 @@ lint-test → deploy-infra → publish-app (Functions)
   GitHub. Node 24 runtimes across every action
 - Reusable workflows in `.github/workflows/_*.yml`; same shape will
   drive the prod slot swap in Sprint 2
+
+[![deploy-dev pipeline — 4 jobs (lint-test → deploy-infra → publish-app + publish-web parallel) all green, ~5 min end-to-end, OIDC federated identity, no static secrets](docs/images/evidence-02-deploy-dev-run.png)](docs/images/evidence-02-deploy-dev-run.png)
 
 ## Tech stack
 
