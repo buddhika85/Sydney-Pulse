@@ -30,7 +30,7 @@ dashboard, tagged `v0.1.0`.
 | SP1-12 | GitHub Actions CI/CD              | ✅     | 2026-06-25  | 2026-06-29  | `6256c39` (PR #10 squash-merged) |
 | SP1-10 | Live dashboard                    | ✅     | 2026-06-30  | 2026-07-10  | `f10a434` (PR #11 squash-merged) |
 | SP1-11 | Landing page                      | ✅     | 2026-07-10  | 2026-07-11  | `29dfccc` (PR #12 squash-merged) |
-| SP1-13 | Sprint wrap → v0.1.0              | ⬜     | —           | —           | —                   |
+| SP1-13 | Sprint wrap → v0.1.0              | ✅     | 2026-07-11  | 2026-07-16  | `a9634ef` (PR #13 squash-merged) + wrap commits on `main` (`20518d4` DomSanitizer/evidence config fix) |
 
 ## SP1-01 — Repo + Azure bootstrap ✅
 
@@ -987,11 +987,14 @@ Started 2026-07-10. Closed 2026-07-11 via PR #12 (`29dfccc`). Jira: SP-11.
 - Backend `dotnet test` — 64/64 passing (unchanged, no backend files touched).
 - Frontend unit tests remain deferred to SP-21.
 
-## SP1-13 — PR merged 2026-07-14 via #13 (`a9634ef`), wrap tasks remaining
+## SP1-13 — ✅ Closed 2026-07-16
 
-**Code portion shipped in PR #13** (squash-merged, 8 commits → single).
-Sprint 1 is now live at
-https://proud-grass-020b12300.7.azurestaticapps.net/.
+**Sprint 1 shipped.** Live URL healthy at
+https://proud-grass-020b12300.7.azurestaticapps.net/. Two GitHub
+releases published: `v0.1.0` (2026-07-14, PR #13 merge + wrap) and
+`v0.1.1` (2026-07-15, evidence page + Loom scaffold). Full pipeline
+poll → Event Grid → Cosmos + Service Bus → Alerter → SignalR → live
+Angular dashboard running against real Sydney Trains data.
 
 ### What landed in PR #13
 
@@ -1035,20 +1038,55 @@ https://proud-grass-020b12300.7.azurestaticapps.net/.
   `swa.properties.defaultHostname` reference (same-module — avoids
   the circular "consume own output" problem).
 
-### Wrap tasks still open (before `v0.1.0` tag + Jira Done)
+### Wrap-up shipped after PR #13 (2026-07-14 → 07-16)
 
-1. Debug story #21 write-up (SWA `skip_app_build` gotcha) — ~20 min
-2. README refresh — architecture SVG + live URL + 4-job pipeline diagram + how-to-run — ~30 min
-3. Tag `v0.1.0` on `main` — ~5 min, after #1 + #2
-4. Evidence page (`docs/evidence.md`) — 8 curated screenshots — ~90 min
-5. CV surgical pass — swap placeholder URL for real one; add measured p99
-   from App Insights / Cosmos / SignalR — ~45 min
-6. Loom demo recording during Sydney peak (8–9 am or 5–6 pm AEST) — ~60 min
-7. LinkedIn post — needs Loom URL — ~30 min
-8. Flip this row to ✅ + Jira SP-13 → Done (with approval) — ~10 min
+- **README refresh** — portfolio-facing landing with inline Mermaid
+  architecture, CI/CD section, ADR cross-references, sprint roadmap,
+  plus hero + CI/CD screenshots (`fdaf6c8`).
+- **Tag + Release `v0.1.0`** — pushed 2026-07-14, GitHub Release
+  published via web UI with full markdown notes.
+- **Evidence page** — Angular component at `/evidence` with 8
+  captioned sections, mobile-responsive layout, Loom iframe slot
+  (env-flagged), and `docs/evidence.md` markdown mirror. All 9
+  screenshots captured — served from `web/public/evidence/` for the
+  Angular route and mirrored under `docs/images/` for the GitHub
+  markdown page.
+- **Loom walkthrough recorded + uploaded** — silent-camera video ID
+  `7726a3e69ec84db68a86a0290c46bf62` embedded on evidence page.
+  Narrated re-record deferred.
+- **Tag + Release `v0.1.1`** — 2026-07-15, bundled evidence page +
+  Loom scaffold.
+- **DomSanitizer fix + evidence config centralisation**
+  (2026-07-16, `20518d4`) — Angular was silently stripping the Loom
+  iframe `src` binding via `SecurityContext.RESOURCE_URL`
+  sanitization; fix wraps the URL with
+  `bypassSecurityTrustResourceUrl()`. Same commit moves evidence page
+  URLs, release metadata, and Loom video ID into
+  `environment.evidence.*` so dev vs prod values live in config, not
+  component code. Both env files now shape-symmetric.
+- **Debug stories (gitignored, in `docs/sp1-13-debug-stories.md`)** —
+  - **#1** — SWA `skip_app_build` semantics: when true, the action
+    reinterprets `app_location` as the artifact folder and ignores
+    `output_location`. Buried in prose docs, not in `action.yml`.
+  - **#2 ★** — Angular `DomSanitizer` silently blanks `iframe[src]`
+    bound to a plain string. Trust boundary is provenance of the URL,
+    not identity of the domain. Blog-worthy Angular-security teaching
+    moment; textbook interview material.
 
-Total remaining: ~5 hours across 8 tasks; some schedule-blocked (Loom
-needs Sydney peak), some depend on App Insights data pull (CV perf numbers).
+### Deferred out of SP1-13 (post-Sprint-1 backlog)
+
+Not blocking Sprint 1 close; captured in memory + handoff for
+follow-up:
+
+1. **CV surgical pass** — swap placeholder URLs for real live URL,
+   replace TfNSW-quota proxies with measured p99 from App Insights /
+   Cosmos / SignalR diagnostics. Gates any CV send. See memory
+   `project_sp1_close_cv_followups`.
+2. **Narrated Loom re-record** — silent-camera walkthrough already
+   uploaded; narrated version deferred until Week 1 study block +
+   first CV batch. Script draft in memory
+   `project_post_sprint1_narrated_loom_linkedin`.
+3. **LinkedIn post** — needs narrated Loom URL to embed.
 
 ## Housekeeping — 2026-06-03 — AzFunctions folder restructure
 
@@ -1164,72 +1202,112 @@ When an item is blocked:
 1. Flip to ⚠️ with a note in "Risks / open items" describing the blocker
    and what unblocks it.
 
-## Next session handoff (2026-07-14 close — v0.1.0 tagged + released, evidence scaffold pending images)
+## Next session handoff (2026-07-16 — Sprint 1 CLOSED, pivoting to interview prep)
 
-**Second SP1-13 session today (2026-07-14) shipped 4 more wrap tasks
-after the PR merge earlier the same day.** Sprint 1 is now `v0.1.0` on
-GitHub, README is portfolio-facing, debug story #1 is written, and the
-evidence page is scaffolded and waiting for image capture.
+**Sprint 1 done.** Full event-driven pipeline running end-to-end
+against real TfNSW data: Poller → Event Grid → Cosmos + Service Bus →
+Alerter → SignalR → live Angular dashboard, at
+https://proud-grass-020b12300.7.azurestaticapps.net/. Two releases
+(`v0.1.0` on 2026-07-14, `v0.1.1` on 2026-07-15) published to GitHub.
+Evidence page live on both the Angular route (`/evidence`) and the
+markdown mirror (`docs/evidence.md`), with all 9 screenshots captured.
+
+Per memory `project_post_sprint1_full_time_prep`, Sprint 2 is now
+paused. Top of the stack is interview prep — Q-Bank study plan +
+Advanced C# brush-up + System Design + CV surgical pass.
 
 ### Quick state snapshot
 
-- On `main` at `051dd12` (README refresh commit tip).
-  `docs/evidence.md` is uncommitted (skeleton with placeholder image
-  paths; do not commit until all 8 images are captured — GitHub
-  renders missing images as broken icons).
-- Both SP1-11 and SP1-13 feature branches deleted locally + remotely.
-- **Tag `v0.1.0` exists** on `051dd12`, pushed to origin. GitHub
-  Release published via web UI with full markdown notes — visible on
-  the repo homepage sidebar as "Latest release".
-- Live URL healthy: landing (`/`) + dashboard (`/live`) + pulse
-  animation + mobile viewport + direct URL entry all working; CORS
-  locked to specific origins via Bicep-wired `webAppOrigin` on
-  `compute.bicep`.
+- On `main` at `20518d4` (DomSanitizer fix + evidence config centralisation).
+- Tags `v0.1.0` and `v0.1.1` pushed to origin; both have GitHub
+  Releases with markdown notes visible on the repo homepage sidebar.
+- Live URL healthy: landing (`/`) + dashboard (`/live`) + evidence
+  (`/evidence`) + pulse animation + mobile viewport + direct URL entry
+  all working. CORS locked to specific origins via Bicep-wired
+  `webAppOrigin` on `compute.bicep`.
+- Evidence page assets: 9 PNGs at both `web/public/evidence/` (Angular
+  serves) and `docs/images/` (GitHub markdown mirror). Loom video
+  `7726a3e69ec84db68a86a0290c46bf62` embedded via
+  `environment.evidence.loomVideoId`.
 - Tests: **64 backend passing**, `ng build` clean, `bicep build` clean.
   Frontend unit tests remain deferred to SP-21.
 - CI/CD pipeline: 4 jobs (`lint-test` → `deploy-infra` → `publish-app`
   + `publish-web` in parallel). All Node 24, zero deprecation warnings.
-- Debug story written locally at `docs/sp1-13-debug-stories.md` #1
-  (SWA `skip_app_build` semantics flip). Gitignored per convention.
-  ★ featured status: **left un-★** — user decided during session.
+- Debug stories at `docs/sp1-13-debug-stories.md` (gitignored):
+  - **#1** — SWA `skip_app_build` reinterprets `app_location` as the
+    artifact folder and ignores `output_location`. Buried in prose docs.
+  - **#2 ★** — Angular `DomSanitizer` silently blanks `iframe[src]`
+    bound to a plain string; textbook Angular-security material.
 
-### Wrap tasks shipped this session (2026-07-14)
+### Wrap tasks shipped this session (2026-07-16)
 
-- Housekeeping: progress.md handoff refreshed (this file, previous
-  version) + stale mid-flight memory deleted
-- Debug story #1 written (`docs/sp1-13-debug-stories.md`)
-- README rewritten as portfolio-facing landing (inline Mermaid
-  architecture, CI/CD section, ADR cross-references, sprint roadmap)
-- Tag `v0.1.0` created + pushed
-- GitHub Release published via web UI ("v0.1.0 — Sprint 1: live URL
-  + demo polish")
-- Evidence page scaffold at `docs/evidence.md` (8 sections, captions,
-  Portal paths, capture cheatsheet)
+- **DomSanitizer fix** (`20518d4`) — Loom iframe was rendering blank
+  because Angular's default sanitizer strips string URLs bound into
+  `iframe[src]` (`SecurityContext.RESOURCE_URL`). Fixed by wrapping
+  the URL with `bypassSecurityTrustResourceUrl()`.
+- **Evidence config centralisation** (same commit) — release metadata
+  + Loom ID + repo/live URLs moved into `environment.evidence.*` so
+  dev vs prod values live in config, not component code. Both env
+  files now shape-symmetric.
+- **Debug story #2 ★ written** for the DomSanitizer gotcha.
+- **progress.md flip** — SP1-13 row → ✅, SP1-13 prose section
+  rewritten as "closed 2026-07-16", this handoff refreshed.
+- **Jira SP-13 → Done** transition + completion comment (pending
+  developer approval at session close, per memory
+  `feedback_jira_approval`).
 
-### What's still ahead in SP1-13 (before Sprint 1 close)
+### Post-Sprint-1 stack (top of stack now)
 
-**Evidence + polish (~3 h across days):**
+Per memory `project_post_sprint1_full_time_prep` +
+`feedback_minimise_context_switching` — one primary focus per day, no
+context switching. Priority order:
 
-1. **Evidence page image capture** (~65 min in 3 batches per the
-   cheatsheet inside `docs/evidence.md`):
-   - Batch A (Azure Portal, ~30 min): shots 1, 5, 6, 8 —
-     resource group, Cosmos, App Insights, Key Vault RBAC
-   - Batch B (GitHub UI, ~15 min): shots 2, 3 — deploy-dev run, PR #13
-   - Batch C (local + browser, ~20 min): shots 4, 7 — `dotnet test`
-     terminal, live dashboard mid-pulse (shot 7 needs Sydney peak:
-     8–9am or 5–6pm AEST)
-2. **CV surgical pass** (~45 min) — swap placeholder
-   `sydney-pulse-web-prod.azurestaticapps.net` for real live URL;
+1. **Q-Bank study plan (Week 3 of 5)** — 202-Q doc at
+   `C:\BUDDHIKA\2026 July\Interview-Question-Bank.docx`. Schedule Fri
+   26 Jun → Thu 31 Jul. Active recall, speak don't read. Memory
+   `project_interview_prep_study_plan`.
+2. **Advanced C# brush-up (2 h/day, Jul 1 → Aug 1)** — 62 h syllabus
+   from `C:\BUDDHIKA\SydPulse-P6\AdvancedC#`. Target: sound-senior on
+   concurrency. Sibling to Q-Bank + System Design.
+3. **System Design prep** — reference doc
+   `C:\BUDDHIKA\2026 July\SystemDesign.docx` (147 KB); Prep1/Prep2 Q&A
+   docs; 60+ audio rehearsals. Memory `reference_july2026_prep_folder`.
+4. **CV surgical pass** — swap placeholder URLs for real live URL,
    replace TfNSW-quota proxies with measured p99 numbers from App
-   Insights / Cosmos / SignalR diagnostics. Needs ~15 min data pull
-   from Portal first. See memory `project_sp1_close_cv_followups`.
-3. **Loom demo recording** (~60 min) — schedule for Sydney peak
-   (8–9am or 5–6pm AEST) for dense vehicle traffic + visible pulses.
-   Narrate the pipeline as camera pans (Poller cadence, EG fan-out,
-   pulse animation, alerts panel).
-4. **LinkedIn post** (~30 min) — needs Loom URL to embed.
-5. **Progress.md flip row to ✅** + **Jira SP-13 → Done**
-   (with user approval, per memory `feedback_jira_approval`).
+   Insights / Cosmos / SignalR diagnostics. **Gates any CV send.**
+   Memory `project_sp1_close_cv_followups`.
+5. **Narrated Loom re-record + LinkedIn post** — silent-camera version
+   already uploaded. Script draft in memory
+   `project_post_sprint1_narrated_loom_linkedin`; timing locked at
+   "after Week 1 study + first CV batch sent."
+
+### Sprint 2 status — PAUSED
+
+Backlog captured; do not start any Sprint 2 item until the interview
+cycle settles. Existing Sprint 2 deferrals:
+
+- **Frontend unit tests → [SP-21](https://gsoft85512.atlassian.net/browse/SP-21).**
+  Decided 2026-06-23 during SP1-09. Target roles are .NET-senior with
+  Angular secondary; backend already at 64 tests.
+- **`VehicleWireDto` refactor → Sprint 2.** Captured in
+  `StateWriterFunction.cs` code comment. Would decouple wire from
+  storage cleanly if the trade-off is worth pursuing.
+- **Bankstown route catalogue gap.** BNK_1a / BNK_1c chip labels fall
+  back to raw TfNSW routeIds because the static catalogue lacks
+  entries. Surfaced during Debug Story #10.
+- **Freshness-ring liveness indicator → Sprint 2**
+  (memory `project_sp2_freshness_ring_deferred.md`). Ops-inspector
+  value; pairs with demo mode.
+- **Demo mode (fixture-based Poller replay) → Sprint 2 headline**
+  (memory `project_sp2_demo_mode_headline.md`). Unblocks off-peak
+  interview demos; fully specified in `docs/modes.md`.
+- **SP-19 Archiver smoke** (memory
+  `project_sp19_archiver_smoke_deferred.md`) — descoped from SP1-16
+  because Sprint 1 frontend is Commuter-only. Must complete before
+  Sprint 3 Analytics view starts.
+- **Azure cost analysis** (memory
+  `project_sp2_azure_cost_analysis.md`) — verify actual RG spend
+  before committing to "cycled off" messaging; audit DevPulseRG too.
 
 ### Resume sequence (next session)
 
@@ -1237,35 +1315,11 @@ evidence page is scaffolded and waiting for image capture.
    `sprint-1.md`, then glob `docs/**/*.md`. Also read
    `C:\BUDDHIKA\2026 July\CLAUDE.md` per the auto-read memory.
 2. `git status` + `git log -3 --oneline` — expect on `main` at
-   `051dd12` or later; expect `docs/evidence.md` as an untracked file
-   (the scaffold from last session).
-3. Ask user which remaining task to tackle first. Evidence page image
-   capture is likely the next natural step — screenshot capture is
-   solo-work, doesn't need Sydney peak (except shot 7 which is
-   deferrable within the batch).
-
-### Sprint 1 deferrals (logged to backlog)
-
-- **Frontend unit tests → [SP-21](https://gsoft85512.atlassian.net/browse/SP-21).**
-  Decided 2026-06-23 during SP1-09. Target roles are .NET-senior with
-  Angular secondary; backend already at 64 tests; the `disconnect()`
-  design question is captured in SP-21's description as the story's
-  first test.
-- **`VehicleWireDto` refactor → Sprint 2.** Captured in
-  `StateWriterFunction.cs` code comment. Would decouple wire from
-  storage cleanly if that trade-off is ever worth pursuing honestly.
-  Both hubs currently broadcast the Cosmos doc shape — consistent,
-  honest, but couples wire contract to storage.
-- **Bankstown line route catalogue gap.** BNK_1a / BNK_1c chip labels
-  fall back to raw TfNSW routeIds because the static route catalogue
-  doesn't have entries for them. Surfaced during Story #10.
-- **Freshness-ring liveness indicator → Sprint 2**
-  (memory `project_sp2_freshness_ring_deferred.md`). Deferred from
-  SP1-13 pulse-animation scope split; ops-inspector value, not demo
-  value, so it pairs with demo mode in SP2.
-- **Demo mode (fixture-based Poller replay) → Sprint 2 headline**
-  (memory `project_sp2_demo_mode_headline.md`). Unblocks off-peak
-  interview demos; already fully specified in `docs/modes.md`.
+   `20518d4` or later, clean working tree.
+3. Ask developer which post-Sprint-1 block they want to run today —
+   Q-Bank, Advanced C#, System Design, CV surgical pass, or narrated
+   Loom. Respect `feedback_minimise_context_switching` — pick one,
+   block-schedule it, don't fan out.
 
 ### Standing operating rules
 
