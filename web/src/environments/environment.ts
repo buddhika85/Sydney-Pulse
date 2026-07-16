@@ -14,10 +14,17 @@ export const environment = {
     pulseMarkers: true,
   },
 
-  // Loom video ID for the evidence page walkthrough. Empty string
-  // renders the "coming soon" placeholder card; setting a real ID
-  // (e.g. 'abc123def') swaps in the embedded iframe on next deploy.
-  loomVideoId: '',
+  evidence: {
+    releaseTag: 'v0.1.0',
+    releaseDate: '2026-07-14',
+    liveUrl: 'http://localhost:4200/',
+
+    // Loom video ID for the evidence page walkthrough. Empty string
+    // renders the "coming soon" placeholder card; setting a real ID
+    // (e.g. 'abc123def') swaps in the embedded iframe on next deploy.
+    loomVideoId: '7726a3e69ec84db68a86a0290c46bf62',
+    repoUrl: 'https://github.com/buddhika85/Sydney-Pulse',
+  },
 
   // debugging
   debugging: {

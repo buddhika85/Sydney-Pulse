@@ -12,7 +12,8 @@
 // No service injection, no state - pure static content bound to a
 // readonly section array.
 
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { RouterLink } from '@angular/router';
 
 import { environment } from '../../../environments/environment';
@@ -47,20 +48,30 @@ interface EvidenceSection {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EvidenceComponent {
-  // External links — hardcoded per landing.component.ts precedent
+  // Angular treats iframe[src] as a security-critical binding and
+  // silently strips plain string URLs (blank iframe + "sanitizing
+  // unsafe URL" warning in DevTools). We explicitly trust the Loom
+  // embed URL because it comes from our own environment config, not
+  // user input — safe target for bypassSecurityTrustResourceUrl.
+  private readonly sanitizer = inject(DomSanitizer);
+
+  // External links — read from environment.ts
   // (do not change between dev/prod deploys).
-  readonly repoUrl = 'https://github.com/buddhika85/Sydney-Pulse';
-  readonly liveUrl = 'https://proud-grass-020b12300.7.azurestaticapps.net/';
-  readonly releaseTag = 'v0.1.0';
-  readonly releaseDate = '2026-07-14';
+  readonly repoUrl = environment.evidence.repoUrl;
+  readonly liveUrl = environment.evidence.liveUrl;
+  readonly releaseTag = environment.evidence.releaseTag;
+  readonly releaseDate = environment.evidence.releaseDate;
 
   // Loom video config — env-flagged. Empty ID renders the "coming soon"
-  // placeholder card; a real ID renders the embedded iframe.
-  readonly loomVideoId = environment.loomVideoId;
-  readonly hasLoomVideo = !!environment.loomVideoId;
-  readonly loomEmbedUrl = environment.loomVideoId
-    ? `https://www.loom.com/embed/${environment.loomVideoId}`
-    : '';
+  // placeholder card; a real ID renders the sanitized iframe URL.
+  readonly loomVideoId = environment.evidence.loomVideoId;
+  readonly hasLoomVideo = !!environment.evidence.loomVideoId;
+  readonly loomEmbedUrl: SafeResourceUrl | null = environment.evidence
+    .loomVideoId
+    ? this.sanitizer.bypassSecurityTrustResourceUrl(
+        `https://www.loom.com/embed/${environment.evidence.loomVideoId}`,
+      )
+    : null;
 
   // Nav-back CTA target — internal SPA route.
   readonly liveDashboardRoute = '/live';
@@ -72,7 +83,8 @@ export class EvidenceComponent {
     {
       number: '1',
       title: 'Everything provisioned via Bicep',
-      claim: 'Zero click-ops. 11 top-level resources declared in one Bicep entrypoint.',
+      claim:
+        'Zero click-ops. 11 top-level resources declared in one Bicep entrypoint.',
       images: [
         {
           src: '/evidence/evidence-01-resource-group.png',
@@ -111,7 +123,8 @@ export class EvidenceComponent {
     {
       number: '4',
       title: 'Backend tests green',
-      claim: '64 xUnit tests passing across TfNSW client, State Writer, Alerter, Archiver, HTTP API, Cosmos, Event Grid schemas.',
+      claim:
+        '64 xUnit tests passing across TfNSW client, State Writer, Alerter, Archiver, HTTP API, Cosmos, Event Grid schemas.',
       images: [
         {
           src: '/evidence/evidence-04-dotnet-test.png',
@@ -124,7 +137,8 @@ export class EvidenceComponent {
     {
       number: '5',
       title: 'Cosmos partitioning strategy',
-      claim: 'Live vehicles partitioned by `routeShortName` (T1, T2, T4, T8...) matching how the UI groups them.',
+      claim:
+        'Live vehicles partitioned by `routeShortName` (T1, T2, T4, T8...) matching how the UI groups them.',
       images: [
         {
           src: '/evidence/evidence-05-cosmos-data-explorer.png',
@@ -150,7 +164,8 @@ export class EvidenceComponent {
     {
       number: '7',
       title: 'Live dashboard — real data, live SignalR',
-      claim: 'Two views — full network breadth and single-route filter — of the deployed dashboard.',
+      claim:
+        'Two views — full network breadth and single-route filter — of the deployed dashboard.',
       images: [
         {
           src: '/evidence/evidence-07a-live-dashboard-full.png',
@@ -169,7 +184,8 @@ export class EvidenceComponent {
     {
       number: '8',
       title: 'Managed Identity + RBAC — zero static credentials',
-      claim: 'Function App MI holds `Key Vault Secrets User`, scoped to This resource (least-privilege).',
+      claim:
+        'Function App MI holds `Key Vault Secrets User`, scoped to This resource (least-privilege).',
       images: [
         {
           src: '/evidence/evidence-08-keyvault-rbac.png',
