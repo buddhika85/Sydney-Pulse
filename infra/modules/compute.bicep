@@ -186,15 +186,27 @@ resource funcApp 'Microsoft.Web/sites@2023-01-01' = {
           value: dataLakeStorageAccountName
         }
 
-        // Disable ArchiverIngest azure function as a deafult for now
+        // Cost - Save - Disable ArchiverIngest azure function as a deafult for now
         {
           name:  'AzureWebJobs.ArchiverIngest.Disabled'
           value: '1'
         }
 
-        // Disable ArchiverFlush azure function as a deafult for now
+        // Cost - Save - Disable ArchiverFlush azure function as a deafult for now
         {
           name:  'AzureWebJobs.ArchiverFlush.Disabled'
+          value: '1'
+        }
+
+        // Cost - Save - Disable Poller azure function as a deafult for now
+        {
+          name:  'AzureWebJobs.Poller.Disabled'
+          value: '1'
+        }
+
+        // Cost - Save - Disable Spike azure function as a deafult for now
+        {
+          name:  'AzureWebJobs.spike.Disabled'
           value: '1'
         }
       ]
