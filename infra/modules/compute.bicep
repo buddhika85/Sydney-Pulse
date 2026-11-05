@@ -185,6 +185,18 @@ resource funcApp 'Microsoft.Web/sites@2023-01-01' = {
           name:  'Archive__DataLakeAccountName'
           value: dataLakeStorageAccountName
         }
+
+        // Disable ArchiverIngest azure function as a deafult for now
+        {
+          name:  'AzureWebJobs.ArchiverIngest.Disabled'
+          value: '1'
+        }
+
+        // Disable ArchiverFlush azure function as a deafult for now
+        {
+          name:  'AzureWebJobs.ArchiverFlush.Disabled'
+          value: '1'
+        }
       ]
     }
   }
