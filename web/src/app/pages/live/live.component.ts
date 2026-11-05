@@ -291,6 +291,7 @@ export class LiveComponent implements AfterViewInit, OnDestroy {
     // LEARN: {z}=zoom, {x}/{y}=tile column/row - Leaflet fills them from the viewport
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors',
+      referrerPolicy: 'strict-origin-when-cross-origin',
     }).addTo(this.map);
   }
 
