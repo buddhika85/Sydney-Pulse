@@ -8,7 +8,7 @@
 //     --resource-group sydney-pulse-rg-dev \
 //     --template-file infra/main.bicep \
 //     --parameters infra/parameters/dev.bicepparam
-//
+
 // Always run what-if first:
 //   az deployment group what-if \
 //     --resource-group sydney-pulse-rg-dev \

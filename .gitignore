@@ -602,3 +602,7 @@ web/.vscode/settings.json
 .github/workflows/.vscode/
 full-reasoning.txt
 reading-plan.xlsx
+
+
+# Pre-rename scratch captures for evidence screenshots — not referenced in app or docs
+docs/images/New/
