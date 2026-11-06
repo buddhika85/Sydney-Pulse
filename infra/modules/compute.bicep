@@ -209,6 +209,12 @@ resource funcApp 'Microsoft.Web/sites@2023-01-01' = {
           name:  'AzureWebJobs.spike.Disabled'
           value: '1'
         }
+
+        // Cost - Save - Cap scale-out at maximum 3 instances to control cost on the Consumption plan. (You know azure functions brings up new function instances when there is new traffic)
+        {
+          name: 'WEBSITE_MAX_DYNAMIC_APPLICATION_SCALE_OUT'
+          value: '3'
+        }
       ]
     }
   }
