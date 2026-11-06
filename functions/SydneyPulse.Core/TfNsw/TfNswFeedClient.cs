@@ -97,6 +97,11 @@ public class TfNswFeedClient : ITfNswFeedClient
         var feed = FeedMessage.Parser.ParseFrom(bytes);
         var routes = await GetRoutesAsync(mode, cancellationToken);
 
+        // Time the TfNSW feed snapshot was produced, from the feed header. Used by the Alerter to ignore stale or duplicate alerts.
+        var tfNswAlertTimestamp = feed.Header?.Timestamp > 0
+            ? (DateTimeOffset?) DateTimeOffset.FromUnixTimeSeconds((long)feed.Header.Timestamp)
+            : null;
+
         var results = new List<ServiceAlert>(feed.Entity.Count);
         foreach (var entity in feed.Entity)
         {
@@ -116,7 +121,8 @@ public class TfNswFeedClient : ITfNswFeedClient
                 HeaderText: header,
                 DescriptionText: description,
                 StartsAt: period?.Start > 0 ? DateTimeOffset.FromUnixTimeSeconds((long)period.Start) : null,
-                EndsAt: period?.End > 0 ? DateTimeOffset.FromUnixTimeSeconds((long)period.End) : null));
+                EndsAt: period?.End > 0 ? DateTimeOffset.FromUnixTimeSeconds((long)period.End) : null,
+                TfNswAlertTimestamp: tfNswAlertTimestamp));
         }
 
         return results;

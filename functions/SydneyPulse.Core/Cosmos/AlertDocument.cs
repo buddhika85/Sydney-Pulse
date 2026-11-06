@@ -22,4 +22,7 @@ public record AlertDocument
     public DateTimeOffset? StartsAt { get; init; }
     public DateTimeOffset? EndsAt { get; init; }         // null = no defined end
     public DateTimeOffset ReceivedAt { get; init; }      // when the Function processed it
+
+    // Time the TfNSW feed snapshot was produced, from the feed header. Used by the Alerter to ignore stale or duplicate alerts. Null for older messages.
+    public DateTimeOffset? TfNswAlertTimestamp { get; init; }
 }

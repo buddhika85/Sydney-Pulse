@@ -8,7 +8,6 @@ using System.Text.Json;
 using Azure.Messaging;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Functions.Worker;
-using Microsoft.Azure.Functions.Worker.SignalRService;
 using Microsoft.Extensions.Logging;
 using SydneyPulse.Core.Cosmos;
 using SydneyPulse.Core.Events;
@@ -45,6 +44,29 @@ public class AlerterFunction(
             return null;
         }
 
+        var container = cosmosClient.GetContainer(FunctionConstants.CosmosDatabaseName, FunctionConstants.AlertsCosmosContainer);
+        // Stale-write guard: read the existing document and skip upsert if the
+        // stored timestamp is already newer than this event.
+        try
+        {
+            var existing = await container.ReadItemAsync<AlertDocument>(
+                alert.AlertId,
+                new PartitionKey(alert.RouteShortName),
+                cancellationToken: cancellationToken);
+
+            if (existing.Resource.TfNswAlertTimestamp >= alert.TfNswAlertTimestamp)
+            {
+                logger.LogDebug(
+                    "Dropping stale event for alert {AlertId}: stored={Stored} >= incoming={Incoming}",
+                    alert.AlertId, existing.Resource.TfNswAlertTimestamp, alert.TfNswAlertTimestamp);
+                return null;
+            }
+        }
+        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            // No existing document — first write for this alert, proceed normally.
+        }
+
         var doc = new AlertDocument
         {
             // One document per alert — upsert overwrites on repeat Event Grid delivery
@@ -57,9 +79,8 @@ public class AlerterFunction(
             StartsAt = alert.StartsAt,
             EndsAt = alert.EndsAt,
             ReceivedAt = DateTimeOffset.UtcNow,
+            TfNswAlertTimestamp = alert.TfNswAlertTimestamp
         };
-
-        var container = cosmosClient.GetContainer(FunctionConstants.CosmosDatabaseName, FunctionConstants.AlertsCosmosContainer);
         await container.UpsertItemAsync(
             doc,
             new PartitionKey(doc.RouteShortName),
