@@ -25,6 +25,6 @@ public record ServiceAlert(
     string DescriptionText,   // full detail text
     DateTimeOffset? StartsAt,
     DateTimeOffset? EndsAt,    // null = alert has no defined end time
-    // Time the TfNSW feed snapshot was produced, from the feed header. Used by the Alerter to ignore stale or duplicate alerts. Null for older messages.
+                               // Time the TfNSW feed snapshot was produced, from the feed header. Used by the Alerter to ignore stale or duplicate alerts. Null for older messages.
     DateTimeOffset? TfNswAlertTimestamp = null
 );

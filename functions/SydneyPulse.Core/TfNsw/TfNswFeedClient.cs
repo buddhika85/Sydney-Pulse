@@ -99,7 +99,7 @@ public class TfNswFeedClient : ITfNswFeedClient
 
         // Time the TfNSW feed snapshot was produced, from the feed header. Used by the Alerter to ignore stale or duplicate alerts.
         var tfNswAlertTimestamp = feed.Header?.Timestamp > 0
-            ? (DateTimeOffset?) DateTimeOffset.FromUnixTimeSeconds((long)feed.Header.Timestamp)
+            ? (DateTimeOffset?)DateTimeOffset.FromUnixTimeSeconds((long)feed.Header.Timestamp)
             : null;
 
         var results = new List<ServiceAlert>(feed.Entity.Count);

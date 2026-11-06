@@ -227,9 +227,9 @@ public class AlerterFunctionTests
             Times.Once);
 
         _mockContainer.Verify(c => c.UpsertItemAsync(
-            It.Is<AlertDocument>(x => x.TfNswAlertTimestamp == incomingTimestamp), 
-            It.Is<PartitionKey>(x => x ==  new PartitionKey(incomingNewAlert.RouteShortName)),           
-            It.IsAny<ItemRequestOptions>(), 
+            It.Is<AlertDocument>(x => x.TfNswAlertTimestamp == incomingTimestamp),
+            It.Is<PartitionKey>(x => x == new PartitionKey(incomingNewAlert.RouteShortName)),
+            It.IsAny<ItemRequestOptions>(),
             It.IsAny<CancellationToken>()),
             Times.Once);
 
@@ -267,7 +267,7 @@ public class AlerterFunctionTests
             It.Is<PartitionKey>(key => key == new PartitionKey(incomingNewAlert.RouteShortName)),
             It.IsAny<ItemRequestOptions>(),
             It.IsAny<CancellationToken>()),
-            Times.Once);    
+            Times.Once);
 
         _mockContainer.Verify(c => c.UpsertItemAsync(
             It.Is<AlertDocument>(x => x.TfNswAlertTimestamp == incomingTimestamp),
