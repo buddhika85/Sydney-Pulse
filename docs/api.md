@@ -236,10 +236,17 @@ Service Bus subscription filter) Alerter chain.
     "headerText": "string",
     "descriptionText": "string",
     "startsAt": "2026-05-28T14:25:00+10:00",
-    "endsAt": "2026-05-28T16:00:00+10:00"
+    "endsAt": "2026-05-28T16:00:00+10:00",
+    "tfNswAlertTimestamp": "2026-05-28T14:32:11+10:00"
   }
 }
 ```
+
+Field `tfNswAlertTimestamp` is the time the TfNSW GTFS-Realtime feed
+snapshot was produced, taken from the feed header timestamp and shared
+by every alert in that snapshot. Optional — `null` for messages
+published before this field was added. Additive change, so no new
+version suffix.
 
 ## Versioning
 
