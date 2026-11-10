@@ -94,11 +94,13 @@ jobs:
       # TEST STEP 1 - Runs all Unit Tests and collects coverage (Coverlet, Cobertura XML) into a temp folder outside the repo
       # Do not build - we built already in previous step
       # Generates: /$RUNNER_TEMP/coverage/**/coverage.cobertura.xml  (** - the unique GUID for each test run given by Coverlet)
+      # coverage.runsettings: These are Classes to be excluded when Coverlet calculates unit test coverage: (mostly generated code and code with no logic)
       - name: dotnet test
         run: >
           dotnet test ${{ inputs.solution }}
           --no-build --configuration Release --verbosity normal
           --collect:"XPlat Code Coverage"
+          --settings functions/coverage.runsettings
           --results-directory "${{ runner.temp }}/coverage"
 
       # TEST STEP 2 - Installs ReportGenerator (pinned version, free, no account) as a global tool
