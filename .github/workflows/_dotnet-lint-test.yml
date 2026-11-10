@@ -138,7 +138,7 @@ jobs:
       # If Line Coverage is less than 90% build fails - the merged file (TEST STEP 3) has a root line-rate attribute, a fraction like 0.956. The step multiplies it by 100 and compares it with 90.
       - name: Enforce minimum line coverage
         env:
-          MIN_LINE_COVERAGE: 90
+          MIN_LINE_COVERAGE: 99
         run: |
           rate=$(grep -o -m1 'line-rate="[0-9.]*"' "${{ runner.temp }}/coverage-report/Cobertura.xml" | head -1 | grep -o '[0-9.]*')
           pct=$(awk -v r="$rate" 'BEGIN { printf "%.1f", r * 100 }')
