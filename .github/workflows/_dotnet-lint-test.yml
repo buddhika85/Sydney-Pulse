@@ -91,9 +91,45 @@ jobs:
       - name: dotnet build
         run: dotnet build ${{ inputs.solution }} --no-restore --configuration Release
 
-      # Runs all Unit Tests
+      # TEST STEP 1 - Runs all Unit Tests and collects coverage (Coverlet, Cobertura XML) into a temp folder outside the repo
+      # Do not build - we built already in previous step
+      # Generates: /$RUNNER_TEMP/coverage/**/coverage.cobertura.xml  (** - the unique GUID for each test run given by Coverlet)
       - name: dotnet test
-        run: dotnet test ${{ inputs.solution }} --no-build --configuration Release --verbosity normal
+        run: >
+          dotnet test ${{ inputs.solution }}
+          --no-build --configuration Release --verbosity normal
+          --collect:"XPlat Code Coverage"
+          --results-directory "${{ runner.temp }}/coverage"
+
+      # TEST STEP 2 - Installs ReportGenerator (pinned version, free, no account) as a global tool
+      - name: Install ReportGenerator
+        run: dotnet tool install --global dotnet-reportgenerator-globaltool --version 5.5.12
+
+      # TEST STEP 3 - Merges the Cobertura files into an HTML report and a markdown summary, in a temp folder outside the repo
+      # Finds the coverage.cobertura.xml inside each GUID subfolder that previous step produced.
+      # stores 2 unit test coverage reports to: /$RUNNER_TEMP/coverage-report/
+      # 1 Html coverage report: gives the clickable report, and
+      # 2 MarkdownSummaryGithub writes SummaryGithub.md, a table formatted for the GitHub run page
+      - name: Generate coverage report
+        run: >
+          reportgenerator
+          -reports:"${{ runner.temp }}/coverage/**/coverage.cobertura.xml"
+          -targetdir:"${{ runner.temp }}/coverage-report"
+          -reporttypes:"Html;MarkdownSummaryGithub"
+
+      # TEST STEP 4 - Shows the coverage table on the workflow run page (no download needed)
+      - name: Add coverage summary to run page
+        run: cat "${{ runner.temp }}/coverage-report/SummaryGithub.md" >> "$GITHUB_STEP_SUMMARY"
+
+      # TEST STEP 5 - Keeps the clickable HTML report as a downloadable artifact
+      # This zips the whole coverage-report folder, including index.html, and attaches it to the run.
+      # We download it, unzip it and open index.html to click through files and see untested lines.
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-report
+          path: ${{ runner.temp }}/coverage-report
+          retention-days: 7
 
       # Validates every Bicep module compiles cleanly before any deployments
       - name: az bicep build
