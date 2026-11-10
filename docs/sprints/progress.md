@@ -1333,3 +1333,34 @@ cycle settles. Existing Sprint 2 deferrals:
 - Windows / PowerShell — single-line commands only.
 - Code comments convention active on all source files Claude writes.
 - No magic strings for Azure infrastructure names — use `FunctionConstants`.
+
+## Next tasks — November 2026 (post-Sprint-1 hardening)
+
+Separate from the July handoff above. Sprint 1 stays closed; this is the
+hardening work done after it. Updated 2026-11-10.
+
+### Done recently
+
+- Alerter stale-write guard, comparing `TfNswAlertTimestamp` (TfNSW feed
+  header time, carried on `ServiceAlert` and stored on `AlertDocument`).
+  Four unit tests; `docs/api.md` updated.
+- Coverage in CI: Coverlet collection, ReportGenerator summary on the run
+  page and an HTML report artifact. Exclusions live in
+  `functions/coverage.runsettings` (generated protobuf and worker code,
+  startup, options classes, `SpikeFunction`). Current: 95.6% lines,
+  70.4% branches.
+
+### To do (in order)
+
+1. **Coverage threshold (third coverage commit).** Fail CI below 90% line
+   coverage. No branch gate yet (branches move too much with small changes).
+2. **Alerter tests 5 and 6.** To-do comments are already in
+   `AlerterFunctionTests.cs`: a stored alert with a null timestamp is
+   overwritten; an incoming alert with a null timestamp is written. Open
+   decision: whether the guard logs anything for a null incoming timestamp.
+3. **`NegotiateFunction` tests (0% today).** Hub choice, and null
+   connection info returns 500.
+4. **`PendingBlobStore` tests (0% today).** Needs mocked Blob clients.
+5. **ETag optimistic concurrency in the Alerter.** Start with a failing
+   test: first write gets 412, re-read, re-run the guard, then retry or drop.
+   Related config already in place: scale-out cap 3, `maxConcurrentCalls` 8.
