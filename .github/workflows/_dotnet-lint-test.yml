@@ -112,12 +112,13 @@ jobs:
       # stores 2 unit test coverage reports to: /$RUNNER_TEMP/coverage-report/
       # 1 Html coverage report: gives the clickable report, and
       # 2 MarkdownSummaryGithub writes SummaryGithub.md, a table formatted for the GitHub run page
+      # 3 Cobertura: writes Cobertura.xml, one merged file with the overall line rate, used by the coverage gate (TEST STEP 3 6) step to fail the build below the minimum.
       - name: Generate coverage report
         run: >
           reportgenerator
           -reports:"${{ runner.temp }}/coverage/**/coverage.cobertura.xml"
           -targetdir:"${{ runner.temp }}/coverage-report"
-          -reporttypes:"Html;MarkdownSummaryGithub"
+          -reporttypes:"Html;MarkdownSummaryGithub;Cobertura"
 
       # TEST STEP 4 - Shows the coverage table on the workflow run page (no download needed)
       - name: Add coverage summary to run page
@@ -132,6 +133,17 @@ jobs:
           name: coverage-report
           path: ${{ runner.temp }}/coverage-report
           retention-days: 7
+
+      # TEST STEP 6 - Coverage gate: fail the build if line coverage is below the minimum
+      # If Line Coverage is less than 90% build fails - the merged file (TEST STEP 3) has a root line-rate attribute, a fraction like 0.956. The step multiplies it by 100 and compares it with 90.
+      - name: Enforce minimum line coverage
+        env:
+          MIN_LINE_COVERAGE: 90
+        run: |
+          rate=$(grep -o -m1 'line-rate="[0-9.]*"' "${{ runner.temp }}/coverage-report/Cobertura.xml" | head -1 | grep -o '[0-9.]*')
+          pct=$(awk -v r="$rate" 'BEGIN { printf "%.1f", r * 100 }')
+          echo "Line coverage: ${pct}% (minimum ${MIN_LINE_COVERAGE}%)"
+          awk -v p="$pct" -v m="$MIN_LINE_COVERAGE" 'BEGIN { exit !(p >= m) }' || { echo "::error::Line coverage ${pct}% is below ${MIN_LINE_COVERAGE}%"; exit 1; }
 
       # Validates every Bicep module compiles cleanly before any deployments
       - name: az bicep build
